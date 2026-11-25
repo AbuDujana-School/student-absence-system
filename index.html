@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-review-candidate-cards-1">
+<meta name="app-build" content="2026-11-25-reserve-smart-circle-whatsapp-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11766,7 +11766,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-review-candidate-cards-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-smart-circle-whatsapp-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -15108,34 +15108,30 @@ async function timetableSaveOwner() {
     const formattedDate=Number.isFinite(parsedDate.getTime())
       ? new Intl.DateTimeFormat('ar-OM',{day:'numeric',month:'long',year:'numeric',numberingSystem:'arab',timeZone:'Asia/Muscat'}).format(parsedDate)
       : dateLabel(date);
-    let message='*توزيع حصص الاحتياط*\n\n*'+weekday+'، '+formattedDate+'*\n\n';
+    const departmentTitle=document.querySelector('#subxReserveDepartmentChoiceCards [data-reserve-department-title]');
+    const rawDepartment=String(departmentTitle?.dataset.departmentName||departmentTitle?.textContent||'').trim();
+    const department=/التوزيع\s+لمعلمي\s+قسمك/.test(rawDepartment)
+      ? 'قسمك'
+      : rawDepartment.replace(/^التوزيع\s+لمعلمي\s+قسم\s*/,'').trim()||'قسمك';
+    let message='*توزيع حصص الاحتياط*\n\n`'+department+'`\n\n*'+weekday+'، '+formattedDate+'*\n\n';
     const groups=new Map();
     const addRow=function(item){
       const absentName=String(item?.absentTeacherName||'').trim();
       if(!absentName)return;
       if(!groups.has(absentName))groups.set(absentName,[]);
-      groups.get(absentName).push({
-        period:Number(item.period),
-        className:item.className||'غير محدد',
-        substitute:item.substituteTeacherName||'لم يحدد',
-        dailyTeachingCount:Number.isFinite(Number(item.substituteDailyTeachingCount))
-          ?Number(item.substituteDailyTeachingCount)
-          :(()=>{const option=(item.candidateOptions||[]).find(candidate=>candidate.teacherName===item.substituteTeacherName);return option&&Number.isFinite(Number(option.dailyTeachingCount))?Number(option.dailyTeachingCount):null;})()
-      });
+      groups.get(absentName).push({period:Number(item.period),className:item.className||'غير محدد',substitute:item.substituteTeacherName||'لم يحدد'});
     };
     [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[]),...(currentPlan.unassigned||[])].forEach(addRow);
     const orderedNames=[...currentAbsentNames,...[...groups.keys()].filter(name=>!currentAbsentNames.includes(name))];
     const orderedGroups=orderedNames.map(name=>({name,rows:groups.get(name)||[]})).filter(group=>group.rows.length);
     orderedGroups.forEach(function(group,index){
-      message+='*'+(index+1)+'-* المعلم الغائب: *'+group.name+'*\n\n';
-      group.rows.sort((a,b)=>a.period-b.period).forEach(function(row){
-        message+='- الحصة *'+String(row.period)+'* | الصف '+row.className+'\n';
-        message+='*الاحتياط: '+row.substitute+'*';
-        if(row.dailyTeachingCount!==null)message+=' · لديه '+row.dailyTeachingCount+' حصص تدريس اليوم';
-        message+='\n\n';
+      message+='*'+(index+1)+'-* *المعلم الغائب* : `'+group.name+'`\n\n';
+      group.rows.sort((first,second)=>first.period-second.period).forEach(function(row){
+        const periodLabel=Number.isFinite(row.period)?new Intl.NumberFormat('en-US',{useGrouping:false}).format(row.period):'—';
+        message+='- الحصة *'+periodLabel+'* | الصف '+String(row.className||'غير محدد')+'\n';
+        message+='*الاحتياط* : `'+String(row.substitute||'لم يحدد')+'`\n\n';
       });
     });
-    message+='إدارة المدرسة';
     return message;
   }
   window.substitutionShareWhatsapp=function(){
@@ -15289,7 +15285,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-review-candidate-cards-1"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-smart-circle-whatsapp-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">

@@ -1,4 +1,5 @@
 const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
+const reserveWorkflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -98,4 +99,24 @@ Deno.test("review redesign preserves the existing atomic save, WhatsApp, and off
   assert(save.includes("timetable_substitution_batch_save"), "Approval must continue through the existing atomic server action");
   assert(share.includes("buildShareMessage()"), "WhatsApp must use the existing current-plan message builder");
   assert(print.includes("window.printOfficialReserveReport(orderedGroups,selectedDate(),weekdayFor(selectedDate()));"), "PDF must continue through the official reserve report template");
+});
+
+Deno.test("department options use a softer modern glass treatment and the smart action is a responsive circle", () => {
+  assert(reserveWorkflow.includes("subxReservePolishedChoiceStyles"), "The dedicated polished choice styles must be installed once");
+  assert(reserveWorkflow.includes("background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(242,248,250,.94))"), "The main choices must use soft glass surfaces instead of saturated gradients");
+  assert(reserveWorkflow.includes("border-radius:50%!important"), "The smart distribution action must remain circular");
+  assert(reserveWorkflow.includes("clamp(116px,35vw,146px)"), "The circular action must scale with the phone viewport");
+  assert(reserveWorkflow.includes("subx-smart-generate-label"), "The smart action must carry its own clear Arabic label");
+});
+
+Deno.test("WhatsApp uses the requested department/date/absent-teacher/lesson message layout", () => {
+  const share = section("function buildShareMessage(){", "\n  window.substitutionShareWhatsapp=function(){");
+  assert(share.includes("data-reserve-department-title"), "The department title must be read dynamically from the active school department");
+  assert(share.includes("*توزيع حصص الاحتياط*"), "The share must use the requested title");
+  assert(share.includes("`'+department+'`"), "The department must appear as WhatsApp inline code");
+  assert(share.includes("*'+(index+1)+'-* *المعلم الغائب* : `'+group.name+'`"), "Each absent teacher must be numbered and shown in the requested format");
+  assert(share.includes("*الاحتياط* : `'+String(row.substitute||'لم يحدد')+'`"), "Each substitute must appear on its own line as inline code");
+  assert(share.includes("new Intl.NumberFormat('en-US'"), "Period digits must remain English digits");
+  assert(!share.includes("dailyTeachingCount"), "The WhatsApp message must not append teaching-load details");
+  assert(!share.includes("إدارة المدرسة"), "The WhatsApp message must not append the old closing line");
 });
