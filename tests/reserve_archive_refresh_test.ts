@@ -36,7 +36,7 @@ Deno.test("reserve archive refresh is centralized and mutation-only", () => {
     assert(!auto.includes('"'+readOnlyAction+'"'), "Read-only action must not trigger mutation archive refresh: " + readOnlyAction);
   }
   assert(auto.includes("const reserveMutation=mutationActions.has(action)"), "Only allowlisted mutations may trigger the reserve archive refresh path");
-  assert(auto.includes("if(accessGranted||reserveMutation)refreshDailyArchiveInBackground()"), "Archive refresh must run after authorization or successful mutation without blocking the original request");
+  assert(auto.includes("if(reserveMutation)refreshDailyArchiveInBackground()"), "Archive refresh must run only after a successful mutation without blocking the original request");
   assert(auto.includes('action==="timetable_substitution_archive_access"&&result?.canView===true'), "Authorized archive opening must still load the archive");
 });
 
