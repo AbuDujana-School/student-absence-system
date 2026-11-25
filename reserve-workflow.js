@@ -2701,9 +2701,6 @@
     }
   }
   installLegacyOtherDepartmentTeacherPicker();
-    // The canonical date/absence controls own the single reason-picker flow.
-  if(typeof MutationObserver!=="undefined"&&document.body){
-    // Do not wrap timetableDailyAddAbsent here: the visible checkbox capture handler already opens the picker.
   }
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
