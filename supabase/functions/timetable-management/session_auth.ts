@@ -238,8 +238,8 @@ export function canUseTimetableAction(
     "timetable_substitution_cancel_batch",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
+    "timetable_substitution_departments",
   ]);
-  return new Set([
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
