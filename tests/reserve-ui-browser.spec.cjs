@@ -95,9 +95,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       await page.waitForFunction(() => window.calls.options === 1);
       await page.waitForTimeout(0);
       const quickDateNav = page.locator("#subxCanonicalDateQuickNav");
-      await expect(quickDateNav, role.id + " visible canonical date navigation").toBeVisible();
-      await quickDateNav.locator('[data-date-offset="-1"]').click();
-      expect(await page.locator("#substitutionDate").inputValue(), role.id + " yesterday shortcut").toBe("2026-11-23");
+      await expect(quickDateNav, role.id + " duplicate upper date navigation removed").toHaveCount(0);
+      await expect(page.locator("#substitutionDate"), role.id + " calendar remains available").toBeVisible();
       const inFlightCalls = await page.evaluate(() => window.calls.options);
       expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
       await page.evaluate(() => window.releaseOptions());
