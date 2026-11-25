@@ -38,3 +38,10 @@ test('reserve scope and supporting departments use clear glass selection control
   assert.ok(reserve.includes('expanded.hidden=!ids.includes(id)'));
   assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
 });
+
+test('supporting department teacher cards recover when the source renderer populates asynchronously', () => {
+  const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
+  assert.ok(reserve.includes('canonicalTeacherSourceHost.dataset.canonicalTeacherObserverBound'));
+  assert.ok(reserve.includes('canonicalTeacherObserver.observe(canonicalTeacherSourceHost,{childList:true,subtree:true})'));
+  assert.ok(reserve.includes('enhanceCanonicalTeacherCards();'));
+});
