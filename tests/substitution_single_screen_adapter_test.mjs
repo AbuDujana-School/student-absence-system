@@ -102,8 +102,9 @@ test('active reserve records are reclassified automatically at Muscat midnight a
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/nextMidnightUtc=Date\.UTC\(today\[0\],today\[1\]-1,today\[2\]\+1,0\)-4\*60\*60\*1000/);
  assert.match(workflow,/window\.timetableDailyLoadArchive\?\.\(\)/);
- assert.match(workflow,/addEventListener\("focus",reserveRefreshAfterOmanDateChange\)/);
- assert.match(workflow,/addEventListener\("visibilitychange"/);
+ assert.match(workflow,/if\(dayChanged&&reserveIsArchiveScreenVisible\(\)\)await window\.timetableDailyLoadArchive/);
+ assert.doesNotMatch(workflow,/addEventListener\("focus"/);
+ assert.doesNotMatch(workflow,/addEventListener\("visibilitychange"/);
 });
 
 test('midnight archive refresh is scoped to the visible reserve screen and does not create background traffic elsewhere',()=>{
