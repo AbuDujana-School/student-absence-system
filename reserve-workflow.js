@@ -2108,8 +2108,8 @@
           const today=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
           const date=$("substitutionDate");
           if(date){
-            date.min=today;
-            if(!date.value||date.value<today)date.value=today;
+            // Historical dates remain selectable; default only an empty date to Muscat today.
+            if(!date.value)date.value=today;
           }
           const legacyDate=$("timetableSubstitutionDate");
           if(legacyDate)legacyDate.value=date?.value||today;
