@@ -36,7 +36,7 @@ Deno.test("reserve lesson cards make the current period unmistakable", () => {
   assert(reserveWorkflow.includes("background:linear-gradient(135deg,#7c3aed,#5b21b6)"), "The period badge must use the requested purple treatment");
 });
 
-Deno.test("reserve edit access lasts through the assignment day and includes future dates", () => {
+Deno.test("reserve edit access lasts through the assignment day and includes future dates", async () => {
   assert(timetableEndpoint.includes("date >= todayInMuscat && now < deadline"), "The endpoint must keep future assignment dates editable through their own day end");
   assert(timetableEndpoint.includes("date >= todayInMuscat"), "Past dates must be read-only for coordinators");
   const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125120000_reserve_edit_until_assignment_day_end.sql", import.meta.url));
