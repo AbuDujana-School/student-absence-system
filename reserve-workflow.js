@@ -1182,26 +1182,16 @@
     const nextMidnightUtc=Date.UTC(today[0],today[1]-1,today[2]+1,0)-4*60*60*1000;
     const delay=Math.max(1000,nextMidnightUtc-Date.now()+1200);
     reserveMidnightRefreshTimer=setTimeout(async()=>{
-      reserveLastObservedOmanDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-      try{if(reserveIsArchiveScreenVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const dayChanged=current!==reserveLastObservedOmanDate;
+      reserveLastObservedOmanDate=current;
+      try{if(dayChanged&&reserveIsArchiveScreenVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
       reserveScheduleMidnightRefresh();
     },delay);
   }
   function reserveIsArchiveScreenVisible(){
     const panel=document.getElementById("timetableSubstitutionPanel");
     return Boolean(panel&&panel.getClientRects().length);
-  }
-  function reserveRefreshAfterOmanDateChange(){
-    const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    if(current===reserveLastObservedOmanDate)return;
-    reserveLastObservedOmanDate=current;
-    if(reserveIsArchiveScreenVisible())window.timetableDailyLoadArchive?.();
-    reserveScheduleMidnightRefresh();
-  }
-  if(!window.__reserveMidnightRefreshBound){
-    window.__reserveMidnightRefreshBound=true;
-    window.addEventListener("focus",reserveRefreshAfterOmanDateChange);
-    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reserveRefreshAfterOmanDateChange();});
   }
   reserveScheduleMidnightRefresh();
 
