@@ -43,8 +43,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         <div class="rounded-3xl"><div id="substitutionAbsenteeList"></div></div>
         <div id="substitutionPlanPanel"></div><div id="subxFloatingBar"></div>
         <div id="substitutionStatsPanel">stats</div><div id="substitutionOtherDepartmentsWrap" class="hidden">other departments</div>
-        <section id="subxEditPanel"><div id="subxEditContent"></div></section>
-        <section id="subxArchivePanel"><div id="subxArchiveContent"></div></section>
+        <section id="subxEditPanel"><div id="subxEditMountArea"></div></section>
+        <section id="subxArchivePanel"><div id="subxArchiveMountArea"></div></section>
       </section>
       <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden">
         <button id="timetableDailyOtherDepartmentsButton">other departments</button>
@@ -115,10 +115,10 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         visible: !$("substitutionView").classList.contains("hidden"),
         legacyHidden: $("timetableSubstitutionPanel").classList.contains("hidden"),
         legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
-        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditContent",
-        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveContent",
-        adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveContent",
-        departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveContent",
+        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditMountArea",
+        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveMountArea",
+        adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveMountArea",
+        departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveMountArea",
         crossDepartment: !$("substitutionOtherDepartmentsWrap").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
         archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
