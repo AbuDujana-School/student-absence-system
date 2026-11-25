@@ -79,3 +79,21 @@ test('the canonical picker selection is reused by the absentee checkbox handler 
  assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker\(absentName,"",resolve\)/);
  assert.match(html,/const sharedReason=window\.__mainReserveAbsenceReasons\?\.\[reasonKey\]/);
 });
+
+test('canonical distribution date never permits a past date and quick navigation exposes only today and tomorrow',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/distributionDate\.min=today/);
+ assert.match(workflow,/distributionDate\.addEventListener\("input",enforceNoPastDistributionDate\)/);
+ assert.match(workflow,/data-date-offset="0"[\s\S]*data-date-offset="1"/);
+ assert.doesNotMatch(workflow,/data-date-offset="-1"/);
+});
+test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/tt-period-indicator\{display:flex;flex-direction:column/);
+ assert.match(workflow,/min-height:5\.1rem/);
+ assert.match(workflow,/end\.setUTCDate\(end\.getUTCDate\(\)\+365\)/);
+});
+test('saved group edit actions use the saved assignment date, not the currently selected date',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/savedRows\[0\]\?\.assignmentDate\|\|timetableSubstitutionGetDate\(\)\.date/);
+});
