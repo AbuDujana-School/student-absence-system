@@ -896,7 +896,7 @@
         const savedRows=rows.filter(item=>item.kind==="saved");
         const date=timetableSubstitutionGetDate().date;
         const canDelete=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
-        const canEdit=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+        const canEdit=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
         const savedReason=String(savedRows.find(item=>item.absenceReason&&item.absenceReason!=="-")?.absenceReason||reserveAbsenceReasons[absentName]||"");
         const actions=(canEdit||canDelete)?'<div class="mt-3 flex flex-wrap gap-2">'+(canEdit?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+(canDelete?'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button>':"")+'</div>':'<span class="mt-2 block text-[10px] text-slate-500">انتهت مهلة الحصة أو أن السجل للقراءة فقط.</span>';
         return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-[10px] font-black text-emerald-700">تم حفظ التوزيع</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+savedRows.length+' حصص محفوظة</div><div class="mt-1 text-[10px] text-amber-800">سبب الغياب: '+esc(savedReason||"—")+'</div></div>'+actions+'</div></section>';
@@ -907,7 +907,7 @@
       const savedRows=rows.filter(item=>item.kind==="saved");
       const savedGroupDate=timetableSubstitutionGetDate().date;
       const canDeleteSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
-      const canEditSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+      const canEditSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
       const mixedSavedActions=pendingRows.length&&(canDeleteSavedGroup||canEditSavedGroup)?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+(canDeleteSavedGroup?'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button>':"")+'</div>':"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
@@ -919,7 +919,7 @@
         if (item.kind==="saved") {
           const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="cancelled"?"ملغى":"محفوظ";
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الغياب: '+esc(item.absenceReason||"-")+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
-          const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
+          const editButton=item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
           const deleteButton=item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button>':"";
           action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهت مهلة الحصة · للقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
@@ -1075,7 +1075,7 @@
         if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
         if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
         if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
-        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token));
+        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to,includeFutureActive:true},token));
         if(($("timetableDailyArchiveFrom")?.value||"")!==from||($("timetableDailyArchiveTo")?.value||"")!==to)return false;
         reserveArchive=Array.isArray(response.archive)?response.archive:[];
         timetableDailyRenderArchive();return true;
@@ -1130,12 +1130,12 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+      absentTeacherName:absentName,allowPastPeriodForEdit:true,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
   }
 
   window.timetableDailyRenderArchive = function () {
     const host=$("timetableDailyArchiveResults");if(!host)return;
-    const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+    const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
     const activeHost=$("timetableDailyActiveResults"),activeCount=$("timetableDailyActiveCount");
     if(activeCount)activeCount.textContent=String(activeRecords.length);
     if(activeHost){
@@ -1144,26 +1144,27 @@
           '<div><strong class="block text-xs text-slate-900">'+esc(item.absentTeacherName)+' ← '+esc(item.substituteTeacherName)+'</strong>'+
           '<span class="text-[10px] text-slate-600">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' · '+esc(item.assignmentDate||"")+'</span></div>'+
           '<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-active-edit="'+esc(item.id)+'">تعديل</button>'+
-          '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-active-delete="'+esc(item.id)+'">حذف</button></div></div>'
+          (item.canDelete===true?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-active-delete="'+esc(item.id)+'">حذف</button>':"")+'</div></div>'
       ).join(""):'<div class="rounded-xl border border-dashed border-emerald-200 bg-white p-4 text-center text-xs text-slate-500">لا توجد توزيعات نشطة قابلة للتعديل أو الحذف حالياً.</div>';
       activeHost.querySelectorAll("[data-tt-active-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttActiveEdit)));
       activeHost.querySelectorAll("[data-tt-active-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttActiveDelete)));
     }
-    if(!reserveArchive.length){
-      host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد سجلات احتياط محفوظة ضمن الفترة المحددة.</div>';
+    const historyRecords=(reserveArchive||[]).filter(item=>!(item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status)));
+    if(!historyRecords.length){
+      host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد سجلات مؤرشفة ضمن الفترة المحددة؛ التوزيعات التي ما زالت ضمن يومها تظهر في قسم التعديل.</div>';
       return;
     }
     const grouped=new Map();
-    reserveArchive.forEach(item=>{const key=item.assignmentDate||"تاريخ غير محدد";if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(item);});
-    const activeTotal=reserveArchive.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status)).length;
-    const archivedTotal=reserveArchive.length-activeTotal;
+    historyRecords.forEach(item=>{const key=item.assignmentDate||"تاريخ غير محدد";if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(item);});
+    const activeTotal=activeRecords.length;
+    const archivedTotal=historyRecords.length;
     host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2">'+
-      '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف متاح تعديلها وحذفها حتى نهاية اليوم بتوقيت سلطنة عمان</span></div>'+
+      '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة في قسم التعديل</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف متاح تعديلها حتى نهاية يومها بتوقيت سلطنة عمان، والحذف وفق مهلة الحصة</span></div>'+
       '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي للقراءة والطباعة</strong><span class="text-[10px] text-slate-600">'+archivedTotal+' تكليف محفوظ في الأرشيف</span></div></div>'+
       Array.from(grouped.entries()).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
         const byAbsent=new Map();
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
-        const editableItems=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+        const editableItems=items.filter(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
         const dayButton=editableItems.length?'<button type="button" class="tt-action bg-indigo-700 text-white" data-tt-open-day-edit="'+esc(date)+'">تعديل توزيع اليوم ('+editableItems.length+')</button>':"";
         const absentGroups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
@@ -1173,10 +1174,10 @@
             '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-group-date="'+esc(date)+'" data-tt-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+rows.length+')</button>':"";
           const rowsMarkup=rows.map(item=>{
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
-            const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
-            const readOnly=item.canEdit===false&&["assigned","confirmed"].includes(item.status);
+            const editable=item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status);
+            const readOnly=item.canEdit===false&&["assigned","confirmed","completed"].includes(item.status);
             const actions=editable?
-              '<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button></div>':
+              '<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button>'+(item.canDelete===true?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button>':"") +'</div>':
               '<span class="text-[10px] text-slate-400">'+(readOnly?"سجل تاريخي · للقراءة فقط":state)+'</span>';
             return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</div>'+
               '<small>سبب الغياب: '+esc(item.absenceReason||"-")+'</small><small class="block">سبب الاحتياط: '+esc(item.reason||"-")+' · '+state+'</small></div>'+actions+'</div>';
@@ -1194,7 +1195,7 @@
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
-    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
+    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
     if(!items.length){status("لا توجد تكليفات ضمن مهلة التعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
       const absentNames=[...new Set(items.map(item=>item.absentTeacherName))],weekday=items[0].weekday;
@@ -1307,8 +1308,8 @@
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||reserveCumulativeArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
-    if(item.canEdit!==true||!["assigned","confirmed"].includes(item.status)){
-      status("انتهت مهلة تعديل هذه الحصة؛ يسمح بالتعديل حتى نهاية وقتها المحدد في الجدول.","error");return;
+    if(item.canEdit!==true||!["assigned","confirmed","completed"].includes(item.status)){
+      status("انتهى يوم هذا التوزيع؛ انتقل السجل إلى الأرشيف وأصبح للقراءة فقط.","error");return;
     }
     try{
       const token=appAuthSession?.token||readAppAuthToken();
