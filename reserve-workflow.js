@@ -1601,16 +1601,18 @@
       const groups=buildReserveReportGroups(reserveBatchPreview||{});
       if(!groups.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-      let message="*توزيع حصص الاحتياط*\n\n*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
+      const department=await reservePrintActorSubject();
+      let message="*توزيع حصص الاحتياط*\n";
+      if(department)message+="`"+department+"`\n\n";
+      message+="*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
       groups.forEach((group,index)=>{
-        message+="*"+(index+1)+"-* المعلم الغائب: *"+group.absentName+"*\n";
-        if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n";
-        message+="\n";
+        message+="*"+(index+1)+"-* *المعلم الغائب* : `"+group.absentName+"`\n\n";
+        if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n\n";
         group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
           message+="- الحصة *"+String(row.period)+"* | الصف "+(row.className||"غير محدد")+"\n";
-          message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n";
+          message+="*الاحتياط* : `"+(row.substitute||"لم يحدد")+"`\n";
           if(row.reserveReason&&row.reserveReason!=="-")message+="سبب الاحتياط: "+row.reserveReason+"\n";
-          message+="\n";
+          message+="\n\n";
         });
       });
       message+="إدارة المدرسة";
