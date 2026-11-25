@@ -780,6 +780,9 @@
       "@media(max-width:640px){#timetableSubstitutionPanel .tt-lesson{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;padding:.85rem}#timetableSubstitutionPanel .tt-lesson-actions{display:flex;flex-wrap:wrap;gap:.4rem}#timetableSubstitutionPanel .tt-group-head{padding:.85rem}}",
       "#timetableSubstitutionPanel .tt-group{overflow:hidden;border:1px solid #dbe4ed;border-radius:1.25rem;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.04)}",
       "#timetableSubstitutionPanel .tt-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.1rem;background:linear-gradient(90deg,#f8fafc,#ecfdf5)}",
+      ".tt-lesson-period-badge{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-width:156px;min-height:54px;padding:.65rem 1rem;border:1px solid rgba(124,58,237,.3);border-radius:16px;background:linear-gradient(135deg,rgba(245,243,255,.98),rgba(221,214,254,.9));color:#5b21b6;font-size:15px;font-weight:1000;box-shadow:0 8px 20px rgba(109,40,217,.15),inset 0 1px 0 rgba(255,255,255,.9)}",
+      ".tt-lesson-period-badge strong{font-size:17px;line-height:1.25;font-weight:1000}",
+      ".dark .tt-lesson-period-badge{border-color:rgba(196,181,253,.35);background:linear-gradient(135deg,rgba(76,29,149,.5),rgba(91,33,182,.42));color:#ddd6fe;box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08)}",
       "#timetableSubstitutionPanel .tt-reason{width:100%;min-height:2.6rem;border:1px solid #cbd5e1;border-radius:.8rem;padding:.7rem;background:#fff;color:#0f172a;font-size:.75rem}",
       "#timetableDailySummary .tt-stat{border:1px solid #e2e8f0;border-radius:1rem;background:#f8fafc;padding:.8rem}",
       "#timetableDailySummary .tt-stat strong{display:block;font-size:1.25rem;font-weight:900;color:#0f172a}",
@@ -926,7 +929,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-lesson-period-badge" aria-label="الحصة '+esc(formatReservePeriod(item.period))+'"><span>الحصة</span><strong>'+esc(formatReservePeriod(item.period))+'</strong></div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -2557,16 +2560,19 @@
           ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
           root.classList.remove("hidden");
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
-          const today=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+          const today=typeof getOmanLocalDate==="function"?getOmanLocalDate():reserveCurrentMuscatDate();
+          const isCustomCoordinator=reservePrincipal?.type==="custom";
           const date=$("substitutionDate");
           if(date){
-            // Historical dates remain selectable; default only an empty date to Muscat today.
-            if(!date.value)date.value=today;
+            if(isCustomCoordinator)date.min=today;else date.removeAttribute("min");
+            if(!date.value||(isCustomCoordinator&&date.value<today))date.value=today;
           }
           const legacyDate=$("timetableSubstitutionDate");
-          if(legacyDate)legacyDate.value=date?.value||today;
+          if(legacyDate){
+            if(isCustomCoordinator)legacyDate.min=today;else legacyDate.removeAttribute("min");
+            legacyDate.value=date?.value||today;
+          }
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
-          const isCustomCoordinator=reservePrincipal?.type==="custom";
           $("substitutionOtherDepartmentsWrap")?.classList.toggle("hidden",!canExpand);
           $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
           root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
@@ -2617,6 +2623,25 @@
     }
     const distributionDate=$("substitutionDate");
     if(distributionDate){
+      const enforceCustomCoordinatorDate=()=>{
+        if(appAuthSession?.principal?.type!=="custom"){distributionDate.removeAttribute("min");return true;}
+        const today=typeof getOmanLocalDate==="function"?String(getOmanLocalDate()):reserveCurrentMuscatDate();
+        distributionDate.min=today;
+        if(distributionDate.value&&distributionDate.value<today){
+          distributionDate.value=today;
+          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
+          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
+          showToast("لا يمكن لمنسق المادة اختيار تاريخ مضى. اختر اليوم أو تاريخاً مستقبلياً.","error");
+          return false;
+        }
+        return true;
+      };
+      if(distributionDate.dataset.customCoordinatorDateGuard!=="1"){
+        distributionDate.dataset.customCoordinatorDateGuard="1";
+        enforceCustomCoordinatorDate();
+        distributionDate.addEventListener("input",enforceCustomCoordinatorDate);
+        distributionDate.addEventListener("change",enforceCustomCoordinatorDate);
+      }
       const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
       if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
         const nav=document.createElement("div");
@@ -2625,7 +2650,7 @@
         nav.setAttribute("role","group");
         nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
         nav.setAttribute("aria-controls","substitutionDate");
-        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+        nav.innerHTML='<button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">اختر اليوم أو غداً، واستخدم التقويم للتواريخ الأخرى المسموح بها</span>';
         dateCard.appendChild(nav);
         nav.addEventListener("click",event=>{
           const button=event.target.closest("[data-date-offset]");
@@ -2670,6 +2695,19 @@
     }
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
+    const installPrimaryReasonPickerBridge=()=>{
+      const bridge=function(absentName,currentValue,onConfirm){
+        const known=String(reasons[reasonKey(absentName)]||"").trim();
+        if(known){if(typeof onConfirm==="function")onConfirm(known);return;}
+        openAbsenceReasonPicker(absentName,onConfirm,currentValue);
+      };
+      bridge.__mainReservePrimaryReasonPicker=true;
+      window.openSubstitutionAbsenceReasonPicker=bridge;
+    };
+    if(document.readyState==="loading"){
+      document.addEventListener("DOMContentLoaded",()=>queueMicrotask(installPrimaryReasonPickerBridge),{once:true});
+      window.addEventListener("load",installPrimaryReasonPickerBridge,{once:true});
+    }else queueMicrotask(installPrimaryReasonPickerBridge);
     if(root.dataset.mainReserveReasonsInstalled!=="1"){
       root.dataset.mainReserveReasonsInstalled="1";
       root.addEventListener("change",event=>{
