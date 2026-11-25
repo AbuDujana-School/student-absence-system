@@ -58,6 +58,7 @@ test('absentee selection card is made visible after moving it into its dedicated
 });
 
 test('the restored absence modal retains its selected-state and accessible choice styling',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/#timetableDailyAbsenceReasonModal \.tt-absence-reason-option:has\(input:checked\)/);
  assert.match(workflow,/ttAbsenceReasonChoice/);
  assert.match(workflow,/fa-hospital/);
