@@ -2617,6 +2617,125 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     // The visible edit/archive lists are rendered by index.html and open this
     // module's authenticated full-day editor; moving both old panels into them
     // would create two competing edit paths.
+    function installReserveArchivePremiumDateControls(){
+      const host=$("subxArchiveMountArea");
+      if(!host)return false;
+      const styleId="subxReserveArchivePremiumDateStyles";
+      if(!document.getElementById(styleId)){
+        const style=document.createElement("style");
+        style.id=styleId;
+        style.textContent=[
+          "#subxArchiveMountArea .subx-archive-date-label{display:grid;gap:8px;min-width:0;padding:13px;border:1px solid rgba(148,163,184,.22);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(240,249,255,.82));box-shadow:0 8px 22px rgba(15,23,42,.055);color:#334155;font-weight:900}",
+          "#subxArchiveMountArea .subx-archive-date-icon{display:grid;place-items:center;width:32px;height:32px;border:1px solid rgba(13,148,136,.18);border-radius:11px;background:linear-gradient(145deg,#ecfeff,#ccfbf1);color:#0f766e;font-size:14px}",
+          "#subxArchiveMountArea .subx-archive-date-input{display:block;width:100%;min-height:54px;padding:10px 13px;border:1px solid rgba(13,148,136,.24);border-radius:15px;background:linear-gradient(135deg,#fff,#effdfa);color:#123047;font-size:14px;font-weight:900;letter-spacing:.02em;text-align:center;direction:ltr;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 5px 14px rgba(13,148,136,.055);transition:border-color .18s,box-shadow .18s,transform .18s}",
+          "#subxArchiveMountArea .subx-archive-date-input:hover{border-color:rgba(13,148,136,.5);box-shadow:0 7px 18px rgba(13,148,136,.1)}",
+          "#subxArchiveMountArea .subx-archive-date-input:focus-visible{outline:3px solid rgba(20,184,166,.18);outline-offset:2px;border-color:#0f9b8e;box-shadow:0 0 0 4px rgba(20,184,166,.11)}",
+          "#subxArchiveMountArea .subx-archive-date-input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.86;filter:sepia(.5) saturate(2.5) hue-rotate(125deg);padding:4px;border-radius:8px}",
+          "#subxArchiveMountArea .subx-archive-date-presets{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:10px;padding:10px 11px;border:1px solid rgba(148,163,184,.17);border-radius:16px;background:linear-gradient(135deg,rgba(248,250,252,.92),rgba(236,253,250,.76))}",
+          "#subxArchiveMountArea .subx-archive-date-presets>span{margin-inline-end:3px;color:#64748b;font-size:10px;font-weight:900}",
+          "#subxArchiveMountArea .subx-archive-date-preset{min-height:36px;padding:8px 12px;border:1px solid rgba(13,148,136,.22);border-radius:999px;background:rgba(255,255,255,.94);color:#0f766e;font-size:10px;font-weight:900;transition:background .18s,border-color .18s,transform .18s}",
+          "#subxArchiveMountArea .subx-archive-date-preset:hover{transform:translateY(-1px);border-color:rgba(13,148,136,.5);background:#ecfdf5}",
+          "#subxArchiveMountArea .subx-archive-date-preset.is-active{border-color:#0f766e;background:linear-gradient(135deg,#0f766e,#0e7490);color:#fff;box-shadow:0 5px 13px rgba(15,118,110,.2)}",
+          "html.dark #subxArchiveMountArea .subx-archive-date-label{border-color:rgba(71,85,105,.6);background:linear-gradient(145deg,rgba(15,23,42,.96),rgba(17,48,61,.88));color:#e2e8f0}",
+          "html.dark #subxArchiveMountArea .subx-archive-date-input{border-color:rgba(45,212,191,.27);background:linear-gradient(135deg,#0f172a,#102a35);color:#e2e8f0}",
+          "html.dark #subxArchiveMountArea .subx-archive-date-presets{border-color:rgba(71,85,105,.56);background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(15,55,58,.74))}",
+          "html.dark #subxArchiveMountArea .subx-archive-date-presets>span{color:#94a3b8}",
+          "html.dark #subxArchiveMountArea .subx-archive-date-preset{border-color:rgba(45,212,191,.22);background:rgba(15,23,42,.92);color:#99f6e4}",
+          "@media(max-width:520px){#subxArchiveMountArea .subx-archive-date-label{padding:11px}#subxArchiveMountArea .subx-archive-date-input{min-height:51px}#subxArchiveMountArea .subx-archive-date-presets{gap:6px}#subxArchiveMountArea .subx-archive-date-preset{flex:1 1 auto}}"
+        ].join("\n");
+        document.head.appendChild(style);
+      }
+      const shiftDate=(value,days)=>{
+        const date=new Date(String(value||"")+"T00:00:00Z");
+        if(!Number.isFinite(date.getTime()))return "";
+        date.setUTCDate(date.getUTCDate()+days);
+        return date.toISOString().slice(0,10);
+      };
+      const apply=()=>{
+        const systemAdmin=appAuthSession?.principal?.type==="admin";
+        const picker=$("subxArchiveDepartmentPickerWrap");
+        if(picker)picker.classList.toggle("hidden",!systemAdmin);
+        if(!systemAdmin){
+          const summary=$("subxArchiveDepartmentSummary");
+          if(summary)summary.textContent="أرشيف القسم المرتبط بحسابك فقط، ويمكنك أيضاً فتح أرشيف احتياط المدرسة الشامل من البطاقة الثانية.";
+        }
+        ["department","school"].forEach(mode=>{
+          const prefix=mode==="school"?"subxArchiveSchool":"subxArchiveDepartment";
+          const fromInput=$(prefix+"From"),toInput=$(prefix+"To");
+          [fromInput,toInput].forEach((input,index)=>{
+            if(!input)return;
+            input.classList.add("subx-archive-date-input");
+            input.setAttribute("aria-label",(mode==="school"?"أرشيف المدرسة — ":"أرشيف القسم — ")+(index===0?"من تاريخ":"إلى تاريخ"));
+            const label=input.closest("label");
+            if(label){
+              label.classList.add("subx-archive-date-label");
+              if(!label.querySelector("[data-subx-archive-date-icon]")){
+                const icon=document.createElement("span");
+                icon.className="subx-archive-date-icon";
+                icon.dataset.subxArchiveDateIcon="1";
+                icon.setAttribute("aria-hidden","true");
+                icon.innerHTML='<i class="fa-regular fa-calendar-days"></i>';
+                label.insertBefore(icon,input);
+              }
+            }
+          });
+          const grid=fromInput?.closest(".grid")||toInput?.closest(".grid");
+          if(grid&&!grid.parentElement?.querySelector('[data-subx-archive-presets="'+mode+'"]')){
+            const presets=document.createElement("div");
+            presets.className="subx-archive-date-presets";
+            presets.dataset.subxArchivePresets=mode;
+            presets.setAttribute("role","group");
+            presets.setAttribute("aria-label","اختصارات تحديد فترة أرشيف الاحتياط");
+            presets.innerHTML='<span>فترات سريعة</span><button type="button" class="subx-archive-date-preset" data-subx-archive-preset="7">آخر ٧ أيام</button><button type="button" class="subx-archive-date-preset" data-subx-archive-preset="30">آخر ٣٠ يوماً</button><button type="button" class="subx-archive-date-preset" data-subx-archive-preset="month">هذا الشهر</button>';
+            grid.insertAdjacentElement("afterend",presets);
+          }
+          const shortcuts=grid?.parentElement?.querySelector('[data-subx-archive-presets="'+mode+'"]');
+          if(shortcuts&&!shortcuts.dataset.bound){
+            shortcuts.dataset.bound="1";
+            shortcuts.addEventListener("click",event=>{
+              const button=event.target.closest("[data-subx-archive-preset]");
+              if(!button)return;
+              const today=reserveCurrentMuscatDate(),to=shiftDate(today,-1);
+              let from="";
+              if(button.dataset.subxArchivePreset==="month"){
+                from=today.slice(0,7)+"-01";
+                if(from>to){
+                  const node=$(mode==="school"?"subxArchiveSchoolStatus":"subxArchiveDepartmentStatus");
+                  if(node)node.textContent="لا توجد أيام مكتملة في الشهر الحالي حتى الآن.";
+                  return;
+                }
+              }else{
+                const span=Number(button.dataset.subxArchivePreset);
+                if(!Number.isInteger(span)||span<1||span>366)return;
+                from=shiftDate(to,-(span-1));
+              }
+              if(!from||!to||from>to)return;
+              if(fromInput)fromInput.value=from;
+              if(toInput)toInput.value=to;
+              [fromInput,toInput].forEach(input=>input?.dispatchEvent(new Event("change",{bubbles:true})));
+              shortcuts.querySelectorAll("[data-subx-archive-preset]").forEach(item=>item.classList.toggle("is-active",item===button));
+              const node=$(mode==="school"?"subxArchiveSchoolStatus":"subxArchiveDepartmentStatus");
+              if(node)node.textContent="تم تحديد الفترة: "+from+" — "+to+". اضغط عرض الأرشيف لجلب السجلات.";
+            });
+          }
+          [fromInput,toInput].forEach(input=>{
+            if(!input||input.dataset.archivePresetReset==="1")return;
+            input.dataset.archivePresetReset="1";
+            input.addEventListener("change",()=>{
+              shortcuts?.querySelectorAll("[data-subx-archive-preset]").forEach(item=>item.classList.remove("is-active"));
+            });
+          });
+        });
+      };
+      apply();
+      if(!host.dataset.premiumDateObserver){
+        host.dataset.premiumDateObserver="1";
+        const observer=new MutationObserver(()=>apply());
+        observer.observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});
+        host.__subxReserveArchivePremiumDateObserver=observer;
+      }
+      return true;
+    }
     function mountCanonicalPanel(){
       const panel=$("timetableSubstitutionPanel");
       const archiveHost=$("subxArchiveMountArea");
@@ -2649,6 +2768,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
           root.classList.remove("hidden");
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
+          installReserveArchivePremiumDateControls();
           const today=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
           const date=$("substitutionDate");
           if(date){
@@ -2663,7 +2783,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
           root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
-          root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
+          // Absence coordinators may open the archive; the server validates the grant and scopes every request.
           if(isCustomCoordinator)root.querySelector('[data-subx-tab="daily"]')?.click();
           // The new day-card renderer owns the edit/archive views for every authorized role.
           // Keep the legacy daily panels hidden so they cannot become a second competing path.
