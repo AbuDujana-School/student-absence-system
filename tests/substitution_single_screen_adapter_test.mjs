@@ -139,6 +139,6 @@ test('reserve edit/archive state refreshes immediately when the tab returns afte
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/function reserveRefreshOmanDayIfChanged\(\)/);
  assert.match(workflow,/addEventListener\("focus",reserveRefreshOmanDayIfChanged\)/);
- assert.match(workflow,/addEventListener\("visibilitychange",\(\)=>\{if\(!document\.hidden\)reserveRefreshOmanDayIfChanged\(\)\}\)/);
+ assert.match(workflow,/addEventListener\("visibilitychange",\(\)=>\{if\(!document\.hidden\)reserveRefreshOmanDayIfChanged\(\);\}\)/);
  assert.match(workflow,/window\.dispatchEvent\(new CustomEvent\("reserve:muscat-day-changed"/);
 });
