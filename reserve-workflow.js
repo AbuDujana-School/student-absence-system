@@ -250,6 +250,12 @@
     });
   }
   window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
+    const selectedDate=String(document.getElementById("substitutionDate")?.value||"");
+    const alreadySelected=window.__mainReserveAbsenceReasons?.[selectedDate+"::"+String(absentName||"").trim()];
+    if(alreadySelected){
+      if(typeof onConfirm==="function")onConfirm(alreadySelected);
+      return;
+    }
     openAbsenceReasonPicker(absentName,function(value){
       if(typeof onConfirm==="function")onConfirm(value);
     },String(currentValue||""));
@@ -687,7 +693,7 @@
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
       $("timetableDailyActiveReload")?.addEventListener("click", timetableDailyLoadArchive);
-      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const from=start.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;}catch{}
+      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const end=new Date(today+"T00:00:00Z");end.setUTCDate(end.getUTCDate()+365);const from=start.toISOString().slice(0,10),to=end.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=to;}catch{}
     }
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
@@ -716,6 +722,10 @@
       "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
       "#timetableSubstitutionPanel .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
       "#timetableSubstitutionPanel .tt-premium-card-heading>div{min-width:0;flex:1}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge{display:inline-flex;align-items:center;gap:.45rem;min-width:7.4rem;min-height:3.25rem;padding:.55rem .9rem;border:1px solid rgba(139,92,246,.32);border-radius:1rem;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 8px 20px rgba(91,33,182,.22),inset 0 1px 0 rgba(255,255,255,.24)}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge span{font-size:.78rem;font-weight:900;opacity:.94}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge strong{font-size:1.45rem;line-height:1;font-weight:1000;color:#fff}",
+      ".dark #timetableSubstitutionPanel .tt-lesson-period-badge{border-color:rgba(196,181,253,.4);background:linear-gradient(135deg,#6d28d9,#4c1d95);box-shadow:0 8px 22px rgba(0,0,0,.3)}",
       "#timetableSubstitutionPanel .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
       "#timetableSubstitutionPanel .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
@@ -926,7 +936,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-lesson-period-badge"><span>الحصة</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong></div><strong class="mt-2 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -2617,6 +2627,9 @@
     }
     const distributionDate=$("substitutionDate");
     if(distributionDate){
+      const isSubjectCoordinator=typeof activeUser!=="undefined"&&activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true;
+      const todayForDateControl=typeof getOmanLocalDate==="function"?String(getOmanLocalDate()):reserveCurrentMuscatDate();
+      if(isSubjectCoordinator)distributionDate.min=todayForDateControl;
       const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
       if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
         const nav=document.createElement("div");
@@ -2625,7 +2638,7 @@
         nav.setAttribute("role","group");
         nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
         nav.setAttribute("aria-controls","substitutionDate");
-        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+        nav.innerHTML='<button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">اختر اليوم أو غداً، أو استخدم التقويم لتاريخ مستقبلي</span>';
         dateCard.appendChild(nav);
         nav.addEventListener("click",event=>{
           const button=event.target.closest("[data-date-offset]");
@@ -2642,6 +2655,18 @@
           distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
           nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
         });
+      }
+      if(isSubjectCoordinator&&distributionDate.dataset.canonicalFutureOnly!=="1"){
+        distributionDate.dataset.canonicalFutureOnly="1";
+        distributionDate.addEventListener("change",()=>{
+          const today=typeof getOmanLocalDate==="function"?String(getOmanLocalDate()):reserveCurrentMuscatDate();
+          if(distributionDate.value&&distributionDate.value<today){
+            distributionDate.value=today;
+            distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
+            distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
+            status("لا يمكن لمنسق المادة اختيار تاريخ مضى. يمكنك اختيار اليوم أو أي تاريخ مستقبلي.","error");
+          }
+        },true);
       }
       if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
         distributionDate.dataset.canonicalLegacyDateSync="1";
