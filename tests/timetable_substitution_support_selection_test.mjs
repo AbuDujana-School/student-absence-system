@@ -27,9 +27,9 @@ test("timetable support department is translated into server-validated teacher n
   assert.match(save, /otherDepartmentId,otherTeacherNames/);
 });
 
-test("changing the support department refreshes the active timetable preview", () => {
-  assert.match(html, /onchange="timetableSubstitutionOtherDepartmentChanged\(\)"/);
-  const change = section("function timetableSubstitutionOtherDepartmentChanged()", "window.timetableSubstitutionOtherDepartmentsData=");
-  assert.match(change, /timetableDailyAbsentTeachers\.length\)void timetableDailyRefreshAll\(\)/);
-  assert.match(change, /else void timetablePreviewSubstitutions\(\)/);
+test("removed timetable daily panel does not remove home-page support department selection", () => {
+  assert.doesNotMatch(html, /id="timetableSubstitutionPanel"/);
+  assert.doesNotMatch(html, /onchange="timetableSubstitutionOtherDepartmentChanged\(\)"/);
+  assert.match(html, /id="substitutionOtherDepartmentSelect"/);
+  assert.match(html, /timetableLoadOtherDepartmentOptions\?\.\('substitutionOtherDepartments','substitutionOtherDepartmentSelect'\)/);
 });
