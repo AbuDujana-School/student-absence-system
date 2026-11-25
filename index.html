@@ -3691,7 +3691,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <section id="sec-timetable" class="hidden space-y-5" dir="rtl">
         <div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
           <div class="flex flex-wrap items-center justify-between gap-4">
-            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">لوحة الجداول والاحتياط الذكية</h2><p class="mt-2 text-xs text-cyan-100">وزّع احتياط اليوم بسرعة، وراجع الجدول العام واعتماده من تبويب الإعدادات.</p></div>
+            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">لوحة الجداول والاحتياط الذكية</h2><p class="mt-2 text-xs text-cyan-100">راجع إعداد الجدول العام واعتماده، واستعرض جداول الصفوف بسهولة.</p></div>
             <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-emerald-200"><i class="fa-solid fa-file-excel"></i></span>
           </div>
         </div>
@@ -3718,8 +3718,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </style>
         <div class="tt-dashboard">
           <nav class="tt-tabs tt-no-print" aria-label="تبويبات الجداول والاحتياط">
-            <button type="button" class="tt-tab" id="timetableDailyTabButton" aria-selected="true" onclick="timetableSwitchDashboardTab('daily')">📅 الاحتياط اليومي</button>
-            <button type="button" class="tt-tab" id="timetableSettingsTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
+            
+            <button type="button" class="tt-tab" id="timetableSettingsTabButton" aria-selected="true" onclick="timetableSwitchDashboardTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
             <button type="button" class="tt-tab" id="timetableClassTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('classes')">🏫 جداول الصفوف</button>
           </nav>
         </div>
@@ -3834,30 +3834,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             </div>
           </div>
         </div>
-        <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
-        <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
-          <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
-          <div class="tt-toolbar tt-no-print">
-            <div class="relative min-w-0 flex-1" style="min-width:min(100%,260px)">
-              <input id="timetableDailyAbsentSearch" type="search" autocomplete="off" class="tt-search" placeholder="ابحث عن المعلم الغائب ثم اختر اسمه..." oninput="timetableDailyFilterAbsentTeachers(this.value)" onkeydown="if(event.key==='Escape')document.getElementById('timetableDailySuggestions').classList.add('hidden')">
-              <div id="timetableDailySuggestions" class="tt-suggestions hidden"></div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" class="tt-action bg-blue-800 text-white" onclick="timetableDailyAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
-              <button type="button" class="tt-action bg-emerald-600 text-white" onclick="timetableDailyShareWhatsApp()">💬 مشاركة كشف اليوم</button>
-              <button type="button" class="tt-action border border-slate-300 bg-white text-slate-800" onclick="window.print()">🖨️ طباعة الكشف</button>
-            </div>
-          </div>
-          <div id="timetableDailyAbsentTags" class="flex flex-wrap gap-2 min-h-7" aria-live="polite"></div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="timetableLoadSubstitutionOptions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="hidden">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()"><option value="">اختر المعلم الغائب</option></select></label>
-          </div>
-          <div class="space-y-2"><label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetableToggleOtherDepartments('timetableSubstitutionOtherDepartments','timetableSubstitutionOtherDepartmentSelect')" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label><select id="timetableSubstitutionOtherDepartmentSelect" class="hidden w-full rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" onchange="timetableSubstitutionOtherDepartmentChanged()" disabled><option value="">اختر القسم المطلوب</option></select></div>
-          <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
-          <div id="timetableSubstitutionResults" class="space-y-3"></div>
-        </div>
+        <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات إدارة الجدول العام وجداول الصفوف بعد اعتماد النسخة الأسبوعية.</div>
+        
         <div id="timetableSettingsNotice" class="hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
       </section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
@@ -10419,7 +10397,7 @@ function switchAdminTab(tab) {
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
     if (canAccessReport('reportSubstitutionDistribution')) { initSubstitutionDistributionReport(); loadSubstitutionDistributionReport(true); }
   }
-  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (isGeneralAdminUser(activeUser)) timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableSwitchDashboardTab('settings'); if (isGeneralAdminUser(activeUser)) timetableResumeWeeklyDraft(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -13713,8 +13691,8 @@ let timetableDailyPreviewByAbsent = new Map();
 let timetableDailyBusy = false;
 
 function timetableSwitchDashboardTab(tab) {
-  const settings = tab === "settings";
   const classes = tab === "classes";
+  const settings = !classes;
   const isAdmin = isGeneralAdminUser(activeUser);
   ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"].forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings || !isAdmin));
   const classPanel=document.getElementById("timetableClassWeeklyPanel");
@@ -13723,9 +13701,6 @@ function timetableSwitchDashboardTab(tab) {
   if (access) access.classList.toggle("hidden", !settings || !isAdmin);
   const notice = document.getElementById("timetableAdminImportNotice");
   if (notice) notice.classList.toggle("hidden", !settings || isAdmin);
-  const daily = document.getElementById("timetableSubstitutionPanel");
-  if (daily) daily.classList.toggle("hidden", settings || classes);
-  document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings&&!classes));
   document.getElementById("timetableSettingsTabButton")?.setAttribute("aria-selected", String(settings));
   document.getElementById("timetableClassTabButton")?.setAttribute("aria-selected", String(classes));
   if (settings && isAdmin) {
