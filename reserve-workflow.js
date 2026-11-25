@@ -270,7 +270,7 @@
       const wrapped=function(...args){
         const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
-        if(!absentName)return original.apply(this,args);
+        if(!absentName||document.getElementById("timetableDailyAbsenceReasonModal"))return original.apply(this,args);
         const selectedDate=timetableSubstitutionGetDate().date;
         const existing=[...(reserveArchive||[]),...(reserveCumulativeArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
@@ -773,6 +773,9 @@
       "#timetableSubstitutionPanel .tt-reserve-steps button small{font-size:.58rem;color:#64748b}",
       "@media(max-width:520px){#timetableSubstitutionPanel .tt-reserve-steps{grid-template-columns:1fr}#timetableSubstitutionPanel .tt-reserve-steps button{grid-template-columns:2rem 1fr;grid-template-rows:auto auto}}",
       "#timetableSubstitutionPanel .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
+      "#timetableSubstitutionPanel .tt-period-indicator{display:inline-flex;align-items:center;gap:.5rem;width:max-content;min-width:6.5rem;padding:.45rem .7rem;border:1px solid #c4b5fd;border-radius:.85rem;background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#5b21b6;box-shadow:0 3px 10px rgba(109,40,217,.1)}",
+      "#timetableSubstitutionPanel .tt-period-indicator span{font-size:.7rem;font-weight:800}",
+      "#timetableSubstitutionPanel .tt-period-indicator strong{font-size:1.35rem;line-height:1;font-weight:950;font-variant-numeric:tabular-nums}",
       "#timetableSubstitutionPanel .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
       "#timetableSubstitutionPanel .tt-lesson-choice{min-width:0}",
       "#timetableSubstitutionPanel .tt-lesson-choice select{display:block;width:100%;min-width:0;max-width:100%;border:1px solid #cbd5e1;border-radius:.8rem;background:#fff;padding:.7rem;font-size:16px;line-height:1.4}",
@@ -926,7 +929,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-period-indicator" aria-label="رقم الحصة"><span>الحصة</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong></div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -2625,7 +2628,7 @@
         nav.setAttribute("role","group");
         nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
         nav.setAttribute("aria-controls","substitutionDate");
-        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+        nav.innerHTML='<button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
         dateCard.appendChild(nav);
         nav.addEventListener("click",event=>{
           const button=event.target.closest("[data-date-offset]");
