@@ -314,7 +314,8 @@ Deno.test("per-teacher reserve editing belongs in the edit tab, not in either ar
   const editTab=html.slice(editStart,archiveStart);
   assert(editTab.includes("subx-edit-open-absent"),"Each absent-teacher row in the edit tab must expose its own edit action");
   assert(editTab.includes("data-edit-absent-day")&&editTab.includes("data-edit-absent-name"),"The edit action must retain the exact date and absent-teacher identity");
-  assert(editTab.includes("window.timetableDailyOpenArchiveDayEdit(button.dataset.editAbsentDay,button.dataset.editAbsentName)"),"The action must open the existing editor for this absent teacher only");
+  assert(editTab.includes("const opener=window.timetableDailyOpenArchiveDayEdit"),"The edit row must use the existing authenticated editor");
+  assert(editTab.includes("void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName)"),"The action must open the existing editor for this absent teacher only");
   assert(editTab.includes("subx-edit-delete-group")&&editTab.includes("data-delete-edit-day"),"The existing per-teacher delete action must remain available");
   assert(!source.includes("data-tt-edit-group-date"),"The daily archive must not receive the new group edit action");
   assert(!source.includes("data-home-edit-group-date"),"The cumulative archive must not receive the new group edit action");
