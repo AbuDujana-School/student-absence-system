@@ -209,49 +209,15 @@
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
-    const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
-    const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
-    const normalizedCurrent=current==="إجازة مرضية"?"مرضية":current;
-    const selected=ABSENCE_REASON_OPTIONS.includes(normalizedCurrent)?normalizedCurrent:(current.startsWith("أخرى:")?"أخرى":"");
-    const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
-    const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
-    modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-    const reasonPresentation={
-      "طارئة":{label:"طارئة",icon:"fa-bolt",hint:"حالة طارئة"},
-      "موعد مستشفى":{label:"موعد مستشفى",icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
-      "مرضية":{label:"إجازة مرضية",icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
-      "أخرى":{label:"أخرى",icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
-      "دورة تدريبية":{label:"دورة تدريبية",icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
-    };
-    modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
-      '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
-      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(item.label||reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
-      '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
-      '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
-      '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
-    document.body.appendChild(modal);
-    modal.querySelectorAll('input[name="ttAbsenceReasonChoice"]').forEach(radio=>radio.addEventListener("change",()=>{
-      modal.querySelector("#ttAbsenceReasonOtherWrap")?.classList.toggle("hidden",radio.value!=="أخرى");
-      if(radio.value==="أخرى")modal.querySelector("#ttAbsenceReasonOther")?.focus();
-    }));
-    let settled=false;
-    const cancel=()=>{if(settled)return;settled=true;modal.remove();if(typeof onConfirm==="function")onConfirm(null);};
-    modal.querySelector("[data-absence-reason-cancel]")?.addEventListener("click",cancel);
-    modal.addEventListener("click",event=>{if(event.target===modal)cancel();});
-    modal.querySelector("[data-absence-reason-confirm]")?.addEventListener("click",()=>{
-      const choice=modal.querySelector('input[name="ttAbsenceReasonChoice"]:checked')?.value||"";
-      const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
-      const error=modal.querySelector("#ttAbsenceReasonError");
-      if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
-      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
-      if(settled)return;settled=true;modal.remove();onConfirm(value);
+    const picker=window.openSubstitutionAbsenceReasonPicker;
+    if(typeof picker!=="function"){
+      status("تعذر فتح نافذة سبب الغياب الموحدة. أعد فتح شاشة الاحتياط.","error");
+      return;
+    }
+    picker(absentName,initialValue,value=>{
+      if(typeof onConfirm==="function")onConfirm(value);
     });
   }
-  window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
-    openAbsenceReasonPicker(absentName,function(value){
-      if(typeof onConfirm==="function")onConfirm(value);
-    },String(currentValue||""));
-  };
   function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
