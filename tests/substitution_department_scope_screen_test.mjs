@@ -62,7 +62,7 @@ test('the absent-teacher request remains scoped to the coordinator department',(
   assert.match(loader,/action:'timetable_substitution_preview'/);
   assert.doesNotMatch(loader,/includeOtherDepartments|otherDepartmentIds|otherTeacherNames/);
   const endpoint=section(backend,'if (action === "timetable_substitution_departments")','if (action === "timetable_reserve_stats_access_list")');
-  assert.match(endpoint,/principal\.type!=="admin"\|\|teacher\.departmentId!==ownDepartment/);
+  assert.match(endpoint,/principal\.type==="admin"\|\|teacher\.departmentId!==ownDepartment/);
   assert.match(endpoint,/actorDepartmentId/);
 });
 
