@@ -2529,7 +2529,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     // and editable-today records are mounted in the four-section workspace.
     function mountCanonicalPanel(){
       const panel=$("timetableSubstitutionPanel");
-      const editHost=$("subxEditContent"),archiveHost=$("subxArchiveContent");
+      const editHost=$("subxEditMountArea"),archiveHost=$("subxArchiveMountArea");
       if(!panel||!editHost||!archiveHost)return false;
       panel.classList.add("hidden");
       const activePanel=$("timetableDailyActivePanel");
