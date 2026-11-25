@@ -356,3 +356,19 @@ Deno.test("per-teacher edit opens the canonical saved review and updates origina
   assert(!save.includes("timetable_substitution_batch_save"),"Saved-review changes must never create duplicate assignments");
   assert(html.includes("window.subxNavigateToScreen=function(name,push)"),"The canonical screen adapter must expose in-app navigation to review");
 });
+
+Deno.test("saved reserve review requests the archive with a valid single-day date range", async () => {
+  const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
+  const loaderStart = html.indexOf("async function fetchSavedReserveReviewState(date,absentTeacherName)");
+  const loaderEnd = html.indexOf("function applySavedReserveReviewState(state)", loaderStart);
+  assert(loaderStart >= 0 && loaderEnd > loaderStart, "The saved reserve review loader must exist");
+  const loader = html.slice(loaderStart, loaderEnd);
+  assert(
+    loader.includes("appAuthRequest({action:'timetable_substitution_archive',dateFrom:date,dateTo:date},token)"),
+    "The saved-review archive request must send the selected day as both dateFrom and dateTo"
+  );
+  assert(
+    !loader.includes("appAuthRequest({action:'timetable_substitution_archive',assignmentDate:date},token)"),
+    "The saved-review archive request must not use assignmentDate as a substitute for the required date range"
+  );
+});

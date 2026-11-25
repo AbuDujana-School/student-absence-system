@@ -15066,7 +15066,7 @@ async function timetableSaveOwner() {
     const otherDepartmentIds=includeOtherDepartments&&typeof substitutionOtherDepartmentIds==='function'?substitutionOtherDepartmentIds():[];
     const otherTeacherNames=includeOtherDepartments&&typeof getSubstitutionSelectedOtherTeacherNames==='function'?getSubstitutionSelectedOtherTeacherNames():[];
     const [archiveResponse,preview]=await Promise.all([
-      appAuthRequest({action:'timetable_substitution_archive',assignmentDate:date},token),
+      appAuthRequest({action:'timetable_substitution_archive',dateFrom:date,dateTo:date},token),
       appAuthRequest({action:'timetable_substitution_preview',weekday,assignmentDate:date,forEdit:true,absentTeacherName,
         includeOtherDepartments,otherDepartmentId:otherDepartmentIds[0]||'',otherDepartmentIds,otherTeacherNames},token)
     ]);
