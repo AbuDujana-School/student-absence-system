@@ -80,7 +80,7 @@ function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timi
 }
 function isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate: unknown, todayInMuscat: string): boolean {
   const date = String(assignmentDate ?? "").trim();
-  return /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date >= todayInMuscat;
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= todayInMuscat;
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
@@ -507,12 +507,12 @@ async function handle(req: Request) {
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           ["assigned","confirmed"].includes(String(row.status||""))&&
           (principal.type==="admin"
-            ? String(row.assignment_date||"")===todayInMuscat
+            ? isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)
             : hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat))),
         canDelete:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           (principal.type==="admin"
-            ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))
-            : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
+            ? isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)&&["assigned","confirmed"].includes(String(row.status||""))
+            : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
@@ -1591,7 +1591,7 @@ async function handle(req: Request) {
                 hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             canDelete:String(row.version_id)===String(activeVersion.id)&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")):
-                hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+                hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
             subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
@@ -1767,12 +1767,12 @@ async function handle(req: Request) {
           id:String(row.id),assignmentDate:row.assignment_date||assignmentDate,
           canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
             (principal.type==="admin"
-              ? String(row.assignment_date||"")===todayInMuscat
+              ? isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)
               : hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
           canDelete:String(row.version_id)===String(activeVersion.id)&&
             (principal.type==="admin"
-              ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
-              : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+              ? isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)&&["assigned","confirmed","completed"].includes(String(row.status||""))
+              : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
