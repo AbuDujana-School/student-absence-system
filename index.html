@@ -14791,6 +14791,16 @@ async function timetableSaveOwner() {
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
+    const selectedAssignmentDate=String(selectedDate()||"").trim();
+    const omanToday=typeof window.getOmanLocalDate==="function"
+      ?String(window.getOmanLocalDate())
+      :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedAssignmentDate)||selectedAssignmentDate<omanToday){
+      showToast("لا يمكن اعتماد توزيع بتاريخ سابق. اختر اليوم أو تاريخاً مستقبلياً.","error");
+      const dateInput=document.getElementById("substitutionDate");
+      if(dateInput){dateInput.min=omanToday;dateInput.value=omanToday;dateInput.dispatchEvent(new Event("change",{bubbles:true}));}
+      return;
+    }
     if(currentAbsentNames.some(name=>!absenceReasonsByTeacher.has(name))){showToast('لا يمكن حفظ التوزيع قبل تحديد أسباب غياب جميع المعلمين.','error');return;}
     const button=document.getElementById('substitutionSaveButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ الاعتماد والحفظ...';}
