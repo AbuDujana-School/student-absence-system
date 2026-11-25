@@ -2222,6 +2222,25 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     window.appAuthRequest=async function(body,token,signal) {
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token,signal);
+      if(action==="timetable_substitution_archive_access"&&result?.canView===true){
+        // The archive page initially used canViewSchoolwide as a proxy for
+        // department switching. That is not the same permission: authorized
+        // coordinators may open the school archive, but may only select their
+        // own department in the department archive. Let the page finish its
+        // immediate access rendering, then apply the authoritative capability.
+        const archiveAccess=result;
+        Promise.resolve().then(()=>Promise.resolve().then(()=>{
+          const picker=$("subxArchiveDepartmentPickerWrap");
+          if(picker)picker.classList.toggle("hidden",archiveAccess.canSelectAnyDepartment!==true);
+          const summary=$("subxArchiveDepartmentSummary");
+          if(summary){
+            const departmentName=String(archiveAccess.departmentName||"القسم المرتبط بحسابك").trim();
+            summary.textContent=archiveAccess.canSelectAnyDepartment===true
+              ?"يمكنك اختيار القسم المطلوب من هذه البطاقة، وتعرض البطاقة الثانية أرشيف المدرسة لجميع الأقسام والتخصصات."
+              :"تعرض هذه البطاقة أرشيف "+departmentName+" المرتبط بحسابك، وتعرض البطاقة الثانية أرشيف المدرسة لجميع الأقسام والتخصصات.";
+          }
+        }));
+      }
       const reserveMutation=mutationActions.has(action);
       // Do not warm archive/preview/statistics reads as a side effect of a permission check.
       // The edit/archive screen loads its own data when the user opens it.
