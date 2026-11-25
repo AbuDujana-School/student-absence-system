@@ -482,6 +482,8 @@
     let defaultDateInitialized=false;
     const date=$("timetableSubstitutionDate");
     if(date){
+      if(appAuthSession?.principal?.type==="custom")date.min=reserveCurrentMuscatDate();
+      else date.removeAttribute("min");
       const dateWrap=date.closest("label")||date.parentElement;
       if(dateWrap&&!dateWrap.closest("#ttPremiumDateCard")){
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
