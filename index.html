@@ -2080,17 +2080,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
         </div>
       </div>
-      <div id="studentAffairsDashboardCard" role="button" tabindex="0" aria-label="فتح قسم شؤون الطلبة" onclick="openStudentAffairsView(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStudentAffairsView(true);}" class="hero-card relative overflow-hidden rounded-[2.5rem] p-8 text-white shadow-2xl border cursor-pointer group flex flex-col justify-between min-h-[240px]">
-        <div class="absolute -left-8 -top-10 w-36 h-36 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
-        <div class="relative z-10">
-          <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-violet-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-user-graduate"></i></div>
-        </div>
-        <div class="relative z-10 mt-6"><h4 class="text-3xl font-black text-white mb-2">شؤون الطلبة</h4></div>
-        <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-violet-100">
-          <span>افتح القسم</span>
-          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
-        </div>
-      </div>
+      
       <div id="dutyDashboardCard" onclick="openDutyView()" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-amber-600 via-orange-700 to-rose-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-amber-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
         <div class="relative z-10 flex justify-between items-start">
           <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-amber-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20"><i class="fa-solid fa-user-clock"></i></div>
@@ -2556,22 +2546,22 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   </div>
   <div id="saLogin" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/20"><p id="saLoginError" class="text-sm font-bold text-amber-800 dark:text-amber-200">جارٍ التحقق من جلسة دخولك...</p></div>
   <div id="saContent" class="hidden space-y-5">
-    <nav id="saMainNav" class="sa-main-nav" aria-label="أقسام شؤون الطلبة">
-      <button type="button" class="sa-nav-card is-active" data-sec="1" aria-controls="saSec1" aria-selected="true" onclick="saSwitchMainSection(1)">
-        <span class="sa-nav-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
-        <span>متابعة الغياب والسلوكيات</span>
+    <nav id="saMainNav" class="sa-main-nav" aria-label="أقسام شؤون الطلبة" role="group">
+      <button type="button" class="sa-nav-card is-active" data-sec="1" aria-controls="saSec1" aria-selected="true" aria-pressed="true" onclick="saSwitchMainSection(1)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+        <span class="sa-nav-title">متابعة الغياب والسلوكيات</span>
       </button>
-      <button type="button" class="sa-nav-card" data-sec="2" aria-controls="saSec2" aria-selected="false" onclick="saSwitchMainSection(2)">
-        <span class="sa-nav-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
-        <span>مؤشرات الغياب والسلوكيات</span>
+      <button type="button" class="sa-nav-card" data-sec="2" aria-controls="saSec2" aria-selected="false" aria-pressed="false" onclick="saSwitchMainSection(2)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></span>
+        <span class="sa-nav-title">مؤشرات الغياب والسلوكيات</span>
       </button>
-      <button type="button" class="sa-nav-card" data-sec="3" aria-controls="saSec3" aria-selected="false" onclick="saSwitchMainSection(3)">
+      <button type="button" class="sa-nav-card" data-sec="3" aria-controls="saSec3" aria-selected="false" aria-pressed="false" onclick="saSwitchMainSection(3)">
         <span class="sa-nav-icon"><i class="fa-solid fa-print" aria-hidden="true"></i></span>
-        <span>طباعة التنبيهات</span>
+        <span class="sa-nav-title">طباعة التنبيهات</span>
       </button>
-      <button type="button" class="sa-nav-card" data-sec="4" aria-controls="saSec4" aria-selected="false" onclick="saSwitchMainSection(4)">
-        <span class="sa-nav-icon"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i></span>
-        <span>السجل التفصيلي للطالب</span>
+      <button type="button" class="sa-nav-card" data-sec="4" aria-controls="saSec4" aria-selected="false" aria-pressed="false" onclick="saSwitchMainSection(4)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-id-card" aria-hidden="true"></i></span>
+        <span class="sa-nav-title">السجل التفصيلي للطالب</span>
       </button>
     </nav>
 
@@ -3982,6 +3972,7 @@ function saSwitchMainSection(secNumber){
     const active=button.getAttribute("data-sec")===selected;
     button.classList.toggle("is-active",active);
     button.setAttribute("aria-selected",active?"true":"false");
+    button.setAttribute("aria-pressed",active?"true":"false");
   });
   // Resize existing charts only after the analytics pane becomes visible.
   // This does not reload records, change field values, or touch permissions.
@@ -12294,57 +12285,44 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 <style id="sa-four-section-navigation-ui">
 @media screen {
-
-  /* Mirror the existing authorized top-bar button; do not duplicate permission logic. */
-  #studentAffairsDashboardCard{
-    display:none!important;
-    background:linear-gradient(135deg,#6d28d9 0%,#5b21b6 55%,#183653 100%);
-    border-color:rgba(196,181,253,.36);
-    box-shadow:0 24px 48px -18px rgba(109,40,217,.42)
-  }
-  body:has(#studentAffairsBtn:not(.hidden)) #studentAffairsDashboardCard{display:flex!important}
-  #studentAffairsDashboardCard:hover{box-shadow:0 28px 56px -18px rgba(109,40,217,.55)}
-  .dark #studentAffairsDashboardCard{background:linear-gradient(135deg,#5b21b6 0%,#312e81 58%,#0f1a2b 100%);border-color:rgba(196,181,253,.32)}
   #studentAffairsView .sa-main-nav{
-    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
-    padding:8px;border:1px solid rgba(22,140,133,.2);border-radius:22px;
-    background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(239,247,249,.92));
-    box-shadow:0 14px 32px -23px rgba(24,54,83,.45);
-    backdrop-filter:blur(14px)
-  }
-  .dark #studentAffairsView .sa-main-nav{
-    background:linear-gradient(145deg,rgba(15,26,43,.96),rgba(18,39,56,.94));
-    border-color:rgba(56,189,180,.24)
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
+    width:100%;padding:0;margin:0 0 18px;border:0;border-radius:0;
+    background:transparent;box-shadow:none;backdrop-filter:none;
   }
   #studentAffairsView .sa-nav-card{
-    min-width:0;min-height:82px;display:flex;flex-direction:row;align-items:center;
-    justify-content:center;gap:10px;padding:12px 14px;border:1px solid #dce6ee;
-    border-radius:16px;background:#fff;color:#183653;font-size:13px;font-weight:900;
-    line-height:1.55;text-align:right;cursor:pointer;
-    box-shadow:0 5px 14px -10px rgba(24,54,83,.45);
-    transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;width:100%;min-width:0;aspect-ratio:1 / 1;padding:18px 12px;
+    border:1px solid #d9e4ec;border-radius:24px;
+    background:linear-gradient(150deg,#fff 0%,#f3f8fb 100%);color:#183653;
+    font-size:14px;font-weight:900;line-height:1.65;text-align:center;cursor:pointer;
+    box-shadow:0 12px 28px -19px rgba(24,54,83,.48),inset 0 1px 0 rgba(255,255,255,.9);
+    transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease;
   }
-  .dark #studentAffairsView .sa-nav-card{background:#14283a;border-color:#31475a;color:#e5eef5}
+  .dark #studentAffairsView .sa-nav-card{
+    border-color:#31485c;background:linear-gradient(150deg,#172d40 0%,#102234 100%);
+    color:#e6f0f7;box-shadow:0 14px 30px -20px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.04);
+  }
   #studentAffairsView .sa-nav-icon{
-    width:42px;height:42px;flex:0 0 42px;border-radius:13px;display:grid;
-    place-items:center;color:#fff;font-size:17px;background:linear-gradient(135deg,#168c85,#0f6e69);
-    box-shadow:0 8px 16px -10px rgba(15,110,105,.9)
+    display:grid;place-items:center;width:60px;height:60px;flex:0 0 60px;
+    border:1px solid rgba(255,255,255,.36);border-radius:19px;
+    background:linear-gradient(145deg,#168c85,#0f6e69);color:#fff;font-size:25px;
+    box-shadow:0 10px 22px -13px rgba(15,110,105,.85),inset 0 1px 0 rgba(255,255,255,.22);
   }
-  #studentAffairsView .sa-nav-card[data-sec="2"] .sa-nav-icon{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
-  #studentAffairsView .sa-nav-card[data-sec="3"] .sa-nav-icon{background:linear-gradient(135deg,#f59e0b,#b45309)}
-  #studentAffairsView .sa-nav-card[data-sec="4"] .sa-nav-icon{background:linear-gradient(135deg,#8b5cf6,#5b21b6)}
-  #studentAffairsView .sa-nav-card:hover{transform:translateY(-2px);border-color:#168c85;box-shadow:0 12px 22px -14px rgba(15,110,105,.65)}
+  #studentAffairsView .sa-nav-card[data-sec="2"] .sa-nav-icon{background:linear-gradient(145deg,#3b82f6,#1d4ed8)}
+  #studentAffairsView .sa-nav-card[data-sec="3"] .sa-nav-icon{background:linear-gradient(145deg,#f59e0b,#b45309)}
+  #studentAffairsView .sa-nav-card[data-sec="4"] .sa-nav-icon{background:linear-gradient(145deg,#8b5cf6,#5b21b6)}
+  #studentAffairsView .sa-nav-title{display:block;max-width:100%;font-weight:900}
+  #studentAffairsView .sa-nav-card:hover{transform:translateY(-3px);border-color:#168c85;box-shadow:0 18px 34px -18px rgba(15,110,105,.5)}
   #studentAffairsView .sa-nav-card.is-active{
-    color:#fff!important;border-color:rgba(213,166,74,.8)!important;
-    background:linear-gradient(125deg,#183653,#0f6e69)!important;
-    box-shadow:0 12px 26px -14px rgba(15,110,105,.7),inset 0 1px 0 rgba(255,255,255,.18)
+    border-color:#d5a64a!important;background:linear-gradient(145deg,#183653 0%,#0f6e69 100%)!important;
+    color:#fff!important;box-shadow:0 18px 36px -17px rgba(15,110,105,.62),inset 0 1px 0 rgba(255,255,255,.2);
   }
-  #studentAffairsView .sa-nav-card.is-active .sa-nav-icon{
-    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);box-shadow:none
-  }
-  #studentAffairsView .sa-nav-card:focus-visible{outline:3px solid rgba(22,140,133,.35);outline-offset:3px}
+  #studentAffairsView .sa-nav-card.is-active .sa-nav-icon{border-color:rgba(255,255,255,.42);background:rgba(255,255,255,.16);box-shadow:none}
+  #studentAffairsView .sa-nav-card:focus-visible{outline:3px solid rgba(22,140,133,.38);outline-offset:4px}
   #studentAffairsView .sa-main-pane{min-width:0;width:100%}
-  #saSec2{display:flex;flex-direction:column;gap:18px}
+  #studentAffairsView .sa-main-pane.hidden{display:none!important}
+  #saSec2:not(.hidden){display:flex;flex-direction:column;gap:18px}
   #saSec2 .sa-empty-state{display:block}
   #saSec2:has(#saSupervisionPanel:not(.hidden),#saCompetitionPanel:not(.hidden)) .sa-empty-state{display:none}
   #studentAffairsView>div:first-child p{display:none!important}
@@ -12358,26 +12336,26 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   #saSec3 #saAutomaticNotices>p,
   #saSec4>div>div:first-child p{display:none!important}
   #saSec3 #saAutomaticNotices{width:100%;border-radius:24px}
-  #saSec4>div{
-    width:100%;border:1px solid var(--sa-line,#dce6ee);
-    box-shadow:0 14px 34px -24px rgba(24,54,83,.35)
-  }
+  #saSec4>div{width:100%;border:1px solid var(--sa-line,#dce6ee);box-shadow:0 14px 34px -24px rgba(24,54,83,.35)}
   .dark #saSec4>div{border-color:#2b4054;background:#0d1b2b}
   #saSec1 .sa-report-tabs{flex-shrink:0}
   #saSec1 #saReportClassPicker,#saSec1 #saReportPeriodControls{border-radius:18px}
 }
-
-@media screen and (max-width:900px){
-  #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  #studentAffairsView .sa-nav-card{min-height:72px;padding:10px 12px;font-size:12px}
+@media screen and (max-width:760px){
+  #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #studentAffairsView .sa-nav-card{gap:11px;padding:14px 10px;border-radius:20px;font-size:13px}
+  #studentAffairsView .sa-nav-icon{width:52px;height:52px;flex-basis:52px;border-radius:16px;font-size:22px}
 }
-
-@media screen and (max-width:480px){
-  #studentAffairsView .sa-main-nav{gap:7px;padding:6px;border-radius:18px}
-  #studentAffairsView .sa-nav-card{min-height:76px;flex-direction:column;gap:6px;padding:9px 6px;font-size:10.5px;text-align:center}
-  #studentAffairsView .sa-nav-icon{width:34px;height:34px;flex-basis:34px;border-radius:11px;font-size:15px}
+@media screen and (max-width:420px){
+  #studentAffairsView .sa-main-nav{gap:8px}
+  #studentAffairsView .sa-nav-card{gap:9px;padding:10px 7px;font-size:12px}
+  #studentAffairsView .sa-nav-icon{width:46px;height:46px;flex-basis:46px;border-radius:14px;font-size:20px}
   #saSec1 .sa-report-header{align-items:stretch}
   #saSec1 .sa-report-tabs{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  #studentAffairsView .sa-nav-card{transition:none}
+  #studentAffairsView .sa-nav-card:hover{transform:none}
 }
 </style>
 
