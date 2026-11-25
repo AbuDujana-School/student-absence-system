@@ -1,5 +1,6 @@
 const reserveWorkflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
 const timetableEndpoint = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
+const timetableSessionAuth = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/session_auth.ts", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -67,4 +68,11 @@ Deno.test("server validates each supporting teacher against the explicitly selec
 Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
+});
+
+Deno.test("custom coordinators receive their own dynamic section name but no external department list", () => {
+  assert(timetableSessionAuth.includes('"timetable_substitution_departments"'), "Custom coordinators must be allowed to request the scoped section label");
+  assert(timetableEndpoint.includes('principal.type !== "admin" && principal.type !== "teacher" && principal.type !== "custom"'), "The department lookup must recognize custom coordinators");
+  assert(timetableEndpoint.includes('if(principal.type==="custom")return reply(200,{ok:true,departments:[],actorDepartmentName});'), "Custom coordinators must receive only their own department name");
+  assert(timetableEndpoint.includes('const actorDepartmentName=String(actor?.departmentName||"").trim();'), "The department label must come from the authenticated directory");
 });
