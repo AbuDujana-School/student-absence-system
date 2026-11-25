@@ -66,6 +66,15 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
   assert(source.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'),"The custom reason may be entered or left empty when «أخرى» is selected");
 });
 
+Deno.test("confirming the premium absence reason does not open a second picker", () => {
+  const pickerStart=source.indexOf("window.openSubstitutionAbsenceReasonPicker = function");
+  const pickerEnd=source.indexOf("function reasonControlMarkup",pickerStart);
+  const picker=source.slice(pickerStart,pickerEnd);
+  assert(picker.includes("window.__mainReserveAbsenceReasons?.[selectedDate+\"::\"+String(absentName||\"\").trim()]"),"The shared reason picker must reuse the reason already confirmed in the first modal");
+  assert(picker.includes("if(alreadySelected)"),"The second picker must be bypassed after the first picker confirms");
+  assert(picker.includes("onConfirm(alreadySelected)"),"The confirmed reason must be returned to the existing selection flow");
+});
+
 Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes("absenceReasonsByTeacher.delete(input.value);"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
