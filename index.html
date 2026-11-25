@@ -2457,7 +2457,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
  const date=$('#substitutionDate');
  if(date){
-  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
+  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="-1">أمس</button><button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
   date.insertAdjacentElement('afterend',shortcuts);
   shortcuts.querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
    const shift=Number(button.dataset.subxDateShift||0),today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Muscat',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),base=shift===0?today:(date.value||today),parsed=new Date(base+'T12:00:00+04:00');
