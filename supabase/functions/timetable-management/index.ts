@@ -507,7 +507,7 @@ async function handle(req: Request) {
             : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
         canDelete:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           (principal.type==="admin"
-            ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
+            ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))
             : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
