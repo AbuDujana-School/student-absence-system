@@ -3896,6 +3896,33 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="resetErrorMsg" class="text-red-600 text-xs font-bold hidden"></div>
           <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-6 py-3 rounded-2xl shadow-md flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> تصفير الآن</button>
         </div>
+
+        <div id="reserveResetCard" class="hidden rounded-3xl border border-amber-300 dark:border-amber-800 bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 p-6 space-y-4 shadow-sm">
+          <div class="flex items-start gap-3">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 text-xl"><i class="fa-solid fa-box-archive"></i></span>
+            <div>
+              <h5 class="font-extrabold text-sm text-slate-900 dark:text-white">تصفير سجلات الاحتياط فقط</h5>
+              <p class="mt-1 text-xs leading-6 text-slate-600 dark:text-slate-300">يحذف جميع تكليفات الاحتياط المحفوظة، بما فيها السجلات المكتملة والملغاة وأرشيفها وسجل تدقيقها وقيود نقاط الاحتياط المرتبطة بها. لا يحذف الجداول الأسبوعية أو أي بيانات أخرى في النظام.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+            <label class="block space-y-1.5">
+              <span class="text-[10px] font-black text-slate-600 dark:text-slate-300">رمز مدير النظام — الإدخال الأول</span>
+              <input type="password" id="reserveResetPin1" inputmode="numeric" autocomplete="new-password" maxlength="10" placeholder="أدخل رمز المدير" class="w-full p-3 bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 rounded-2xl text-sm text-center font-black tracking-widest outline-none focus:ring-2 focus:ring-amber-400">
+            </label>
+            <label class="block space-y-1.5">
+              <span class="text-[10px] font-black text-slate-600 dark:text-slate-300">أعد إدخال رمز مدير النظام</span>
+              <input type="password" id="reserveResetPin2" inputmode="numeric" autocomplete="new-password" maxlength="10" placeholder="أعد إدخال الرمز نفسه" class="w-full p-3 bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 rounded-2xl text-sm text-center font-black tracking-widest outline-none focus:ring-2 focus:ring-amber-400">
+            </label>
+          </div>
+          <div id="reserveResetError" class="hidden rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs font-bold text-red-700 dark:text-red-300" role="alert"></div>
+          <div id="reserveResetSuccess" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-800 dark:text-emerald-200" role="status"></div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">هذه العملية نهائية ولا يمكن استعادة سجلات الاحتياط بعدها.</p>
+            <button id="reserveResetButton" type="button" onclick="executeReserveRecordsReset()" class="rounded-2xl bg-gradient-to-l from-red-700 to-rose-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-red-900/15 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"><i class="fa-solid fa-trash-can ml-1"></i> تصفير سجلات الاحتياط</button>
+          </div>
+        </div>
+
       </div>
 
       
@@ -9582,6 +9609,9 @@ async function verifyAdminPinAndOpen() {
   finally { b.disabled = false; b.textContent = old; }
 }
 function setupRolePermissions() {
+  const reserveResetCard = document.getElementById("reserveResetCard");
+  if (reserveResetCard) reserveResetCard.classList.toggle("hidden", !isGeneralAdminUser(activeUser));
+
   refreshReportPanelsVisibility();
   const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
   if (isGeneralAdminUser(activeUser)) {
@@ -11274,6 +11304,83 @@ async function executeFullReset() {
   document.getElementById('resetPin1').value = ''; document.getElementById('resetPin2').value = '';
   showToast('تم إخفاء السجلات محلياً فقط؛ حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info'); initAdminDashboard();
 }
+
+async function executeReserveRecordsReset() {
+  const pin1 = String(document.getElementById("reserveResetPin1")?.value || "").trim();
+  const pin2 = String(document.getElementById("reserveResetPin2")?.value || "").trim();
+  const errorNode = document.getElementById("reserveResetError");
+  const successNode = document.getElementById("reserveResetSuccess");
+  const button = document.getElementById("reserveResetButton");
+  const showError = (message) => {
+    if (errorNode) {
+      errorNode.textContent = message;
+      errorNode.classList.remove("hidden");
+    }
+    if (successNode) successNode.classList.add("hidden");
+  };
+  if (errorNode) errorNode.classList.add("hidden");
+  if (successNode) successNode.classList.add("hidden");
+
+  if (!isGeneralAdminUser(activeUser)) {
+    showError("هذه العملية متاحة لمدير النظام العام فقط.");
+    return;
+  }
+  if (!/^[0-9]{4,10}$/.test(pin1) || !/^[0-9]{4,10}$/.test(pin2)) {
+    showError("أدخل رمز مدير النظام المكوّن من 4 إلى 10 أرقام في الحقلين.");
+    return;
+  }
+  if (pin1 !== pin2) {
+    showError("الرمزان غير متطابقين. أعد إدخال الرمز نفسه في الحقلين.");
+    return;
+  }
+
+  const confirmed = await showConfirm(
+    "تأكيد نهائي: سيتم حذف جميع سجلات تكليف الاحتياط المحفوظة وأرشيفها وقيود نقاطها فقط. لن تُحذف الجداول الأسبوعية أو أي بيانات أخرى. هل تريد المتابعة؟",
+    { danger: true }
+  );
+  if (!confirmed) return;
+
+  const oldButtonHtml = button?.innerHTML || "";
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ تصفير سجلات الاحتياط...';
+  }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة الدخول الآمن. أعد تسجيل الدخول ثم حاول مجدداً.");
+    const response = await appAuthRequest({
+      action: "admin_reset_reserve_records",
+      pin1,
+      pin2
+    }, token);
+
+    if (response?.ok !== true || response?.result?.ok !== true) {
+      throw new Error("لم يؤكد الخادم اكتمال تصفير سجلات الاحتياط.");
+    }
+
+    const result = response.result || {};
+    const assignments = Number(result.deleted_assignments || 0);
+    const auditRows = Number(result.deleted_audit_rows || 0);
+    const pointsRows = Number(result.deleted_points_rows || 0);
+    document.getElementById("reserveResetPin1").value = "";
+    document.getElementById("reserveResetPin2").value = "";
+    if (successNode) {
+      successNode.textContent = "اكتمل تصفير الاحتياط فقط: " + assignments +
+        " تكليفاً، و" + auditRows + " من سجلات التدقيق، و" + pointsRows +
+        " من قيود نقاط الاحتياط. بقيت بقية بيانات النظام دون تغيير.";
+      successNode.classList.remove("hidden");
+    }
+    showToast("تم تصفير سجلات الاحتياط فقط بنجاح.", "success");
+  } catch (error) {
+    showError(error?.message || "تعذر تصفير سجلات الاحتياط. لم يتم تأكيد نجاح العملية.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = oldButtonHtml || '<i class="fa-solid fa-trash-can ml-1"></i> تصفير سجلات الاحتياط';
+    }
+  }
+}
+
 
 /* ============ Alerts & Daily ============ */
 function generateSmartAlerts() {
