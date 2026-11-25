@@ -465,12 +465,16 @@ Deno.test("reserve archive date controls provide premium styling and safe comple
 });
 
 
-Deno.test("reserve archive observer updates its summary idempotently", () => {
+Deno.test("reserve archive date controls are a one-time enhancement with no subtree observer", () => {
   const start=source.indexOf("function installReserveArchivePremiumDateControls()");
   const end=source.indexOf("function mountCanonicalPanel()",start);
   const enhancement=source.slice(start,end);
-  const summaryText="أرشيف القسم المرتبط بحسابك فقط، ويمكنك أيضاً فتح أرشيف احتياط المدرسة الشامل من البطاقة الثانية.";
-  assert(start>=0&&end>start,"The archive date-control enhancement must be present");
-  assert(enhancement.includes('const summaryText="'+summaryText+'";'),"The archive summary must be centralized before updating it");
-  assert(enhancement.includes("if(summary&&summary.textContent!==summaryText)summary.textContent=summaryText;"),"The observer must not rewrite identical summary text and trigger its own childList observer");
+  assert(start>=0&&end>start,"The archive date-control installer must exist");
+  assert(enhancement.includes("const apply=()=>{"),"The date-control presentation must remain encapsulated in its installer");
+  assert(enhancement.includes("apply();"),"The date controls must be applied once when the reserve workspace opens");
+  assert(!enhancement.includes("MutationObserver"),"The archive presentation must never observe its own dynamic subtree");
+  assert(!enhancement.includes("premiumDateObserver"),"The archive presentation must not install a persistent observer");
+  assert(!enhancement.includes("subxArchiveDepartmentSummary"),"The helper must not overwrite the server-owned, permission-aware archive summary");
+  assert(enhancement.includes("subx-archive-date-input")&&enhancement.includes("subx-archive-date-label"),"The premium date styling must remain");
+  assert(enhancement.includes('data-subx-archive-preset=\"7\"')&&enhancement.includes('data-subx-archive-preset=\"30\"')&&enhancement.includes('data-subx-archive-preset=\"month\"'),"The safe completed-day date shortcuts must remain");
 });
