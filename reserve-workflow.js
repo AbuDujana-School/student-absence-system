@@ -609,7 +609,7 @@
     if (otherLabel) otherLabel.classList.add("hidden");
     if (otherToggle) otherToggle.removeAttribute("onchange");
     if (toolbar) {
-      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action flex items-center gap-3 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-indigo-900"><span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-lg"><i class="fa-solid fa-people-group"></i></span><span class="text-right"><strong class="block text-sm font-black">استعارة معلمين من أقسام أخرى</strong><small class="mt-1 block text-[10px] font-medium text-indigo-600">اختيار تخصص واحد أو أكثر</small></span></button>');
+      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action flex items-center justify-center gap-2 rounded-2xl border border-white/40 bg-white/20 px-4 py-3 text-white"><i class="fa-solid fa-people-group"></i><span>اختيار الأقسام المساندة</span></button>');
       $("timetableDailyOtherDepartmentsButton")?.addEventListener("click", async () => {
         const toggle=$("timetableSubstitutionOtherDepartments");
         const button=$("timetableDailyOtherDepartmentsButton");
@@ -630,7 +630,7 @@
             toggle.checked=false;
             if(select){Array.from(select.options).forEach(option=>option.selected=false);select.closest("label")?.classList.add("hidden");}
             reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];
-            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
+            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> اختيار الأقسام المساندة';
             status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
           }finally{button.disabled=false;}
           return;
@@ -638,7 +638,7 @@
         toggle.checked=false;
         if(select){Array.from(select.options).forEach(option=>option.selected=false);select.closest("label")?.classList.add("hidden");}
         reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
-        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
+        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> اختيار الأقسام المساندة';
         await timetableDailyRefreshAll();
       });
       const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[260px] text-xs font-bold text-slate-700"><section class="rounded-2xl border border-emerald-100 bg-white p-4"><div class="mb-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700 text-xl"><i class="fa-solid fa-layer-group"></i></span><div><strong class="block text-sm text-slate-900">اختر الأقسام المساندة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك اختيار أكثر من قسم؛ وكل معلمي الأقسام المختارة سيُضافون تلقائيًا</small></div></div><div id="timetableDailyOtherDepartmentChoices" class="grid grid-cols-1 gap-2 sm:grid-cols-2"><p class="text-xs text-slate-500">جارٍ تحميل الأقسام...</p></div><select id="timetableDailyOtherDepartmentSelect" multiple class="hidden" aria-hidden="true" tabindex="-1"></select></section><section class="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"><div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-emerald-700 text-lg"><i class="fa-solid fa-users"></i></span><div><strong class="block text-sm text-slate-900">المعلمون الذين ستتم إضافتهم تلقائيًا</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">تأكيد بصري للأقسام المختارة وعدد معلميها المؤهلين</small></div></div><div id="timetableDailyOtherTeacherChoices" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر قسمًا لعرض عدد معلميه الذين سيُدرجون تلقائيًا.</p></div><p class="mt-2 text-[10px] text-emerald-800">لا حاجة لاختيار المعلمين واحدًا واحدًا؛ تحديد القسم يكفي لإدراج جميع معلميه المؤهلين.</p></section></div>
@@ -681,7 +681,7 @@
       choiceStyle.id="ttReserveChoiceCardsStyles";
       choiceStyle.textContent=[
         ".tt-reserve-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0 1.2rem}",
-        ".tt-reserve-choice-card{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.9rem;min-width:0;overflow:hidden;padding:1.1rem;border:1px solid rgba(255,255,255,.65);border-radius:1.45rem;box-shadow:0 18px 42px rgba(30,41,59,.13),inset 0 1px 0 rgba(255,255,255,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}",
+        ".tt-reserve-choice-card{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.9rem;min-width:0;overflow:hidden;padding:1.1rem;border:1px solid rgba(255,255,255,.65);border-radius:1.45rem;box-shadow:0 18px 42px rgba(30,41,59,.13),inset 0 1px 0 rgba(255,255,255,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.tt-reserve-choice-card.hidden,.tt-reserve-choice-grid[hidden]{display:none!important}",
         ".tt-reserve-local-card{background:linear-gradient(135deg,rgba(14,165,233,.96),rgba(79,70,229,.94) 55%,rgba(124,58,237,.96));color:#fff}",
         ".tt-reserve-support-card{background:linear-gradient(135deg,rgba(16,185,129,.96),rgba(5,150,105,.94) 48%,rgba(13,148,136,.96));color:#fff}",
         ".tt-reserve-choice-art{display:grid;place-items:center;width:3.6rem;height:3.6rem;border:1px solid rgba(255,255,255,.5);border-radius:1.15rem;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);font-size:1.55rem}",
