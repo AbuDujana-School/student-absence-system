@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-screen-date-fix-1">
+<meta name="app-build" content="2026-11-25-reserve-review-candidate-cards-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2333,6 +2333,79 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  #substitutionView .subx-v2-report-actions{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation:none!important;transition:none!important}}
+/* مراجعة التوزيع: بطاقات الحصص والبدلاء — محصورة في شاشة الاحتياط */
+#substitutionView #substitutionPlanAssignments{display:flex;flex-direction:column;gap:16px}
+#substitutionView .subx-review-absent{overflow:hidden;border:1px solid rgba(148,163,184,.24);border-radius:23px;background:rgba(255,255,255,.92);box-shadow:0 13px 34px rgba(24,54,83,.075)}
+#substitutionView .subx-review-absent-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 19px;background:linear-gradient(115deg,#09172b,#102b49 58%,#124c50);color:#fff}
+#substitutionView .subx-review-absent-label{display:block;margin-bottom:4px;color:#a8c0d2;font-size:10px;font-weight:800}
+#substitutionView .subx-review-absent-name{font-size:15px;font-weight:900;line-height:1.5;color:#fff}
+#substitutionView .subx-review-period-summary{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:rgba(255,255,255,.10);color:#f5d78c;font-size:11px;font-weight:900;white-space:nowrap}
+#substitutionView .subx-review-period-summary span[dir=ltr]{color:#fff;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#substitutionView .subx-review-slots{display:grid;gap:13px;padding:14px}
+#substitutionView .subx-review-slot{min-width:0;overflow:hidden;border:1px solid #dce7ed;border-radius:18px;background:linear-gradient(145deg,#fff,#f8fbfd);box-shadow:0 5px 16px rgba(24,54,83,.045)}
+#substitutionView .subx-review-slot-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #e7edf2;background:linear-gradient(105deg,#f1f6fa,#f8fbfc)}
+#substitutionView .subx-review-slot-ident{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap}
+#substitutionView .subx-review-period-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:12px;background:#102b49;color:#fff;font-size:13px;font-weight:900;box-shadow:0 4px 10px rgba(16,43,73,.14)}
+#substitutionView .subx-review-period-pill b{font-variant-numeric:tabular-nums}
+#substitutionView .subx-review-class-pill{padding:6px 9px;border:1px solid #dbe5eb;border-radius:10px;background:#fff;color:#718096;font-size:10px;font-weight:800}
+#substitutionView .subx-review-class-pill b{color:#334155;font-weight:900}
+#substitutionView .subx-review-more{display:inline-flex;align-items:center;gap:6px;min-height:35px;padding:7px 10px;border:1px solid #d8e3e9;border-radius:10px;background:#fff;color:#37556d;font-size:10px;font-weight:900;transition:all .18s}
+#substitutionView .subx-review-more:hover{border-color:#168c85;background:#eaf7f4;color:#0f766e}
+#substitutionView .subx-review-slot-body{padding:14px}
+#substitutionView .subx-review-candidates{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+#substitutionView .subx-candidate-card{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:13px;border:1px solid #dce6ec;border-radius:15px;background:#fff;text-align:right;box-shadow:0 3px 10px rgba(24,54,83,.035);transition:transform .18s,border-color .18s,box-shadow .18s}
+#substitutionView .subx-candidate-card:hover{transform:translateY(-2px);border-color:#6fbdb4;box-shadow:0 9px 20px rgba(22,140,133,.10)}
+#substitutionView .subx-candidate-card.is-current{border:1.5px solid #168c85;background:linear-gradient(135deg,#effaf7,#fff);box-shadow:0 0 0 2px rgba(22,140,133,.08)}
+#substitutionView .subx-candidate-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+#substitutionView .subx-candidate-name{min-width:0;color:#183653;font-size:13px;font-weight:900;line-height:1.6;overflow-wrap:anywhere}
+#substitutionView .subx-candidate-tag{flex:0 0 auto;padding:4px 7px;border-radius:8px;background:#e8f6f3;color:#0f766e;font-size:9px;font-weight:900}
+#substitutionView .subx-candidate-busy{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#718096;font-size:10px;font-weight:800}
+#substitutionView .subx-candidate-busy b{color:#334155;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums}
+#substitutionView .subx-candidate-daily{display:block;margin-top:2px;color:#8293a1;font-size:9px;font-weight:800}
+#substitutionView .subx-candidate-daily b{color:#475569;font-size:10px;font-weight:900;font-variant-numeric:tabular-nums}
+#substitutionView .subx-candidate-action{display:flex;align-items:center;justify-content:center;min-height:34px;border-radius:10px;background:#f1f6f8;color:#35566d;font-size:10px;font-weight:900}
+#substitutionView .subx-candidate-card.is-current .subx-candidate-action{background:#168c85;color:#fff}
+#substitutionView .subx-review-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid #b8e0d8;border-radius:15px;background:linear-gradient(115deg,#eefaf6,#f7fbfc)}
+#substitutionView .subx-review-selected-name{display:block;color:#183653;font-size:13px;font-weight:900;overflow-wrap:anywhere}
+#substitutionView .subx-review-selected-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;color:#718096;font-size:10px;font-weight:800}
+#substitutionView .subx-review-selected-meta b{color:#334155;font-size:11px;font-weight:900}
+#substitutionView .subx-review-change{flex:0 0 auto;min-height:36px;padding:8px 13px;border:1px solid #d7e2e8;border-radius:10px;background:#fff;color:#37556d;font-size:10px;font-weight:900}
+#substitutionView .subx-review-change:hover{border-color:#d7ad59;background:#fff9eb;color:#946b20}
+#substitutionView #substitutionCandidateSearchModal{background:rgba(7,18,35,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#substitutionView .subx-candidate-search-dialog{width:min(100%,560px);max-height:min(88vh,760px);overflow:hidden;border:1px solid rgba(148,163,184,.28);border-radius:23px;background:#fff;box-shadow:0 28px 80px rgba(2,8,23,.38)}
+#substitutionView .subx-candidate-search-results{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding:12px}
+#substitutionView .subx-candidate-search-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px;border:1px solid #e1e9ee;border-radius:13px;background:#fff;text-align:right;transition:all .16s}
+#substitutionView .subx-candidate-search-row:hover{border-color:#168c85;background:#f0faf7}
+#substitutionView .subx-candidate-search-row strong{display:block;color:#183653;font-size:12px;font-weight:900}
+#substitutionView .subx-candidate-search-row small{display:block;margin-top:5px;color:#718096;font-size:10px;font-weight:800}
+#substitutionView .subx-candidate-search-row small b{color:#334155;font-variant-numeric:tabular-nums}
+.dark #substitutionView .subx-review-absent{background:#0f172a;border-color:#334155}
+.dark #substitutionView .subx-review-slot{background:linear-gradient(145deg,#172235,#111c2d);border-color:#334155}
+.dark #substitutionView .subx-review-slot-head{background:linear-gradient(105deg,#1e293b,#172235);border-color:#334155}
+.dark #substitutionView .subx-review-period-pill{background:#168c85}
+.dark #substitutionView .subx-review-class-pill,.dark #substitutionView .subx-review-more{background:#1e293b;border-color:#475569;color:#cbd5e1}
+.dark #substitutionView .subx-review-class-pill b,.dark #substitutionView .subx-candidate-busy b{color:#e2e8f0}
+.dark #substitutionView .subx-candidate-card{background:#1e293b;border-color:#475569}
+.dark #substitutionView .subx-candidate-card.is-current{background:linear-gradient(135deg,rgba(15,118,110,.22),rgba(30,41,59,.95));border-color:#2dd4bf}
+.dark #substitutionView .subx-candidate-name,.dark #substitutionView .subx-review-selected-name{color:#f1f5f9}
+.dark #substitutionView .subx-candidate-daily b{color:#e2e8f0}
+.dark #substitutionView .subx-candidate-action,.dark #substitutionView .subx-review-change{background:#0f172a;border-color:#475569;color:#cbd5e1}
+.dark #substitutionView .subx-review-selected{background:rgba(15,118,110,.13);border-color:#0f766e}
+.dark #substitutionView .subx-candidate-search-dialog{background:#0f172a;border-color:#334155}
+.dark #substitutionView .subx-candidate-search-row{background:#1e293b;border-color:#475569}
+.dark #substitutionView .subx-candidate-search-row strong{color:#f1f5f9}
+.dark #substitutionView .subx-candidate-search-row small b{color:#e2e8f0}
+@media(max-width:640px){
+ #substitutionView .subx-review-absent-head{align-items:flex-start;flex-direction:column;padding:15px}
+ #substitutionView .subx-review-period-summary{width:100%;justify-content:flex-start}
+ #substitutionView .subx-review-slots{padding:9px}
+ #substitutionView .subx-review-slot-head{align-items:flex-start;flex-direction:column}
+ #substitutionView .subx-review-slot-head>button{width:100%;justify-content:center}
+ #substitutionView .subx-review-candidates{grid-template-columns:1fr}
+ #substitutionView .subx-review-selected{align-items:stretch;flex-direction:column}
+ #substitutionView .subx-review-change{width:100%}
+ #substitutionView .subx-candidate-search-results{max-height:58vh}
+}
 </style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <div class="subx-toolbar">
@@ -2403,15 +2476,33 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div id="substitutionPlanAssignments" class="space-y-3"></div>
     <div id="substitutionUnassigned" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"></div>
     <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div class="flex flex-wrap gap-2">
-        <button id="substitutionSaveButton" type="button" onclick="substitutionSavePlan()" class="rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white shadow hover:bg-emerald-700 disabled:opacity-40" disabled><i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع</button>
-        <button id="substitutionPdfButton" type="button" onclick="substitutionPrintPdf()" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" disabled><i class="fa-solid fa-file-pdf ml-2 text-rose-500"></i>طباعة كشف PDF</button>
-        <button id="substitutionWhatsappButton" type="button" onclick="substitutionShareWhatsapp()" class="rounded-xl bg-[#16865b] px-4 py-3 text-xs font-black text-white hover:bg-[#116b48] disabled:opacity-40" disabled><i class="fa-brands fa-whatsapp ml-2"></i>مشاركة واتساب</button>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <button id="substitutionSaveButton" type="button" onclick="substitutionSavePlan()" class="min-h-[48px] rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white shadow hover:bg-emerald-700 disabled:opacity-40" disabled><i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع</button>
+        <button id="substitutionWhatsappButton" type="button" onclick="substitutionShareWhatsapp()" class="min-h-[48px] rounded-xl bg-[#16865b] px-4 py-3 text-xs font-black text-white hover:bg-[#116b48] disabled:opacity-40" disabled><i class="fa-brands fa-whatsapp ml-2"></i>مشاركة واتساب</button>
+        <button id="substitutionPdfButton" type="button" onclick="substitutionPrintPdf()" class="min-h-[48px] rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" disabled><i class="fa-solid fa-file-pdf ml-2 text-rose-500"></i>طباعة PDF</button>
       </div>
       <p id="substitutionSaveStatus" class="mt-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">راجع التوزيع قبل الاعتماد. لن تُحفظ الاقتراحات تلقائياً.</p>
     </div>
   </div>
 
+    <div id="substitutionCandidateSearchModal" class="hidden fixed inset-0 z-[160] flex items-center justify-center p-3 sm:p-5" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="substitutionCandidateSearchTitle">
+      <div class="subx-candidate-search-dialog">
+        <div class="flex items-start justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-700">
+          <div class="min-w-0">
+            <span class="text-[10px] font-black text-teal-700 dark:text-teal-300">خيارات إضافية وفق التفرغ والصلاحية</span>
+            <h3 id="substitutionCandidateSearchTitle" class="mt-1 text-base font-black text-slate-900 dark:text-white">معلمون آخرون</h3>
+            <p id="substitutionCandidateSearchSubtitle" class="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400"></p>
+          </div>
+          <button type="button" onclick="window.subxCloseCandidateSearch()" class="h-9 w-9 shrink-0 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200" aria-label="إغلاق نافذة المعلمين الآخرين">×</button>
+        </div>
+        <div class="p-4 pb-2">
+          <label for="substitutionCandidateSearchInput" class="mb-2 block text-[10px] font-black text-slate-600 dark:text-slate-300">ابحث باسم المعلم</label>
+          <input id="substitutionCandidateSearchInput" type="search" autocomplete="off" oninput="window.subxFilterCandidateSearch()" placeholder="اكتب اسم المعلم..." class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs font-bold text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+          <p class="mt-2 text-[10px] leading-5 text-slate-500 dark:text-slate-400">تظهر هنا بقية المعلمين المتاحين لهذه الحصة من النطاق المسموح به، مع أرقام حصصهم المشغولة.</p>
+        </div>
+        <div id="substitutionCandidateSearchResults" class="subx-candidate-search-results space-y-2"></div>
+      </div>
+    </div>
   <div id="substitutionStatsPanel" class="space-y-4">
     <div class="flex items-center justify-between gap-2"><div><h3 class="text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-line ml-2 text-cyan-600"></i>نقاط الاحتياط والإحصائيات</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">رصيدك وتوزيع حصص الاحتياط من الأولى إلى الثامنة.</p></div><button type="button" onclick="substitutionLoadStats()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 dark:border-slate-700 dark:text-slate-300"><i class="fa-solid fa-rotate ml-1"></i>تحديث</button></div>
     <div id="substitutionStatsContent" class="rounded-3xl border border-slate-200 bg-white p-4 text-xs text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900">جارٍ تحميل الإحصائيات...</div>
@@ -11675,7 +11766,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-screen-date-fix-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-review-candidate-cards-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -14453,6 +14544,9 @@ async function timetableSaveOwner() {
   let currentPlan=null;
   let currentAbsentNames=[];
   let savedPlan=false;
+  let expandedPlanRows=new Set();
+  let planExpansionInitialized=false;
+  let candidateSearchRowIndex=-1;
   const absenceReasonsByTeacher=new Map();
   const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
   function esc(value){
@@ -14478,6 +14572,8 @@ async function timetableSaveOwner() {
   }
   function clearPlan(){
     currentPlan=null;currentAbsentNames=[];savedPlan=false;
+    expandedPlanRows.clear();planExpansionInitialized=false;
+    window.subxCloseCandidateSearch?.();
     document.getElementById('substitutionPlanPanel')?.classList.add('hidden');
     const save=document.getElementById('substitutionSaveButton');
     const pdf=document.getElementById('substitutionPdfButton');
@@ -14700,6 +14796,7 @@ async function timetableSaveOwner() {
       currentPlan=result;
       currentAbsentNames=names.slice();
       savedPlan=false;
+      expandedPlanRows.clear();planExpansionInitialized=false;
       renderPlan();
       setStatus('اكتمل الاقتراح. راجع البدلاء وعدّل ما تراه مناسباً قبل الحفظ.');
     }catch(error){
@@ -14717,9 +14814,95 @@ async function timetableSaveOwner() {
     const otherDepartmentId=otherDepartmentIds[0]||"";
     const otherTeacherNames=includeOtherDepartments?getSubstitutionSelectedOtherTeacherNames():[];
     currentPlan=await appAuthRequest({action:'timetable_substitution_batch_preview',weekday,assignmentDate:date,absentTeacherNames:currentAbsentNames,includeOtherDepartments,otherDepartmentId,otherDepartmentIds,otherTeacherNames},getToken());
+    expandedPlanRows.clear();planExpansionInitialized=false;
     renderPlan();
     if(typeof window.substitutionLoadStats==='function')await window.substitutionLoadStats();
   };
+  function reserveCandidateBusyText(option){
+    const periods=Array.isArray(option?.occupiedPeriods)
+      ?Array.from(new Set(option.occupiedPeriods.map(Number).filter(period=>Number.isInteger(period)&&period>0))).sort((a,b)=>a-b)
+      :[];
+    return periods.length
+      ?periods.map(period=>new Intl.NumberFormat('en-US').format(period)).join(', ')
+      :'لا يوجد';
+  }
+  function selectSubstitutionPlanCandidate(rowIndex,teacherName){
+    const item=currentPlan?.assignments?.[rowIndex];
+    if(!item)return;
+    const selected=(item.candidateOptions||[]).find(option=>String(option.teacherName||'')===String(teacherName||''));
+    if(!selected){showToast('هذا المعلم ليس ضمن البدلاء المتاحين لهذه الحصة.','error');return;}
+    item.substituteTeacherName=selected.teacherName;
+    item.substituteDailyTeachingCount=Number(selected.dailyTeachingCount)||0;
+    item.createsThreeConsecutive=selected.createsThreeConsecutive===true;
+    expandedPlanRows.delete(rowIndex);
+    savedPlan=false;
+    const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=!(currentPlan.assignments||[]).length;
+    const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=true;
+    const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=true;
+    const status=document.getElementById('substitutionSaveStatus');
+    if(status)status.textContent='تم اختيار '+selected.teacherName+' للحصة '+item.period+'. احفظ التوزيع لاعتماد الاختيارات.';
+    renderPlan();
+    showToast('تم اختيار '+selected.teacherName+' للحصة '+item.period+'.');
+  }
+  function reopenSubstitutionCandidateOptions(rowIndex){
+    if(!currentPlan?.assignments?.[rowIndex])return;
+    expandedPlanRows.add(rowIndex);
+    renderPlan();
+    setTimeout(()=>{
+      document.querySelector('[data-subx-review-row="'+rowIndex+'"]')?.scrollIntoView({behavior:'smooth',block:'center'});
+    },60);
+  }
+  function renderSubstitutionCandidateSearchResults(){
+    const host=document.getElementById('substitutionCandidateSearchResults');
+    const item=currentPlan?.assignments?.[candidateSearchRowIndex];
+    if(!host||!item)return;
+    const query=String(document.getElementById('substitutionCandidateSearchInput')?.value||'').trim().toLocaleLowerCase('ar');
+    const remaining=(item.candidateOptions||[]).slice(5);
+    const filtered=remaining.filter(option=>String(option.teacherName||'').toLocaleLowerCase('ar').includes(query));
+    if(!filtered.length){
+      host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">'+(remaining.length?'لا توجد أسماء مطابقة للبحث.':'لا توجد خيارات إضافية متاحة لهذه الحصة.')+'</div>';
+      return;
+    }
+    host.innerHTML=filtered.map(option=>{
+      const selected=option.teacherName===item.substituteTeacherName;
+      const dailyCount=Number(option.dailyTeachingCount);
+      return '<button type="button" class="subx-candidate-search-row" data-subx-modal-select="'+esc(option.teacherName)+'">'+
+        '<span class="min-w-0"><strong>'+esc(option.teacherName)+'</strong><small>مشغول: <b dir="ltr">'+reserveCandidateBusyText(option)+'</b></small><small class="mt-1">حصص التدريس اليوم: <b dir="ltr">'+new Intl.NumberFormat('en-US').format(Number.isFinite(dailyCount)?dailyCount:0)+'</b></small></span>'+
+        '<span class="shrink-0 rounded-lg px-3 py-2 text-[10px] font-black '+(selected?'bg-teal-600 text-white':'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200')+'">'+(selected?'المختار حالياً':'اختيار')+'</span>'+
+      '</button>';
+    }).join('');
+    host.querySelectorAll('[data-subx-modal-select]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        selectSubstitutionPlanCandidate(candidateSearchRowIndex,button.getAttribute('data-subx-modal-select')||'');
+        window.subxCloseCandidateSearch();
+      });
+    });
+  }
+  function openSubstitutionCandidateSearch(rowIndex){
+    const item=currentPlan?.assignments?.[rowIndex];
+    const remaining=(item?.candidateOptions||[]).slice(5);
+    if(!item||!remaining.length){showToast('لا توجد بدلاء إضافيون متاحون لهذه الحصة.','info');return;}
+    candidateSearchRowIndex=rowIndex;
+    const subtitle=document.getElementById('substitutionCandidateSearchSubtitle');
+    if(subtitle)subtitle.textContent='الحصة '+Number(item.period)+' · الصف '+String(item.className||'—');
+    const input=document.getElementById('substitutionCandidateSearchInput');
+    if(input)input.value='';
+    const modal=document.getElementById('substitutionCandidateSearchModal');
+    if(modal){modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');}
+    renderSubstitutionCandidateSearchResults();
+    setTimeout(()=>input?.focus(),40);
+  }
+  window.subxCloseCandidateSearch=function(){
+    const modal=document.getElementById('substitutionCandidateSearchModal');
+    if(modal){modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');}
+    candidateSearchRowIndex=-1;
+  };
+  window.subxFilterCandidateSearch=renderSubstitutionCandidateSearchResults;
+  const candidateSearchModal=document.getElementById('substitutionCandidateSearchModal');
+  if(candidateSearchModal){
+    candidateSearchModal.addEventListener('click',event=>{if(event.target===candidateSearchModal)window.subxCloseCandidateSearch();});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!candidateSearchModal.classList.contains('hidden'))window.subxCloseCandidateSearch();});
+  }
   function renderPlan(){
     const panel=document.getElementById('substitutionPlanPanel');
     const root=document.getElementById('substitutionPlanAssignments');
@@ -14729,6 +14912,10 @@ async function timetableSaveOwner() {
     const assignments=Array.isArray(currentPlan.assignments)?currentPlan.assignments:[];
     const existing=Array.isArray(currentPlan.existingAssignments)?currentPlan.existingAssignments:[];
     const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];
+    if(!planExpansionInitialized){
+      expandedPlanRows=new Set(assignments.map((_,index)=>index));
+      planExpansionInitialized=true;
+    }
     const groups=new Map();
     assignments.forEach(function(item,index){
       if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
@@ -14736,43 +14923,116 @@ async function timetableSaveOwner() {
     });
     let html='';
     groups.forEach(function(rows,absentName){
-      html+='<div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">'+
-        '<div class="flex items-center justify-between gap-2 border-b border-slate-100 bg-rose-50/70 px-4 py-3 dark:border-slate-700 dark:bg-rose-950/20"><div class="text-xs font-black text-rose-800 dark:text-rose-200"><i class="fa-solid fa-user-minus ml-2"></i>المعلم الغائب: '+esc(absentName)+'</div><span class="text-[10px] font-bold text-rose-600 dark:text-rose-300">'+rows.length+' حصة</span></div>'+
-        '<div class="divide-y divide-slate-100 dark:divide-slate-800">';
+      const summaryPeriods=[
+        ...rows.map(row=>Number(row.item.period)),
+        ...(currentPlan.existingAssignments||[]).filter(item=>item.absentTeacherName===absentName).map(item=>Number(item.period)),
+        ...(unassignedRows||[]).filter(item=>item.absentTeacherName===absentName).map(item=>Number(item.period))
+      ];
+      const uniquePeriods=[...new Set(summaryPeriods.filter(period=>Number.isInteger(period)&&period>0))].sort((a,b)=>a-b);
+      const periodNumbers=uniquePeriods.map(period=>new Intl.NumberFormat('en-US').format(period)).join(', ');
+      const periodCount=uniquePeriods.length||rows.length;
+      const countLabel=periodCount===1?'حصة':periodCount===2?'حصتان':periodCount<=10?'حصص':'حصة';
+      html+='<section class="subx-review-absent">'+
+        '<header class="subx-review-absent-head">'+
+          '<div><span class="subx-review-absent-label">المعلم الغائب</span><h4 class="subx-review-absent-name">'+esc(absentName)+'</h4></div>'+
+          '<div class="subx-review-period-summary"><strong>'+periodCount+' '+countLabel+'</strong><span dir="ltr">('+periodNumbers+')</span></div>'+
+        '</header><div class="subx-review-slots">';
       rows.forEach(function(row){
         const item=row.item,index=row.index;
-        const options=(item.candidateOptions||[]).map(function(option){
-          const occupied=(option.occupiedPeriods||[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b).map(period=>new Intl.NumberFormat('ar-OM').format(period)).join('، ')||'لا توجد حصص تدريس';
-          const dailyCount=Number(option.dailyTeachingCount);
-          const dailyLabel=Number.isFinite(dailyCount)?' · '+dailyCount+' حصص تدريس اليوم':'';
-          const label=option.teacherName+dailyLabel+' · الحصص '+occupied;
-          return '<option value="'+esc(option.teacherName)+'" '+(option.teacherName===item.substituteTeacherName?'selected':'')+'>'+esc(label)+'</option>';
-        }).join('');
-        html+='<div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">'+
-          '<div class="flex flex-wrap items-center gap-2"><span class="rounded-xl bg-indigo-50 px-3 py-2 text-[11px] font-black text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">الحصة '+item.period+'</span><span class="text-xs font-black text-slate-800 dark:text-white">الصف: '+esc(item.className||'—')+'</span><span class="text-[10px] text-slate-500">'+esc(item.subject||'')+'</span><span class="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">'+item.points+' نقاط</span></div>'+
-          '<div><label class="mb-1 block text-[10px] font-bold text-slate-500 dark:text-slate-400">المعلم البديل — تظهر حصصه دون الصفوف</label><select data-substitution-row="'+index+'" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" '+(options?'':'disabled')+'>'+options+'</select></div>'+
-        '</div>';
+        if(!Object.prototype.hasOwnProperty.call(item,'systemSuggestedSubstituteTeacherName')){
+          item.systemSuggestedSubstituteTeacherName=item.substituteTeacherName||'';
+        }
+        const candidates=Array.isArray(item.candidateOptions)?item.candidateOptions:[];
+        const visibleOptions=candidates.slice(0,5);
+        const selectedOption=candidates.find(option=>option.teacherName===item.substituteTeacherName)||null;
+        const isExpanded=expandedPlanRows.has(index);
+        const slotHead='<div class="subx-review-slot-head"><div class="subx-review-slot-ident">'+
+          '<span class="subx-review-period-pill"><span>الحصة</span><b dir="ltr">'+Number(item.period)+'</b></span>'+
+          '<span class="subx-review-class-pill">الصف <b dir="ltr">'+esc(item.className||'—')+'</b></span>'+
+          '</div>'+
+          (isExpanded&&candidates.length>5
+            ?'<button type="button" class="subx-review-more" data-subx-open-candidates="'+index+'"><i class="fa-solid fa-users"></i>معلمون آخرون <span dir="ltr">+'+(candidates.length-5)+'</span></button>'
+            :'')+
+          '</div>';
+        let body='';
+        if(isExpanded){
+          const candidateCards=visibleOptions.map(function(option){
+            const isSelected=option.teacherName===item.substituteTeacherName;
+            const isSuggested=option.teacherName===item.systemSuggestedSubstituteTeacherName;
+            const dailyCount=Number(option.dailyTeachingCount);
+            const tag=isSuggested
+              ?'<span class="subx-candidate-tag">ترشيح النظام</span>'
+              :isSelected?'<span class="subx-candidate-tag">الاختيار الحالي</span>':'';
+            return '<button type="button" class="subx-candidate-card '+(isSelected?'is-current':'')+'" data-subx-select-candidate="'+index+'" data-candidate-name="'+esc(option.teacherName)+'" aria-pressed="'+(isSelected?'true':'false')+'">'+
+              '<span class="subx-candidate-top"><strong class="subx-candidate-name">'+esc(option.teacherName)+'</strong>'+tag+'</span>'+
+              '<span class="subx-candidate-busy"><span class="inline-block h-2 w-2 rounded-full bg-amber-500"></span><span>مشغول:</span><b dir="ltr">'+reserveCandidateBusyText(option)+'</b></span>'+
+              '<span class="subx-candidate-daily">حصص التدريس اليوم: <b dir="ltr">'+new Intl.NumberFormat('en-US').format(Number.isFinite(dailyCount)?dailyCount:0)+'</b></span>'+
+              '<span class="subx-candidate-action">'+(isSelected?'المختار حالياً':'اختيار هذا المعلم')+'</span>'+
+            '</button>';
+          }).join('');
+          body='<div class="subx-review-slot-body">'+
+            '<p class="mb-3 text-[10px] font-black text-slate-500 dark:text-slate-400">اختر أحد البدلاء المقترحين لهذه الحصة:</p>'+
+            (candidateCards?'<div class="subx-review-candidates">'+candidateCards+'</div>':'<div class="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لا تتوفر قائمة بدلاء لهذه الحصة.</div>')+
+
+          '</div>';
+        }else{
+          const selectedName=selectedOption?.teacherName||item.substituteTeacherName||'لم يحدد';
+          const busyText=selectedOption?reserveCandidateBusyText(selectedOption):'لا تتوفر تفاصيل';
+          body='<div class="subx-review-slot-body"><div class="subx-review-selected">'+
+            '<div class="min-w-0"><span class="mb-1 block text-[9px] font-bold text-slate-500 dark:text-slate-400">المعلم البديل المختار</span>'+
+            '<strong class="subx-review-selected-name">'+esc(selectedName)+'</strong>'+
+            '<span class="subx-review-selected-meta"><span>مشغول:</span><b dir="ltr">'+busyText+'</b></span></div>'+
+            '<button type="button" class="subx-review-change" data-subx-change-slot="'+index+'">تغيير</button>'+
+          '</div></div>';
+        }
+        html+='<article class="subx-review-slot" data-subx-review-row="'+index+'">'+slotHead+body+'</article>';
       });
-      html+='</div></div>';
+      html+='</div></section>';
     });
-    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){const editable=item.canEdit!==false&&String(item.assignmentDate||'')===getOmanLocalDate()&&['assigned','confirmed'].includes(String(item.status||''));const actions=editable?'<div class="flex shrink-0 gap-1"><button type="button" data-subx-existing-edit="'+esc(item.id)+'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-black text-indigo-700 hover:bg-indigo-100">تعديل</button><button type="button" data-subx-existing-delete="'+esc(item.id)+'" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-black text-rose-700 hover:bg-rose-100">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.status==='completed'?'مكتمل':'سجل سابق · للعرض فقط')+'</span>';return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><div class="min-w-0"><span class="block font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="mt-1 block text-[10px] text-slate-500">السبب: '+esc(item.reason||'—')+' · البديل: <strong class="text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+'</strong></span></div><div class="flex items-center gap-2">'+actions+'</div></div>';}).join('')+'</div></div>':'';
+    const existingHtml=existing.length
+      ?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900">'+
+        '<div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div>'+
+        '<div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){
+          const editable=item.canEdit!==false&&String(item.assignmentDate||'')===getOmanLocalDate()&&['assigned','confirmed'].includes(String(item.status||''));
+          const actions=editable
+            ?'<div class="flex shrink-0 gap-1"><button type="button" data-subx-existing-edit="'+esc(item.id)+'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-black text-indigo-700 hover:bg-indigo-100">تعديل</button><button type="button" data-subx-existing-delete="'+esc(item.id)+'" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-black text-rose-700 hover:bg-rose-100">حذف</button></div>'
+            :'<span class="text-[10px] text-slate-400">'+(item.status==='completed'?'مكتمل':'سجل سابق · للعرض فقط')+'</span>';
+          return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]">'+
+            '<div class="min-w-0"><span class="block font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span>'+
+            '<span class="mt-1 block text-[10px] text-slate-500">البديل: <strong class="text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+'</strong></span></div>'+
+            '<div class="flex items-center gap-2">'+actions+'</div></div>';
+        }).join('')+'</div></div>'
+      :'';
     const noPlanMessage=unassignedRows.length
-      ? 'تم العثور على '+unassignedRows.length+' حصة تحتاج إلى تغطية، لكن لم يتوفر بديل مستوفٍ لشروط الجدول لهذه الحصص. راجع قائمة الحصص أدناه أو فعّل الاستعانة بقسم مساند.'
-      : 'لا توجد حصص جديدة للتوزيع في التاريخ المحدد. تحقق من التاريخ والمعلمين المختارين؛ قد تكون حصصهم موزعة مسبقاً أو لا توجد لهم حصص تدريس في ذلك اليوم.';
+      ?'تم العثور على '+unassignedRows.length+' حصة تحتاج إلى تغطية، لكن لم يتوفر بديل مستوفٍ لشروط الجدول لهذه الحصص. راجع قائمة الحصص أدناه أو فعّل الاستعانة بقسم مساند.'
+      :'لا توجد حصص جديدة للتوزيع في التاريخ المحدد. تحقق من التاريخ والمعلمين المختارين؛ قد تكون حصصهم موزعة مسبقاً أو لا توجد لهم حصص تدريس في ذلك اليوم.';
     root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">'+esc(noPlanMessage)+'</div>'));
     if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(existing);
-    root.querySelectorAll('[data-subx-existing-edit]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyOpenArchiveEdit==='function')window.timetableDailyOpenArchiveEdit(button.dataset.subxExistingEdit);else showToast('واجهة التعديل غير متاحة حالياً.','error');});});
-    root.querySelectorAll('[data-subx-existing-delete]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyCancelAssignment==='function')window.timetableDailyCancelAssignment(button.dataset.subxExistingDelete);else showToast('واجهة الحذف غير متاحة حالياً.','error');});});
-    root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
-      select.addEventListener('change',function(){
-        const row=Number(select.dataset.substitutionRow);
-        if(currentPlan?.assignments?.[row])currentPlan.assignments[row].substituteTeacherName=select.value;
-        savedPlan=false;
-        const status=document.getElementById('substitutionSaveStatus');
-        if(status)status.textContent='تم تعديل البديل يدوياً. احفظ التوزيع لاعتماد التعديلات.';
-        const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=!currentPlan.assignments.length;
-        const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=true;
-        const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=true;
+    root.querySelectorAll('[data-subx-existing-edit]').forEach(function(button){
+      button.addEventListener('click',function(){
+        if(typeof window.timetableDailyOpenArchiveEdit==='function')window.timetableDailyOpenArchiveEdit(button.dataset.subxExistingEdit);
+        else showToast('واجهة التعديل غير متاحة حالياً.','error');
+      });
+    });
+    root.querySelectorAll('[data-subx-existing-delete]').forEach(function(button){
+      button.addEventListener('click',function(){
+        if(typeof window.timetableDailyCancelAssignment==='function')window.timetableDailyCancelAssignment(button.dataset.subxExistingDelete);
+        else showToast('واجهة الحذف غير متاحة حالياً.','error');
+      });
+    });
+    root.querySelectorAll('[data-subx-select-candidate]').forEach(function(button){
+      button.addEventListener('click',function(){
+        selectSubstitutionPlanCandidate(Number(button.getAttribute('data-subx-select-candidate')),button.getAttribute('data-candidate-name')||'');
+      });
+    });
+    root.querySelectorAll('[data-subx-change-slot]').forEach(function(button){
+      button.addEventListener('click',function(){
+        reopenSubstitutionCandidateOptions(Number(button.getAttribute('data-subx-change-slot')));
+      });
+    });
+    root.querySelectorAll('[data-subx-open-candidates]').forEach(function(button){
+      button.addEventListener('click',function(){
+        openSubstitutionCandidateSearch(Number(button.getAttribute('data-subx-open-candidates')));
       });
     });
     const summary=document.getElementById('substitutionPlanSummary');
@@ -14787,7 +15047,7 @@ async function timetableSaveOwner() {
     const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=!savedPlan;
     const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=!savedPlan;
     const status=document.getElementById('substitutionSaveStatus');
-    if(status)status.textContent=savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل من القائمة.';
+    if(status)status.textContent=savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل قبل الحفظ.';
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
@@ -15029,7 +15289,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-screen-date-fix-1"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-review-candidate-cards-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
