@@ -466,7 +466,7 @@ async function handle(req: Request) {
       return reply(400,{error:"حدد فترة زمنية صحيحة لأرشيف الاحتياط."});
     }
     const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
-    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&!hasReservePermission&&toMs-fromMs>366*86400000)) {
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&!hasReservePermission&&!(principal.type==="custom"&&body.editableOnly===true)&&toMs-fromMs>366*86400000)) {
       return reply(400,{error:principal.type==="admin"?"نطاق التاريخ غير صحيح.":"الفترة القصوى لطباعة أرشيف الاحتياط هي 366 يوماً."});
     }
     const [directory,activeVersion,periodTimings]=await Promise.all([
@@ -515,7 +515,10 @@ async function handle(req: Request) {
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
-    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
+    const visibleArchive=body.editableOnly===true&&principal.type==="custom"
+      ?archive.filter((item:any)=>item.canEdit===true||item.canDelete===true)
+      :archive;
+    return reply(200,{ok:true,archive:visibleArchive,dateFrom,dateTo,schoolwide});
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
