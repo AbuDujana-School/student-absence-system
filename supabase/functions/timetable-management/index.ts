@@ -78,6 +78,10 @@ function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timi
   const deadline = substitutionPeriodDeadlineMs(assignmentDate, period, timings);
   return deadline !== null && now < deadline;
 }
+function isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate: unknown, todayInMuscat: string): boolean {
+  const date = String(assignmentDate ?? "").trim();
+  return /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date >= todayInMuscat;
+}
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
   if (error) {
@@ -1496,8 +1500,8 @@ async function handle(req: Request) {
         const activeStatus=["assigned","confirmed"].includes(String(assignment.status||""));
         const withinWindow=principal.type==="admin"
           ? cancellationDate===todayInMuscat
-          : isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings);
-        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية وقت الحصة المحدد في الجدول."});
+          : isSubstitutionAssignmentEditableUntilDayEnd(cancellationDate,todayInMuscat);
+        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهى يوم التوزيع؛ يمكن الحذف حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type,force_points_reversal:true}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
@@ -1525,7 +1529,7 @@ async function handle(req: Request) {
             : ["assigned","confirmed"].includes(status);
           const withinWindow=principal.type==="admin"
             ? assignmentDate===todayInMuscat
-            : isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings);
+            : isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate,todayInMuscat);
           return row.absent_teacher_name!==absentName||row.assignment_date!==assignmentDate||
             row.weekday!==weekday||!statusAllowed||!withinWindow;
         })) {
@@ -1629,8 +1633,7 @@ async function handle(req: Request) {
           if(!row||!["assigned","confirmed"].includes(String(row.status||"")))return true;
           return principal.type==="admin"
             ? String(row.assignment_date||"")!==todayInMuscat
-            : !isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)||
-              !isSubstitutionPeriodOpen(row.assignment_date,item.period??row.period,periodTimings);
+            : !isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat);
         }))return reply(409,{error:"لا يمكن تعديل مجموعة التوزيع؛ انتهت مهلة حصة واحدة على الأقل أو لم تعد نشطة."});
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
@@ -1666,9 +1669,8 @@ async function handle(req: Request) {
         }
         const withinWindow=principal.type==="admin"
           ? String(editableAssignment.assignment_date||"")===todayInMuscat
-          : isSubstitutionPeriodOpen(editableAssignment.assignment_date,editableAssignment.period,periodTimings)&&
-            isSubstitutionPeriodOpen(editableAssignment.assignment_date,requestedPeriod,periodTimings);
-        if(!withinWindow)return reply(409,{error:"انتهت مهلة تعديل هذه الحصة أو الحصة البديلة؛ يجب إجراء التعديل قبل نهاية وقت الحصة."});
+          : isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat);
+        if(!withinWindow)return reply(409,{error:"انتهى يوم التوزيع؛ يمكن تعديل التوزيع حتى نهاية يومه بتوقيت سلطنة عمان."});
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
         const {data,error}=await db.rpc(rpcName,{p_payload:{
           assignment_id:assignmentId,absent_teacher_name:absentTeacherName,period:requestedPeriod,
