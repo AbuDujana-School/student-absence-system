@@ -82,7 +82,7 @@ test('scope checklist excludes the coordinator department and commits only appro
 });
 test('scope selector keeps absent teachers in their original department flow and gates cross-department access',()=>{
  assert.match(adapter,/canManageReserveWorkspace\(activeUser\)/);
- assert.match(adapter,/subxOtherDepartmentCard\.classList\.toggle\('hidden',!allowed\)/);
+ assert.match(adapter,/if\(scopeOtherCard\)scopeOtherCard\.classList\.toggle\('hidden',!allowed\)/);
  assert.match(adapter,/substitutionLoadAbsentees/);
 });
 test('scope screen does not replace the existing smart distribution engine',()=>{
@@ -106,5 +106,5 @@ test('scope loader temporarily enables the legacy checkbox and restores it from 
 test('approved support departments preselect their teachers while own-department mode clears support scope',()=>{
  assert.match(adapter,/window\.substitutionSelectedOtherTeacherNames=new Set\(teachers\)/);
  assert.match(adapter,/const master=document\.getElementById\('substitutionOtherDepartments'\);if\(master\)master\.checked=valid\.length>0/);
- assert.match(adapter,/subxOwnDepartmentCard[^\\n]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
+ assert.match(adapter,/subxOwnDepartmentCard[^\n]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
 });
