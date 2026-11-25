@@ -15274,7 +15274,16 @@ async function timetableSaveOwner() {
     const department=/التوزيع\s+لمعلمي\s+قسمك/.test(rawDepartment)
       ? 'قسمك'
       : rawDepartment.replace(/^التوزيع\s+لمعلمي\s+قسم\s*/,'').trim()||'قسمك';
-    let message='*توزيع حصص الاحتياط*\n\n`'+department+'`\n\n*'+weekday+'، '+formattedDate+'*\n\n';
+    const formatArabicDigits=function(value){
+      const digits='٠١٢٣٤٥٦٧٨٩';
+      return String(value??'').replace(/[0-9]/g,digit=>digits[Number(digit)]);
+    };
+    const tick=String.fromCharCode(96);
+    let message="✨ *كـشـف تـوزيـع حـصـص الاحـتـيـاط* ✨\n";
+    message+="🏫 *مدرسة أبو دجانة الأنصاري*\n\n";
+    message+="📚 *المادة:* "+tick+department+tick+"\n";
+    message+="🗓️ *التاريخ:* *"+weekday+"، "+formattedDate+"*\n\n";
+    message+="━━━━━━━━━━━━━━━━━━\n\n";
     const groups=new Map();
     const addRow=function(item){
       const absentName=String(item?.absentTeacherName||'').trim();
@@ -15286,13 +15295,16 @@ async function timetableSaveOwner() {
     const orderedNames=[...currentAbsentNames,...[...groups.keys()].filter(name=>!currentAbsentNames.includes(name))];
     const orderedGroups=orderedNames.map(name=>({name,rows:groups.get(name)||[]})).filter(group=>group.rows.length);
     orderedGroups.forEach(function(group,index){
-      message+='*'+(index+1)+'-* *المعلم الغائب* : `'+group.name+'`\n\n';
+      message+="👤 *"+formatArabicDigits(index+1)+". المعلم الغائب:* "+tick+group.name+tick+"\n\n";
       group.rows.sort((first,second)=>first.period-second.period).forEach(function(row){
-        const periodLabel=Number.isFinite(row.period)?new Intl.NumberFormat('en-US',{useGrouping:false}).format(row.period):'—';
-        message+='- الحصة *'+periodLabel+'* | الصف '+String(row.className||'غير محدد')+'\n';
-        message+='*الاحتياط* : `'+String(row.substitute||'لم يحدد')+'`\n\n';
+        const periodLabel=Number.isFinite(row.period)?formatArabicDigits(new Intl.NumberFormat('en-US',{useGrouping:false}).format(row.period)):'—';
+        message+="🔹 *الحصة "+periodLabel+"* | الصف "+tick+String(row.className||'غير محدد')+tick+"\n";
+        message+="   ↳ *الاحتياط:* *"+String(row.substitute||'لم يحدد')+"*\n\n";
       });
+      if(index<orderedGroups.length-1)message+="━━━━━━━━━━━━━━━━━━\n\n";
     });
+    message+="━━━━━━━━━━━━━━━━━━\n\n";
+    message+="🙏 *شكرًا لتعاونكم وحرصكم الدائم، ونتمنى لكم يومًا دراسيًا موفقًا ومثمرًا.* 🌟";
     return message;
   }
   window.substitutionShareWhatsapp=function(){

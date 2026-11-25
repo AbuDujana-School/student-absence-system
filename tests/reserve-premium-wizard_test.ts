@@ -112,3 +112,29 @@ Deno.test("batch save refreshes the edit list and includes the saved assignment 
   assert(flow.includes('archiveFrom&&(!archiveFrom.value||archiveFrom.value>date)'), "The archive query start must not exclude the just-saved date");
   assert(flow.includes("await window.subxLoadEditableAssignments();"), "The dedicated edit screen must refresh after a confirmed batch save");
 });
+
+
+Deno.test("saved reserve WhatsApp messages use the approved Arabic report layout", () => {
+  const start = indexHtml.indexOf("function buildShareMessage(){");
+  const end = indexHtml.indexOf("window.substitutionShareWhatsapp=function()", start);
+  assert(start >= 0 && end > start, "The active saved-plan WhatsApp builder must exist");
+  const builder = indexHtml.slice(start, end);
+
+  assert(builder.includes('let message="✨ *كـشـف تـوزيـع حـصـص الاحـتـيـاط* ✨\\n";'), "The WhatsApp message must use the approved report title");
+  assert(builder.includes('message+="🏫 *مدرسة أبو دجانة الأنصاري*\\n\\n";'), "The school heading must be included");
+  assert(builder.includes('message+="📚 *المادة:* "+tick+department+tick+"\\n";'), "The selected department must appear as the subject in backticks");
+  assert(builder.includes('message+="🗓️ *التاريخ:* *"+weekday+"، "+formattedDate+"*\\n\\n";'), "The Arabic weekday and formatted date must be bold");
+  assert(builder.includes('message+="👤 *"+formatArabicDigits(index+1)+". المعلم الغائب:* "+tick+group.name+tick+"\\n\\n";'), "Absent teachers must be numbered with Arabic digits and wrapped in backticks");
+  assert(builder.includes('message+="🔹 *الحصة "+periodLabel+"* | الصف "+tick+String(row.className||\'غير محدد\')+tick+"\\n";'), "Lessons and classes must use the requested bullet and class formatting");
+  assert(builder.includes('message+="   ↳ *الاحتياط:* *"+String(row.substitute||\'لم يحدد\')+"*\\n\\n";'), "Substitute names must be bold on the indented follow-up line");
+  assert(builder.includes("━━━━━━━━━━━━━━━━━━"), "The message must include the section dividers");
+  assert(builder.includes("🙏 *شكرًا لتعاونكم وحرصكم الدائم، ونتمنى لكم يومًا دراسيًا موفقًا ومثمرًا.* 🌟"), "The requested closing line must be included");
+  assert(builder.includes("formatArabicDigits(row.period)") || builder.includes("formatArabicDigits(new Intl.NumberFormat"), "Period numbers must use Arabic digits");
+  assert(builder.includes("group.rows.sort((first,second)=>first.period-second.period)"), "Lessons must be sorted in ascending period order");
+  assert(!builder.includes("*توزيع حصص الاحتياط*") && !builder.includes("- الحصة *"), "The previous compact WhatsApp template must not return");
+
+  const shareStart = indexHtml.indexOf("window.substitutionShareWhatsapp=function()");
+  const shareEnd = indexHtml.indexOf("window.substitutionPrintPdf=function()", shareStart);
+  assert(shareStart >= 0 && shareEnd > shareStart, "The visible saved-plan WhatsApp action must exist");
+  assert(indexHtml.slice(shareStart, shareEnd).includes("encodeURIComponent(buildShareMessage())"), "The saved-plan WhatsApp action must use the corrected builder");
+});
