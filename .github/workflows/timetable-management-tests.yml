@@ -119,6 +119,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
+      - name: Type-check Student Affairs reset endpoint
+        run: deno check supabase/functions/student-affairs/index.ts
       - name: Verify deployed development timetable endpoint rejects missing and unknown app sessions
         if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'perf/timetable-self-read-no-preflight-20261120'
         env:
