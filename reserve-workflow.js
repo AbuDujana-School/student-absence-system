@@ -442,19 +442,6 @@
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
         card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-date"><i class="fa-regular fa-calendar-check"></i></span><div><strong>الخطوة الأولى: اختر تاريخ الاحتياط</strong><small>حدد اليوم الدراسي الذي تريد إعداد التوزيع له</small></div><span class="tt-premium-chip">البداية</span></div>';
         dateWrap.parentNode?.insertBefore(card,dateWrap);card.appendChild(dateWrap);dateWrap.classList.add("tt-premium-date-control");
-        if(!card.querySelector("#ttPremiumDateQuickNav")){
-          const nav=document.createElement("div");nav.id="ttPremiumDateQuickNav";nav.className="tt-premium-date-nav";
-          nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
-          card.appendChild(nav);
-          const toLocalISO=value=>{const y=value.getFullYear(),m=String(value.getMonth()+1).padStart(2,"0"),d=String(value.getDate()).padStart(2,"0");return y+"-"+m+"-"+d;};
-          nav.addEventListener("click",event=>{
-            const button=event.target.closest("[data-date-offset]");if(!button||!date)return;
-            const offset=Number(button.dataset.dateOffset),base=reserveCurrentMuscatDate();
-            const parts=base.split("-").map(Number),selected=new Date(parts[0],parts[1]-1,parts[2]+offset,12,0,0);
-            date.value=toLocalISO(selected);date.dispatchEvent(new Event("input",{bubbles:true}));date.dispatchEvent(new Event("change",{bubbles:true}));
-            nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
-          });
-        }
         if(!date.value){date.value=reserveCurrentMuscatDate();defaultDateInitialized=true;}
       }
     }
@@ -2164,14 +2151,39 @@
       window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
     const distributionDate=$("substitutionDate");
-    if(distributionDate&&distributionDate.dataset.canonicalLegacyDateSync!=="1"){
-      distributionDate.dataset.canonicalLegacyDateSync="1";
-      distributionDate.addEventListener("change",()=>{
-        const legacyDate=$("timetableSubstitutionDate");
-        if(!legacyDate||legacyDate.value===distributionDate.value)return;
-        legacyDate.value=distributionDate.value;
-        legacyDate.dispatchEvent(new Event("change",{bubbles:true}));
-      });
+    if(distributionDate){
+      const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
+      if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
+        const nav=document.createElement("div");
+        nav.id="subxCanonicalDateQuickNav";
+        nav.className="tt-premium-date-nav";
+        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+        dateCard.appendChild(nav);
+        nav.addEventListener("click",event=>{
+          const button=event.target.closest("[data-date-offset]");
+          if(!button)return;
+          const base=typeof getOmanLocalDate==="function"
+            ?String(getOmanLocalDate())
+            :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+          const parts=base.split("-").map(Number);
+          if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return;
+          const offset=Number(button.dataset.dateOffset);
+          const selected=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+offset,12));
+          distributionDate.value=selected.toISOString().slice(0,10);
+          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
+          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
+          nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
+        });
+      }
+      if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
+        distributionDate.dataset.canonicalLegacyDateSync="1";
+        distributionDate.addEventListener("change",()=>{
+          const legacyDate=$("timetableSubstitutionDate");
+          if(!legacyDate||legacyDate.value===distributionDate.value)return;
+          legacyDate.value=distributionDate.value;
+          legacyDate.dispatchEvent(new Event("change",{bubbles:true}));
+        });
+      }
     }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     // The new date picker is authoritative. Keep the hidden compatibility
