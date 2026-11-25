@@ -269,3 +269,13 @@ Deno.test("daily and cumulative reserve archive requests time out and release th
   assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}"), "Daily lock must release after a timeout");
   assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}"), "Cumulative lock must release after a timeout");
 });
+
+
+Deno.test("reserve date navigation includes yesterday and permits historical date selection", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes('data-subx-date-shift="-1">أمس</button>'),"The reserve date shortcuts must include yesterday");
+  assert(html.includes('data-subx-date-shift="0">اليوم</button>'),"The reserve date shortcuts must include today");
+  assert(html.includes('data-subx-date-shift="1">غداً</button>'),"The reserve date shortcuts must include tomorrow");
+  assert(!source.includes("date.min=today"),"Historical reserve dates must not be blocked by a minimum date");
+  assert(source.includes("if(!date.value)date.value=today;"),"The reserve date should default to Muscat today only when empty");
+});
