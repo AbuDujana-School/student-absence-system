@@ -34,8 +34,8 @@ test('scope screen presents the two requested large cards and the prominent smar
 test('the own-department name is sourced from the authenticated coordinator directory record',()=>{
   assert.match(html,/window\.substitutionActorDepartmentName=String\(response\.actorDepartmentName\|\|""\)\.trim\(\)/);
   assert.match(html,/id="subxOwnDepartmentName"/);
-  assert.match(backend,/actorDepartmentName:String\(actor\?\.departmentName\|\|""\)\.trim\(\)/);
-  assert.match(backend,/actorDepartmentId:String\(actor\?\.departmentId\|\|""\)/);
+  assert.match(backend,/const actorDepartmentName=String\(actor\?\.departmentName\|\|""\)\.trim\(\)/);
+  assert.match(backend,/const actorDepartmentId=String\(actor\?\.departmentId\|\|""\)/);
 });
 
 test('confirming selected departments includes all active timetable teachers from those departments',()=>{
