@@ -1125,7 +1125,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
   async function fetchArchivePreview(absentName, date, weekday) {
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
-    return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
+    return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,forEdit:true,
       absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
   }
   window.timetableDailyRenderArchive = function () {
@@ -1227,57 +1227,115 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
-    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
+    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index).sort((x,y)=>String(x.absentTeacherName||"").localeCompare(String(y.absentTeacherName||""),"ar")||Number(x.period)-Number(y.period));
     if(!items.length){status("لا توجد تكليفات ضمن مهلة التعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
-      const absentNames=[...new Set(items.map(item=>item.absentTeacherName))],weekday=items[0].weekday;
-      const previews=await Promise.all(absentNames.map(async name=>[name,await fetchArchivePreview(name,date,weekday)]));
-      const previewByAbsent=new Map(previews);
-      const modal=document.createElement("div");modal.id="timetableDailyArchiveDayEditModal";
-      modal.className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-      const rows=items.sort((a,b)=>Number(a.period)-Number(b.period)).map(item=>{
-        const preview=previewByAbsent.get(item.absentTeacherName);
-        const lesson=(preview?.lessons||[]).find(row=>Number(row.period)===Number(item.period));
-        const candidates=lesson?.candidates||[];
-        const options=candidates.filter(candidate=>candidate.name!==item.substituteTeacherName)
-          .map(candidate=>{const occupied=(Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b);const periodText=occupied.length?occupied.map(period=>new Intl.NumberFormat("ar").format(period)).join("، "):"—";return '<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · الحصص '+periodText+'</option>';}).join("");
-        return '<div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-4" data-archive-day-row="'+esc(item.id)+'">'+
-          '<div><div class="text-[10px] font-black text-slate-500">'+esc(item.absentTeacherName)+'</div><div class="mt-1 text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"-")+'</div><div class="text-[10px] text-slate-500">'+esc(item.subject||"")+'</div></div>'+
-          '<label class="text-[10px] font-black text-slate-600">المعلم البديل<select data-batch-sub-id="'+esc(item.id)+'" data-original-sub="'+esc(item.substituteTeacherName)+'" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="'+esc(item.substituteTeacherName)+'" selected>'+esc(item.substituteTeacherName)+' (الحالي)</option>'+options+'</select></label>'+
-          '<label class="text-[10px] font-black text-slate-600">سبب الغياب<textarea data-batch-absence-reason="'+esc(item.id)+'" data-batch-absence-group="'+esc(item.absentTeacherName)+'" data-original-absence-reason="'+esc(item.absenceReason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="إجازة مرضية، مهمة رسمية...">'+esc(item.absenceReason==="-"?"":item.absenceReason||"")+'</textarea></label>'+
-          '<label class="text-[10px] font-black text-slate-600">سبب الاحتياط<textarea data-batch-reason="'+esc(item.id)+'" data-original-reason="'+esc(item.reason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="تكليف تغطية الحصة...">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>';
-      }).join("");
-      modal.innerHTML='<div class="max-h-[90vh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">مراجعة وتعديل توزيع اليوم بالكامل</h3><p class="mt-1 text-[10px] text-slate-500">التاريخ: '+esc(date)+' · '+items.length+' تكليف · التغييرات تحفظ في عملية واحدة.</p></div><button type="button" data-close-day-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div><div class="space-y-2">'+rows+'</div><div id="ttArchiveDayEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex justify-end gap-2"><button type="button" data-close-day-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveDayEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ تعديلات اليوم</button></div></div>';
-      document.body.appendChild(modal);
-      modal.querySelectorAll("[data-close-day-edit]").forEach(button=>button.addEventListener("click",()=>modal.remove()));
-      modal.querySelectorAll("[data-batch-absence-reason]").forEach(input=>input.addEventListener("input",()=>{
-        const group=input.dataset.batchAbsenceGroup;
-        modal.querySelectorAll("[data-batch-absence-reason]").forEach(other=>{
-          if(other.dataset.batchAbsenceGroup===group)other.value=input.value;
-        });
-      }));
-      modal.querySelector("#ttArchiveDayEditSave").addEventListener("click",async()=>{
-        const button=modal.querySelector("#ttArchiveDayEditSave"),errorBox=modal.querySelector("#ttArchiveDayEditError");
-        const changes=[];
-        modal.querySelectorAll("[data-batch-sub-id]").forEach(select=>{
-          const id=select.dataset.batchSubId,reasonInput=modal.querySelector('[data-batch-reason="'+id+'"]'),absenceInput=modal.querySelector('[data-batch-absence-reason="'+id+'"]');
-          const reason=(reasonInput?.value||"").trim()||"-",absenceReason=(absenceInput?.value||"").trim()||"-";
-          if(select.value!==select.dataset.originalSub||reason!==(reasonInput?.dataset.originalReason||"-")||absenceReason!==(absenceInput?.dataset.originalAbsenceReason||"-")){
-            changes.push({assignmentId:id,substituteTeacherName:select.value,reserveReason:reason,absenceReason});
+      const names=[...new Set(items.map(x=>x.absentTeacherName))],weekday=items[0].weekday;
+      const previews=await Promise.all(names.map(async name=>[name,await fetchArchivePreview(name,date,weekday)]));
+      const byAbsent=new Map(previews),state=new Map(items.map(x=>[String(x.id),{sub:String(x.substituteTeacherName||""),reason:String(x.reason||"-"),expanded:false}]));
+      const absence=new Map(names.map(n=>[n,String(items.find(x=>x.absentTeacherName===n)?.absenceReason||"-")]));
+      const fmt=n=>new Intl.NumberFormat("en-US",{useGrouping:false}).format(Number(n));
+      const list=a=>(Array.isArray(a)?a:[]).map(Number).filter(Number.isInteger).sort((x,y)=>x-y).map(fmt).join(", ")||"لا توجد حصص مشغولة";
+      const lessonFor=x=>(byAbsent.get(x.absentTeacherName)?.lessons||[]).find(l=>Number(l.period)===Number(x.period))||{};
+      const modal=document.createElement("div");modal.id="timetableDailyArchiveDayEditModal";modal.className="reserve-edit-overlay";
+      if(!document.getElementById("reserveEditGlassWorkspaceStyles")){
+        const style=document.createElement("style");style.id="reserveEditGlassWorkspaceStyles";
+        style.textContent=[
+          ".reserve-edit-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(7,17,32,.78);backdrop-filter:blur(12px)}",
+          ".reserve-edit-shell{width:min(1080px,100%);max-height:95vh;overflow:auto;border:1px solid #fff;border-radius:26px;background:linear-gradient(145deg,#fbfdff,#eff6f9);box-shadow:0 25px 80px #0005;color:#18334a}",
+          ".reserve-edit-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;background:linear-gradient(110deg,#091728,#174365 65%,#0e6972);color:white}",
+          ".reserve-edit-head h3{font-weight:1000;font-size:21px}.reserve-edit-head small{display:block;margin-top:4px;color:#c9e4eb;font-size:11px}.reserve-edit-close{width:40px;height:40px;border:1px solid #ffffff44;border-radius:13px;background:#ffffff1c;color:#fff;font-size:20px}",
+          ".reserve-edit-groups{display:grid;gap:15px;padding:16px}.reserve-edit-group{overflow:hidden;border:1px solid #ffffff;border-radius:22px;background:#ffffffc9;box-shadow:0 10px 30px #1a3b5512}",
+          ".reserve-edit-absent{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px;background:linear-gradient(110deg,#11233a,#1c486b 68%,#176b72);color:#fff}.reserve-edit-absent strong{font-size:15px;font-weight:1000}.reserve-edit-absent small{display:block;margin-top:3px;color:#cce5e9;font-size:10px}.reserve-edit-periods{padding:8px 11px;border:1px solid #ffffff30;border-radius:12px;background:#ffffff18;color:#f7d78d;font-size:12px;font-weight:1000}",
+          ".reserve-edit-lessons{display:grid;gap:11px;padding:12px}.reserve-edit-lesson{overflow:hidden;border:1px solid #e0ebef;border-radius:18px;background:linear-gradient(145deg,#fff,#f5fafc)}.reserve-edit-lesson-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 13px;border-bottom:1px solid #e6eef1;background:#edf5f7}.reserve-edit-period{padding:8px 12px;border-radius:13px;background:linear-gradient(110deg,#14273e,#16717a);color:#fff;font-size:12px;font-weight:1000}.reserve-edit-class{color:#657d8e;font-size:11px;font-weight:800}",
+          ".reserve-edit-body{padding:12px}.reserve-edit-selected{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #b8e6d4;border-radius:14px;background:#e9f8f1}.reserve-edit-selected strong{display:block;color:#08714f;font-size:13px}.reserve-edit-selected small{display:block;color:#718b84;font-size:10px}",
+          ".reserve-edit-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 11px;border:1px solid #d7e5eb;border-radius:11px;background:white;color:#24536b;font-size:10px;font-weight:900}.reserve-edit-candidates{display:grid;gap:7px;margin-top:10px}.reserve-edit-candidate{display:flex;width:100%;align-items:center;justify-content:space-between;gap:9px;padding:10px 11px;border:1px solid #dbe8ed;border-radius:13px;background:#fff;text-align:right}.reserve-edit-candidate:disabled{opacity:.45}.reserve-edit-candidate strong{display:block;color:#28445b;font-size:12px}.reserve-edit-candidate small{display:block;margin-top:3px;color:#748895;font-size:10px}.reserve-edit-candidate em{font-style:normal;color:#29737a;font-size:10px;font-weight:900}",
+          ".reserve-edit-extra{margin-top:10px;padding:9px 11px;border:1px solid #e1eaee;border-radius:12px;background:#f8fbfc}.reserve-edit-extra summary{cursor:pointer;color:#60778a;font-size:10px;font-weight:900}.reserve-edit-extra textarea{display:block;width:100%;margin-top:7px;border:1px solid #d8e4e9;border-radius:10px;padding:8px;font-size:11px}",
+          ".reserve-edit-actions{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;padding:12px 16px;border-top:1px solid #dce7eb;background:#f8fcfdef;backdrop-filter:blur(14px)}.reserve-edit-action{min-height:45px;border-radius:14px;color:#fff;font-size:11px;font-weight:1000}.reserve-edit-save{background:linear-gradient(110deg,#078864,#13a184)}.reserve-edit-share{background:linear-gradient(110deg,#14834d,#1aa469)}.reserve-edit-pdf{background:linear-gradient(110deg,#132b45,#236283)}",
+          ".reserve-edit-other{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;padding:14px;background:#061526c9;backdrop-filter:blur(8px)}.reserve-edit-other-panel{width:min(600px,100%);max-height:82vh;overflow:auto;border-radius:22px;background:#f8fcfd;padding:15px}.reserve-edit-search{width:100%;margin:12px 0;padding:11px;border:1px solid #d6e4e9;border-radius:12px}.reserve-edit-error{margin:0 16px 12px;padding:10px;border-radius:12px;background:#fff0ef;color:#b42318;font-size:11px;font-weight:800}",
+          ".dark .reserve-edit-shell{background:linear-gradient(145deg,#132b3f,#0d1c2b);color:#eef5f8;border-color:#ffffff22}.dark .reserve-edit-group{background:#142d41;border-color:#ffffff1e}.dark .reserve-edit-lesson{background:#193448;border-color:#395569}.dark .reserve-edit-lesson-head{background:#ffffff08;border-color:#395569}.dark .reserve-edit-selected{background:#0b4538;border-color:#1b755b}.dark .reserve-edit-selected strong{color:#83e4bc}.dark .reserve-edit-btn,.dark .reserve-edit-candidate,.dark .reserve-edit-extra{background:#1c394d;border-color:#3a596d;color:#f2f7fa}.dark .reserve-edit-candidate strong{color:#fff}.dark .reserve-edit-candidate small{color:#bfd0d9}.dark .reserve-edit-actions{background:#0d2132;border-color:#395569}.dark .reserve-edit-other-panel{background:#132d41}",
+          "@media(max-width:680px){.reserve-edit-overlay{padding:0;align-items:stretch}.reserve-edit-shell{width:100%;max-height:100dvh;min-height:100dvh;border:0;border-radius:0}.reserve-edit-groups{padding:10px}.reserve-edit-absent{align-items:flex-start;flex-direction:column}.reserve-edit-actions{grid-template-columns:1fr;padding:9px 11px}.reserve-edit-action{min-height:42px}}"
+        ].join(String.fromCharCode(10));document.head.appendChild(style);
+      }
+      let otherId="",otherQuery="",saving=false;
+      function otherTeachers(){
+        const item=items.find(x=>String(x.id)===String(otherId)),host=modal.querySelector("#reserveEditOtherList");if(!host||!item)return;
+        const rows=byAbsent.get(item.absentTeacherName)?.editTeacherDirectory||[],query=otherQuery.trim().toLowerCase();
+        const filtered=rows.filter(t=>!query||String(t.name||"").toLowerCase().includes(query)||String(t.subject||t.departmentName||"").toLowerCase().includes(query));
+        host.innerHTML=filtered.length?filtered.map(t=>{
+          const busy=Array.isArray(t.occupiedPeriods)?t.occupiedPeriods.map(Number):[],blocked=busy.includes(Number(item.period))&&String(t.name)!==String(item.substituteTeacherName);
+          return '<button type="button" class="reserve-edit-candidate" data-other-choice="'+esc(String(item.id))+'" data-teacher="'+esc(t.name)+'" '+(blocked?'disabled':'')+'><span><strong>'+esc(t.name)+'</strong><small>مشغول: <b dir="ltr">'+esc(list(busy))+'</b></small></span><em>'+(blocked?'مشغول بهذه الحصة':'اختيار')+'</em></button>';
+        }).join(""):'<p class="p-4 text-center text-xs text-slate-500">لا توجد نتائج ضمن نطاق صلاحيتك.</p>';
+      }
+      function draw(){
+        const grouped=new Map();items.forEach(x=>{const n=String(x.absentTeacherName||"غير محدد");if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(x);});
+        const cards=[...grouped.entries()].map(([name,rows])=>{
+          const summary=rows.map(x=>Number(x.period)).sort((x,y)=>x-y).map(fmt).join(", ");
+          const lessons=rows.map(x=>{
+            const id=String(x.id),saved=state.get(id),preview=lessonFor(x),current=saved.sub||x.substituteTeacherName||"لم يحدد",candidates=(preview.candidates||[]).filter(c=>String(c.name)!==String(current));
+            const chosen='<div class="reserve-edit-selected"><div><small>البديل المختار</small><strong>'+esc(current)+'</strong></div><button type="button" class="reserve-edit-btn" data-change="'+esc(id)+'"><i class="fa-solid fa-pen"></i> تغيير</button></div>';
+            const choices=saved.expanded?'<div class="reserve-edit-candidates"><div class="flex items-center justify-between gap-2"><b class="text-xs text-slate-500">المعلمون المقترحون</b><button type="button" class="reserve-edit-btn" data-other="'+esc(id)+'"><i class="fa-solid fa-magnifying-glass"></i> معلمون آخرون</button></div>'+
+              (candidates.length?candidates.map(c=>'<button type="button" class="reserve-edit-candidate" data-choice="'+esc(id)+'" data-teacher="'+esc(c.name)+'"><span><strong>'+esc(c.name)+'</strong><small>مشغول: <b dir="ltr">'+esc(list(c.occupiedPeriods))+'</b></small></span><em>اختيار</em></button>').join(""):'<p class="p-3 text-center text-xs text-slate-500">لا توجد مقترحات إضافية لهذه الحصة.</p>')+'</div>':'';
+            return '<article class="reserve-edit-lesson"><div class="reserve-edit-lesson-head"><div class="flex items-center gap-3"><b class="reserve-edit-period">الحصة <span dir="ltr">'+fmt(x.period)+'</span></b><span class="reserve-edit-class">الصف '+esc(x.className||preview.className||"—")+'</span></div><button type="button" class="reserve-edit-btn" data-other="'+esc(id)+'"><i class="fa-solid fa-users"></i> معلمون آخرون</button></div><div class="reserve-edit-body">'+chosen+choices+'<details class="reserve-edit-extra"><summary>سبب الاحتياط</summary><textarea rows="2" maxlength="500" data-reason="'+esc(id)+'">'+esc(saved.reason||x.reason||"-")+'</textarea></details></div></article>';
+          }).join("");
+          return '<section class="reserve-edit-group"><header class="reserve-edit-absent"><div><strong>المعلم الغائب: '+esc(name)+'</strong><small>'+rows.length+' حصص</small></div><span class="reserve-edit-periods" dir="ltr">('+summary+')</span></header><div class="reserve-edit-lessons">'+lessons+'<details class="reserve-edit-extra"><summary>سبب الغياب</summary><textarea rows="2" maxlength="500" data-absence="'+esc(name)+'">'+esc(absence.get(name)||"-")+'</textarea></details></div></section>';
+        }).join("");
+        modal.innerHTML='<div class="reserve-edit-shell"><header class="reserve-edit-head"><div><h3><i class="fa-solid fa-pen-to-square ml-2 text-amber-200"></i>تعديل توزيع الاحتياط</h3><small>'+esc(date)+' · '+items.length+' حصة محفوظة</small></div><button type="button" class="reserve-edit-close" data-close>×</button></header><div class="reserve-edit-groups">'+cards+'</div><div id="reserveEditError" class="reserve-edit-error" hidden></div><footer class="reserve-edit-actions"><button type="button" class="reserve-edit-action reserve-edit-save" data-save>اعتماد وحفظ التوزيع</button><button type="button" class="reserve-edit-action reserve-edit-share" data-share>مشاركة واتساب</button><button type="button" class="reserve-edit-action reserve-edit-pdf" data-pdf>طباعة PDF</button></footer></div><div class="reserve-edit-other" '+(otherId?'':'hidden')+'><section class="reserve-edit-other-panel"><div class="flex items-center justify-between gap-3"><b class="font-black">معلمون آخرون</b><button type="button" class="reserve-edit-close" data-other-close>×</button></div><input id="reserveEditSearch" class="reserve-edit-search" type="search" placeholder="ابحث باسم المعلم أو المادة..." value="'+esc(otherQuery)+'"><div id="reserveEditOtherList" class="grid gap-2"></div><p class="mt-3 text-[10px] leading-6 text-slate-500">تظهر الحصص المشغولة بجانب كل معلم. يعيد الخادم التحقق من الأهلية قبل الحفظ.</p></section></div>';
+        if(otherId)otherTeachers();
+      }
+      document.body.appendChild(modal);draw();
+      modal.addEventListener("click",async event=>{
+        const button=event.target.closest("button");if(!button||!modal.contains(button))return;
+        if(button.hasAttribute("data-close")){modal.remove();return;}
+        if(button.hasAttribute("data-other-close")){otherId="";draw();return;}
+        if(button.hasAttribute("data-change")){const id=button.dataset.change,old=state.get(id);state.set(id,{...old,expanded:true});draw();return;}
+        if(button.hasAttribute("data-other")){otherId=button.dataset.other;otherQuery="";draw();modal.querySelector("#reserveEditSearch")?.focus();return;}
+        if(button.hasAttribute("data-choice")||button.hasAttribute("data-other-choice")){
+          const id=button.dataset.choice||button.dataset.otherChoice,old=state.get(id);state.set(id,{...old,sub:button.dataset.teacher,expanded:false});
+          if(button.hasAttribute("data-other-choice"))otherId="";
+          draw();return;
+        }
+        if(button.hasAttribute("data-save")){
+          if(saving)return;
+          const changes=[];
+          items.forEach(x=>{
+            const saved=state.get(String(x.id)),absenceReason=String(absence.get(x.absentTeacherName)||x.absenceReason||"-").trim()||"-",reason=String(saved.reason||"-").trim()||"-",sub=String(saved.sub||"").trim();
+            if(sub!==String(x.substituteTeacherName||"")||reason!==String(x.reason||"-")||absenceReason!==String(x.absenceReason||"-"))changes.push({assignmentId:x.id,substituteTeacherName:sub,reserveReason:reason,absenceReason});
+          });
+          if(!changes.length){modal.remove();status("لم تغيّر أي بيانات في توزيع هذا اليوم.","info");return;}
+          if(changes.some(x=>!x.substituteTeacherName)){const box=modal.querySelector("#reserveEditError");box.textContent="اختر بديلاً لكل حصة قبل الحفظ.";box.hidden=false;return;}
+          saving=true;button.disabled=true;button.textContent="جارٍ حفظ التعديلات...";
+          try{
+            await appAuthRequest({action:"timetable_substitution_update_batch",assignments:changes,includeOtherDepartments:includeOthers()},appAuthSession?.token||readAppAuthToken());
+            modal.remove();status("تم حفظ "+changes.length+" تعديل في عملية واحدة، مع الاحتفاظ بالسجلات السابقة في سجل المراجعة.","success");
+            await timetableDailyLoadArchive();await timetableDailyRefreshAll();
+            if(typeof window.subxLoadEditableAssignments==="function")await window.subxLoadEditableAssignments();
+            if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
+          }catch(error){
+            saving=false;const box=modal.querySelector("#reserveEditError");if(box){box.textContent=error?.message||"تعذر حفظ التعديلات؛ لم يتم اعتماد أي تعديل جزئي.";box.hidden=false;}
+            const save=modal.querySelector("[data-save]");if(save){save.disabled=false;save.textContent="اعتماد وحفظ التوزيع";}
           }
-        });
-        if(!changes.length){modal.remove();status("لم تغيّر أي بيانات في توزيع هذا اليوم.","info");return;}
-        button.disabled=true;button.textContent="جارٍ حفظ جميع التعديلات...";
-        try{
-          const token=appAuthSession?.token||readAppAuthToken();
-          await appAuthRequest({action:"timetable_substitution_update_batch",assignments:changes,
-            includeOtherDepartments:includeOthers()},token);
-          modal.remove();status("تم حفظ "+changes.length+" تعديل في عملية واحدة، مع الاحتفاظ بالسجلات السابقة في سجل المراجعة.","success");
-          await timetableDailyLoadArchive();await timetableDailyRefreshAll();
-          if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
-        }catch(error){errorBox.textContent=error?.message||"تعذر حفظ تعديلات اليوم؛ لم يتم اعتماد أي تعديل جزئي.";errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ تعديلات اليوم";}
+          return;
+        }
+        if(button.hasAttribute("data-share")){
+          const grouped=new Map();items.forEach(x=>{const n=String(x.absentTeacherName||"غير محدد");if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(x);});
+          const tick=String.fromCharCode(96);let message="*توزيع حصص الاحتياط*\\n\\n"+date+"\\n\\n",number=0;
+          for(const [name,rows] of grouped){number++;message+="*"+number+"-* *المعلم الغائب* : "+tick+name+tick+"\\n\\n";for(const x of rows){message+="- الحصة *"+fmt(x.period)+"* | الصف "+(x.className||"غير محدد")+"\\n*الاحتياط* : "+tick+(state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد")+tick+"\\n\\n";}}
+          window.open("https://wa.me/?text="+encodeURIComponent(message.trim()),"_blank","noopener,noreferrer");return;
+        }
+        if(button.hasAttribute("data-pdf")){
+          const printable=items.map(x=>({...x,substituteTeacherName:state.get(String(x.id))?.sub||x.substituteTeacherName,reason:state.get(String(x.id))?.reason||x.reason,absenceReason:absence.get(x.absentTeacherName)||x.absenceReason}));
+          if(typeof window.timetableDailyPrintArchiveRange==="function")window.timetableDailyPrintArchiveRange(printable);else status("قالب كشف PDF الرسمي غير متاح حالياً.","error");
+        }
       });
-    }catch(error){status(error?.message||"تعذر فتح توزيع اليوم للتعديل.","error");}
+      modal.addEventListener("input",event=>{
+        const input=event.target;
+        if(input.matches("[data-reason]")){const old=state.get(input.dataset.reason);state.set(input.dataset.reason,{...old,reason:input.value});}
+        else if(input.matches("[data-absence]"))absence.set(input.dataset.absence,input.value);
+        else if(input.id==="reserveEditSearch"){otherQuery=input.value;otherTeachers();}
+      });
+      modal.addEventListener("keydown",event=>{if(event.key==="Escape"){if(otherId){otherId="";draw();}else modal.remove();}});
+    }catch(error){status(error?.message||"تعذر فتح مساحة تعديل توزيع اليوم.","error");}
   };
   window.timetableDailyCancelAssignment = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||reserveCumulativeArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
