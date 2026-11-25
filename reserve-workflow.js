@@ -120,8 +120,8 @@
     const principal=appAuthSession?.principal||activeUser||{};
     const name=currentReserveActorDepartmentName();
     const isAdmin=principal.type==="admin"||principal.permissions?.admin===true;
-    const label=isAdmin?"جميع الأقسام":name?(String(name).startsWith("قسم")?String(name):"قسم "+name):"قسمك";
-    title.textContent="التوزيع لمعلمي "+label;
+    const label=name?(String(name).startsWith("قسم")?String(name):"قسم "+name):"قسمك";
+    title.textContent=isAdmin?"التوزيع لمعلمي قسم الغائب":"التوزيع لمعلمي "+label;
   }
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
@@ -648,7 +648,7 @@
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
       const localCard=document.createElement("section");
       localCard.className="tt-reserve-choice-card tt-reserve-local-card";
-      localCard.innerHTML='<div class="tt-reserve-choice-art"><i class="fa-solid fa-book-open"></i></div><div class="tt-reserve-choice-copy"><span class="tt-reserve-choice-kicker">المسار الأساسي</span><strong id="ttReserveLocalDepartmentTitle">التوزيع لمعلمي قسمك</strong><small>يعرض النظام قسمك تلقائيًا، وتبقى قائمة المعلمين الغائبين ضمن نطاقه فقط.</small></div><button type="button" class="tt-reserve-choice-action">متابعة <i class="fa-solid fa-arrow-left"></i></button>';
+      localCard.innerHTML='<div class="tt-reserve-choice-art"><i class="fa-solid fa-book-open"></i></div><div class="tt-reserve-choice-copy"><span class="tt-reserve-choice-kicker">المسار الأساسي</span><strong id="ttReserveLocalDepartmentTitle">التوزيع لمعلمي قسمك</strong><small>يحدد النظام النطاق الأساسي تلقائيًا حسب صلاحيتك، وتبقى قائمة الغائبين ضمن نطاق القسم المعتمد.</small></div><button type="button" class="tt-reserve-choice-action">متابعة <i class="fa-solid fa-arrow-left"></i></button>';
       const externalButton=$("timetableDailyOtherDepartmentsButton");
       const externalCard=document.createElement("section");
       externalCard.className="tt-reserve-choice-card tt-reserve-support-card";
