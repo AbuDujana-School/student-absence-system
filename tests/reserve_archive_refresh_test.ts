@@ -88,6 +88,12 @@ Deno.test("main substitution absentee list displays the chosen absence reason", 
   assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
 });
 
+Deno.test("future reserve assignments appear in the editable range until their date ends", () => {
+  assert(source.includes("end.setUTCDate(end.getUTCDate()+365)"),"The default edit/archive range must include future-dated distributions");
+  assert(source.includes("const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true"),"Future assignments must appear in the active edit panel only while the server grants edit access");
+  assert(source.includes("const archivedTotal=reserveArchive.length-activeTotal"),"Expired assignments must automatically render as archived when the server closes edit access");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
