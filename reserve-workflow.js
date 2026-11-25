@@ -1348,7 +1348,7 @@
     const classLength=Array.from(String(row?.className||"")).length;
     const substituteLength=Array.from(String(row?.substitute||"")).length;
     const lines=Math.max(1,Math.ceil(classLength/13),Math.ceil(substituteLength/16));
-    return 1.2+lines*3.4;
+    return 2+lines*4.4;
   }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
     const pages=[];let current=[],count=0,usedHeight=0,activeGroupPage=null;
