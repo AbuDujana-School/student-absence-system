@@ -52,3 +52,14 @@ Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
 });
+
+Deno.test("reserve archive shows newest dates first and prints one A4 page per active day", () => {
+  assert(
+    reserveWorkflow.includes('Array.from(grouped.entries()).sort((a,b)=>b[0].localeCompare(a[0]))'),
+    "The daily archive must list the newest date first",
+  );
+  assert(
+    reserveWorkflow.includes('reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"",undefined,{singlePage:true})'),
+    "Archive printing must keep each day on one official A4 page",
+  );
+});
