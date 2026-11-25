@@ -357,9 +357,8 @@ test("single-day A4 archive sheets apply compact row typography instead of clipp
   const markup = extractFunction(source, "function reserveOfficialPrintMarkup(");
   const period = extractFunction(source, "function formatReservePrintPeriod(");
   const fullDate = extractFunction(source, "function formatReservePrintFullDate(");
-  const formatDate = extractFunction(source, "function formatReserveDateArabic(");
   const build = new Function("esc", "formatReserveDateArabic",
-    formatDate + ";" + period + ";" + fullDate + ";" + markup + ";" + pages +
+    period + ";" + fullDate + ";" + markup + ";" + pages +
     "; return reserveOfficialPrintPages;"
   )(value => String(value ?? ""), () => "التاريخ");
   const rows = Array.from({ length: 40 }, (_, index) => ({
