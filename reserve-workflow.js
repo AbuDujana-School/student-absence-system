@@ -2589,23 +2589,21 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         dashboardCard.click();
       });
     }
-    // The legacy panel remains hidden as a compatibility engine. Its archive
-    // and editable-today records are mounted in the four-section workspace.
+    // Keep the legacy daily panels hidden as compatibility engines.
+    // The visible edit/archive lists are rendered by index.html and open this
+    // module's authenticated full-day editor; moving both old panels into them
+    // would create two competing edit paths.
     function mountCanonicalPanel(){
       const panel=$("timetableSubstitutionPanel");
-      const editHost=$("subxEditMountArea"),archiveHost=$("subxArchiveMountArea");
-      if(!panel||!editHost||!archiveHost)return false;
+      const archiveHost=$("subxArchiveMountArea");
+      if(!panel||!$("subxEditMountArea")||!archiveHost)return false;
       panel.classList.add("hidden");
-      const activePanel=$("timetableDailyActivePanel");
-      const archivePanel=$("timetableDailyArchivePanel");
+      $("timetableDailyActivePanel")?.classList.add("hidden");
+      $("timetableDailyArchivePanel")?.classList.add("hidden");
       const adminTools=$("ttAdminReserveTools");
       const departmentTools=$("ttDepartmentReserveTools");
-      if(activePanel&&activePanel.parentElement!==editHost)editHost.appendChild(activePanel);
-      if(archivePanel&&archivePanel.parentElement!==archiveHost)archiveHost.appendChild(archivePanel);
       if(adminTools&&adminTools.parentElement!==archiveHost)archiveHost.appendChild(adminTools);
       if(departmentTools&&departmentTools.parentElement!==archiveHost)archiveHost.appendChild(departmentTools);
-      activePanel?.classList.remove("hidden");
-      archivePanel?.classList.remove("hidden");
       return true;
     }
     function restoreCanonicalPanel(){
@@ -2657,7 +2655,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
                 status(error?.message||fallback,"error");
               });
             };
-            startBackgroundLoad(window.timetableDailyLoadArchive,"تعذر تحميل أرشيف الاحتياط.");
             startBackgroundLoad(window.substitutionLoadStats,"تعذر تحميل إحصائيات الاحتياط.");
           }
         }finally{
