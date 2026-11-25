@@ -1665,9 +1665,7 @@ async function handle(req: Request) {
         if(!Number.isInteger(requestedPeriod)||requestedPeriod<1||requestedPeriod>Number(activeVersion.period_count||7)){
           return reply(400,{error:"اختر حصة صحيحة ضمن حصص اليوم."});
         }
-        const withinWindow=principal.type==="admin"
-          ? isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat)
-          : isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat);
+        const withinWindow=isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat);
         if(!withinWindow)return reply(409,{error:"انتهى يوم التوزيع؛ يمكن تعديل التوزيع حتى نهاية يومه بتوقيت سلطنة عمان."});
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
         const {data,error}=await db.rpc(rpcName,{p_payload:{
