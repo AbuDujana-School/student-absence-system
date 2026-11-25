@@ -1276,7 +1276,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
             const chosen='<div class="reserve-edit-selected"><div><small>البديل المختار</small><strong>'+esc(current)+'</strong></div><button type="button" class="reserve-edit-btn" data-change="'+esc(id)+'"><i class="fa-solid fa-pen"></i> تغيير</button></div>';
             const choices=saved.expanded?'<div class="reserve-edit-candidates"><div class="flex items-center justify-between gap-2"><b class="text-xs text-slate-500">المعلمون المقترحون</b><button type="button" class="reserve-edit-btn" data-other="'+esc(id)+'"><i class="fa-solid fa-magnifying-glass"></i> معلمون آخرون</button></div>'+
               (candidates.length?candidates.map(c=>'<button type="button" class="reserve-edit-candidate" data-choice="'+esc(id)+'" data-teacher="'+esc(c.name)+'"><span><strong>'+esc(c.name)+'</strong><small>مشغول: <b dir="ltr">'+esc(list(c.occupiedPeriods))+'</b></small></span><em>اختيار</em></button>').join(""):'<p class="p-3 text-center text-xs text-slate-500">لا توجد مقترحات إضافية لهذه الحصة.</p>')+'</div>':'';
-            return '<article class="reserve-edit-lesson"><div class="reserve-edit-lesson-head"><div class="flex items-center gap-3"><b class="reserve-edit-period">الحصة <span dir="ltr">'+fmt(x.period)+'</span></b><span class="reserve-edit-class">الصف '+esc(x.className||preview.className||"—")+'</span></div><button type="button" class="reserve-edit-btn" data-other="'+esc(id)+'"><i class="fa-solid fa-users"></i> معلمون آخرون</button></div><div class="reserve-edit-body">'+chosen+choices+'<details class="reserve-edit-extra"><summary>سبب الاحتياط</summary><textarea rows="2" maxlength="500" data-reason="'+esc(id)+'">'+esc(saved.reason||x.reason||"-")+'</textarea></details></div></article>';
+            return '<article class="reserve-edit-lesson" data-edit-lesson="'+esc(id)+'"><div class="reserve-edit-lesson-head"><div class="flex items-center gap-3"><b class="reserve-edit-period">الحصة <span dir="ltr">'+fmt(x.period)+'</span></b><span class="reserve-edit-class">الصف '+esc(x.className||preview.className||"—")+'</span></div><button type="button" class="reserve-edit-btn" data-other="'+esc(id)+'"><i class="fa-solid fa-users"></i> معلمون آخرون</button></div><div class="reserve-edit-body">'+chosen+choices+'<details class="reserve-edit-extra"><summary>سبب الاحتياط</summary><textarea rows="2" maxlength="500" data-reason="'+esc(id)+'">'+esc(saved.reason||x.reason||"-")+'</textarea></details></div></article>';
           }).join("");
           return '<section class="reserve-edit-group"><header class="reserve-edit-absent"><div><strong>المعلم الغائب: '+esc(name)+'</strong><small>'+rows.length+' حصص</small></div><span class="reserve-edit-periods" dir="ltr">('+summary+')</span></header><div class="reserve-edit-lessons">'+lessons+'<details class="reserve-edit-extra"><summary>سبب الغياب</summary><textarea rows="2" maxlength="500" data-absence="'+esc(name)+'">'+esc(absence.get(name)||"-")+'</textarea></details></div></section>';
         }).join("");
@@ -1291,9 +1291,17 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         if(button.hasAttribute("data-change")){const id=button.dataset.change,old=state.get(id);state.set(id,{...old,expanded:true});draw();return;}
         if(button.hasAttribute("data-other")){otherId=button.dataset.other;otherQuery="";draw();modal.querySelector("#reserveEditSearch")?.focus();return;}
         if(button.hasAttribute("data-choice")||button.hasAttribute("data-other-choice")){
-          const id=button.dataset.choice||button.dataset.otherChoice,old=state.get(id);state.set(id,{...old,sub:button.dataset.teacher,expanded:false});
+          const id=button.dataset.choice||button.dataset.otherChoice,old=state.get(id);
+          const selectedIndex=items.findIndex(item=>String(item.id)===String(id));
+          state.set(id,{...old,sub:button.dataset.teacher,expanded:false});
           if(button.hasAttribute("data-other-choice"))otherId="";
-          draw();return;
+          draw();
+          const nextItem=items[selectedIndex+1];
+          if(nextItem)requestAnimationFrame(()=>{
+            const target=[...modal.querySelectorAll("[data-edit-lesson]")].find(card=>card.dataset.editLesson===String(nextItem.id));
+            target?.scrollIntoView({behavior:"smooth",block:"center"});
+          });
+          return;
         }
         if(button.hasAttribute("data-save")){
           if(saving)return;
