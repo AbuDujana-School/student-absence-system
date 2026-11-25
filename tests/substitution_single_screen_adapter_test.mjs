@@ -12,13 +12,14 @@ test('date and distribution transitions wait for their asynchronous data operati
  assert.match(adapter,/await window\.substitutionLoadAbsentees\?\.\(\);go\('absentees'\)/);
  assert.match(adapter,/await window\.substitutionGeneratePlan\?\.\(\);if\(plan/);
 });
-test('one polished absence-reason picker is retained and the duplicate adapter popup is removed',()=>{
+test('the original polished vertical absence-reason picker is the only modal used by all reserve flows',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/function openAbsenceReasonPicker\(absentName,onConfirm,initialValue\)/);
- assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker = function/);
- assert.match(workflow,/timetableDailyAbsenceReasonModal/);
- assert.doesNotMatch(html,/subxReasonPopup|subxPopupTeacherTitle|subxReasonConfirm/);
- assert.doesNotMatch(adapter,/window\.openSubstitutionAbsenceReasonPicker=function/);
+ assert.match(workflow,/picker\(absentName,initialValue,value=>/);
+ assert.match(html,/popup\.id='subxReasonPopup'/);
+ assert.match(html,/window\.openSubstitutionAbsenceReasonPicker=function/);
+ assert.doesNotMatch(workflow,/timetableDailyAbsenceReasonModal/);
+ assert.doesNotMatch(workflow,/window\.openSubstitutionAbsenceReasonPicker = function/);
 });
 test('archive is loaded from the department-scoped backend archive action and has A4 print styling',()=>{
  assert.match(adapter,/action:'timetable_substitution_archive'/);
@@ -57,7 +58,7 @@ test('absentee selection card is made visible after moving it into its dedicated
 });
 
 test('absence reason picker is vertical, stable on every open, and keeps Other as the final option',()=>{
- assert.match(style,/#subxReasonPopup \.subx-reason-list\{display:flex;flex-direction:column/);
+ assert.match(style,/#substitutionView #subxReasonPopup \.subx-reason-list\{display:flex;flex-direction:column/);
  assert.match(adapter,/\['طارئة','إجازة مرضية','دورة تدريبية','موعد مستشفى','أخرى'\]/);
  assert.match(adapter,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
  assert.match(adapter,/other\.value='';other\.classList\.add\('hidden'\)/);
