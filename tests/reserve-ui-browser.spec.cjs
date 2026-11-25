@@ -460,10 +460,10 @@ test("long Arabic teacher and class names paginate before the A4 signature area"
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE",
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
-    markup + ";" + pages + "; return reserveOfficialPrintPages;"
-  )(value => String(value ?? ""), () => "التاريخ", 22);
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
   const rows = Array.from({ length: 22 }, (_, index) => ({
     period: index % 8 + 1,
     className: "الصف الثالث الأساسي الشعبة الأولى للعام الدراسي ٢٠٢٦",
@@ -474,9 +474,9 @@ test("long Arabic teacher and class names paginate before the A4 signature area"
   expect(output).toHaveLength(3);
   await page.setContent(output.join(""));
   const sheets = page.locator(".tt-official-page");
-  await expect(sheets.nth(0).locator("tbody tr")).toHaveCount(8);
-  await expect(sheets.nth(1).locator("tbody tr")).toHaveCount(8);
-  await expect(sheets.nth(2).locator("tbody tr")).toHaveCount(6);
+  await expect(sheets.nth(0).locator("tbody tr")).toHaveCount(10);
+  await expect(sheets.nth(1).locator("tbody tr")).toHaveCount(10);
+  await expect(sheets.nth(2).locator("tbody tr")).toHaveCount(2);
   expect(await page.locator(".tt-official-substitute").count()).toBe(22);
   expect((await page.locator(".tt-official-substitute").allTextContents()).sort((a, b) => a.localeCompare(b, "ar"))).toEqual(
     rows.map(row => row.substitute).sort((a, b) => a.localeCompare(b, "ar"))
