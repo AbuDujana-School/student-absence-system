@@ -12326,7 +12326,10 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   #studentAffairsView>div:first-child p{display:none!important}
   #saSec1 .sa-report-header>div:first-child p,
   #saSec1 #saReportClassPicker>div:first-child p,
-  #saSec2 #saCompetitionPanel p,
+  #saSec2 #saCompetitionPanel .text-right p,
+  #saSec2 #saCompetitionPanel > div:last-child > div:nth-child(2) > p,
+  #saSec2 #saCompetitionPanel > div:last-child > div:nth-child(4) > p,
+  #saSec2 #saCompetitionPanel > div:last-child > p:last-child,
   #saSec3 #saAutomaticNotices>div:first-child>div p,
   #saSec3 #saAutomaticNotices>p,
   #saSec4>div>div:first-child p{display:none!important}
@@ -12338,17 +12341,19 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   .dark #saSec4>div{border-color:#2b4054;background:#0d1b2b}
   #saSec1 .sa-report-tabs{flex-shrink:0}
   #saSec1 #saReportClassPicker,#saSec1 #saReportPeriodControls{border-radius:18px}
-  @media (max-width:900px){
-    #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-    #studentAffairsView .sa-nav-card{min-height:72px;padding:10px 12px;font-size:12px}
-  }
-  @media (max-width:480px){
-    #studentAffairsView .sa-main-nav{gap:7px;padding:6px;border-radius:18px}
-    #studentAffairsView .sa-nav-card{min-height:76px;flex-direction:column;gap:6px;padding:9px 6px;font-size:10.5px;text-align:center}
-    #studentAffairsView .sa-nav-icon{width:34px;height:34px;flex-basis:34px;border-radius:11px;font-size:15px}
-    #saSec1 .sa-report-header{align-items:stretch}
-    #saSec1 .sa-report-tabs{width:100%}
-  }
+}
+
+@media screen and (max-width:900px){
+  #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #studentAffairsView .sa-nav-card{min-height:72px;padding:10px 12px;font-size:12px}
+}
+
+@media screen and (max-width:480px){
+  #studentAffairsView .sa-main-nav{gap:7px;padding:6px;border-radius:18px}
+  #studentAffairsView .sa-nav-card{min-height:76px;flex-direction:column;gap:6px;padding:9px 6px;font-size:10.5px;text-align:center}
+  #studentAffairsView .sa-nav-icon{width:34px;height:34px;flex-basis:34px;border-radius:11px;font-size:15px}
+  #saSec1 .sa-report-header{align-items:stretch}
+  #saSec1 .sa-report-tabs{width:100%}
 }
 </style>
 
