@@ -171,6 +171,7 @@
     host.querySelectorAll("[data-other-teacher-name]").forEach(input=>input.addEventListener("change",()=>{
       const name=String(input.dataset.otherTeacherName||"");
       if(input.checked)reserveSelectedOtherTeacherNames.add(name);else reserveSelectedOtherTeacherNames.delete(name);
+      if(add)add.disabled=!host.querySelector("[data-other-teacher-name]:checked");
       const section=input.closest("[data-other-department-group]");
       const department=departments.find(item=>String(item.id)===String(section?.dataset.otherDepartmentGroup||""));
       if(section&&department){
