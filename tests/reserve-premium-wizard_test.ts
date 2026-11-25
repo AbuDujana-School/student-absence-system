@@ -54,7 +54,7 @@ Deno.test("server validates each supporting teacher against the explicitly selec
 Deno.test("the primary reserve route displays the authenticated coordinator department dynamically", () => {
   assert(reserveWorkflow.includes("result.actorDepartmentName"), "The reserve screen must read the department returned for the authenticated actor");
   assert(reserveWorkflow.includes("التوزيع لمعلمي قسم "), "The primary route title must include the resolved department name");
-  assert(reserveWorkflow.includes("loadOtherDepartments().catch(()=>{})"), "The authenticated department must load when the reserve screen is opened");
+  assert(reserveWorkflow.includes("try{await loadOtherDepartments();}catch{}"), "The authenticated department must load on explicit entry to the primary reserve route");
   assert(timetableEndpoint.includes("actorDepartmentName:principal.type===\"admin\"?\"\":String(actor?.departmentName||\"\").trim()"), "The endpoint must derive the department from the authenticated teacher directory record");
 });
 

@@ -626,9 +626,13 @@
       choiceGrid.append(localCard,externalCard);
       const absentCard=$("ttPremiumAbsentCard")||$("timetableDailyAbsentSearch")?.parentElement;
       if(absentCard?.parentNode)absentCard.parentNode.insertBefore(choiceGrid,absentCard);
-      localCard.querySelector("button")?.addEventListener("click",()=>{absentCard?.scrollIntoView({behavior:"smooth",block:"center"});$("timetableDailyAbsentSearch")?.focus({preventScroll:true});});
-      // Load the authenticated coordinator department so the primary route is labeled dynamically.
-      loadOtherDepartments().catch(()=>{});
+      localCard.querySelector("button")?.addEventListener("click",async()=>{
+        // Resolve the authenticated department only after the coordinator enters this route.
+        // This avoids background timetable requests on unrelated school screens.
+        try{await loadOtherDepartments();}catch{}
+        absentCard?.scrollIntoView({behavior:"smooth",block:"center"});
+        $("timetableDailyAbsentSearch")?.focus({preventScroll:true});
+      });
       const choiceStyle=document.createElement("style");
       choiceStyle.id="ttReserveChoiceCardsStyles";
       choiceStyle.textContent=[
