@@ -44,6 +44,7 @@ test('reserve scope and supporting departments use clear glass selection control
   assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
 });
 
+// The message layout is exercised in detail by reserve_archive_refresh_test.ts.
 test('reserve WhatsApp distribution uses the shared Arabic school report template', () => {
   const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
   const shareStart = reserve.indexOf('window.timetableDailyShareWhatsApp = async function ()');
