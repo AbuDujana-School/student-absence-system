@@ -11,41 +11,40 @@ function section(startMarker: string, endMarker: string): string {
   return html.slice(start, end);
 }
 
-Deno.test("supporting-department refresh preserves valid selections across all selected departments", () => {
+Deno.test("supporting-department refresh preserves selected sections and derives every eligible teacher automatically", () => {
   const load = section("async function timetableLoadOtherDepartmentOptions(", "function timetableGetOtherDepartmentTeacherNames()");
-  assert(load.includes("select.multiple?Array.from(select.selectedOptions||[]).map(o=>String(o.value||\"\"))"), "The loader must capture every selected department");
-  assert(load.includes("const selectedIds=select.multiple?previousIds:(previous?[previous]:[]);"), "The loader must preserve multi-select department IDs");
-  assert(load.includes("departments.filter(item=>selectedIds.includes(String(item.id)))"), "Eligible teachers must be derived from every selected department");
-  assert(load.includes("window.substitutionSelectedOtherTeacherNames=new Set([...previousNames].filter(name=>allowedNames.has(name)))"), "Only teachers still eligible in the selected departments may survive a refresh");
-  assert(load.includes("if(select.multiple){Array.from(select.options).forEach(o=>o.selected=previousIds.includes(String(o.value)));}"), "The selected departments must be restored after options refresh");
-  assert(load.includes('checkbox.type==="checkbox"?checkbox.checked===true:true'), "The legacy toggle and the new multi-select must both remain supported");
+  assert(load.includes("const previousIds=select.multiple?Array.from(select.selectedOptions||[]).map(o=>String(o.value||\"\")):[];"), "The loader must capture every selected department");
+  assert(load.includes("const validIds=previousIds.filter(id=>departments.some(item=>String(item.id)===id));"), "The loader must preserve only valid selected department IDs");
+  assert(load.includes("window.substitutionActorDepartmentName=String(response.actorDepartmentName||\"\").trim();"), "The current department name must come from the authenticated server response");
+  assert(load.includes("window.substitutionSelectedOtherTeacherNames=new Set(departments.filter(item=>(window.substitutionSelectedOtherDepartmentIds||[]).includes(String(item.id))).flatMap"), "Every teacher in every selected department must be included automatically");
+  assert(load.includes("select.multiple)Array.from(select.options).forEach(o=>o.selected=(window.substitutionSelectedOtherDepartmentIds||[]).includes(String(o.value)))"), "Selected department cards must remain synchronized with the hidden multi-select");
 });
 
-Deno.test("distribution reads canonical selected-teacher state scoped to all selected departments", () => {
+Deno.test("distribution automatically includes all eligible teachers from every selected department", () => {
   const getter = section("function getSubstitutionSelectedOtherTeacherNames()", "async function timetableToggleOtherDepartments(");
-  assert(getter.includes("window.substitutionSelectedOtherTeacherNames"), "The selected teacher Set must remain the source of truth");
-  assert(getter.includes("substitutionOtherDepartmentIds()"), "The getter must resolve all selected departments");
-  assert(getter.includes("ids.has(String(d.id))"), "The allowed teacher set must include only selected departments");
-  assert(getter.includes("filter(n=>allowed.has(n))"), "Only eligible selected teachers may be sent to distribution");
-  assert(getter.includes("if(box.checked)selected.add(n);else selected.delete(n)"), "Current rendered checkboxes must update the canonical Set in both directions");
+  assert(getter.includes("substitutionOtherDepartmentIds()"), "The getter must resolve all selected department IDs");
+  assert(getter.includes("departments.filter(item=>ids.has(String(item.id)))"), "The getter must derive teachers from every selected department");
+  assert(getter.includes("flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||\"\").trim())"), "All eligible teachers must be included without per-teacher checkboxes");
+  assert(!getter.includes("data-other-department-teacher"), "Individual teacher selection must no longer be required");
 });
 
-Deno.test("changing selected supporting departments rerenders teachers and removes ineligible selections", () => {
-  const render = section("function renderSubstitutionOtherTeacherChoices()", "function getSubstitutionSelectedOtherTeacherNames()");
-  const controls = section("function bindOtherDepartmentControls()", "window.openSubstitutionView");
-  assert(render.includes("const ids=substitutionOtherDepartmentIds()"), "The picker must read the complete selected department list");
-  assert(render.includes("ids.map(id=>window.substitutionOtherDepartmentsData.find"), "Teacher choices must be built from all selected departments");
-  assert(render.includes("filter(n=>allowed.has(n))"), "Teachers no longer eligible in selected departments must be removed");
-  assert(render.includes("host.dataset.departmentIds=ids.join(\",\")"), "Rendered controls must be tagged with the exact selected department set");
-  assert(controls.includes("renderSubstitutionOtherTeacherChoices()"), "Changing departments must refresh the teacher choices");
-  assert(controls.includes("substitutionOtherDepartmentIds().length"), "The UI must recognize one or more selected departments");
+Deno.test("supporting departments render as visual subject cards with large checkboxes", () => {
+  const render = section("function renderSubstitutionOtherTeacherChoices()", "async function timetableToggleOtherDepartments(");
+  assert(render.includes("subx-department-choice-grid"), "Supporting sections must render as a visual card grid");
+  assert(render.includes("data-other-department-card"), "Each department card must have its own checkbox");
+  assert(render.includes("substitutionDepartmentIcon(department.name)"), "Cards must show a subject-appropriate icon");
+  assert(render.includes("سيُدرج جميع المعلمين تلقائيًا"), "The interface must explain automatic inclusion of every eligible teacher");
+  assert(render.includes("option.selected=box.checked"), "Checking a card must update the selected department IDs");
+  assert(render.includes("update();clearPlan();"), "Changing sections must invalidate a previous plan");
 });
 
-Deno.test("stale checkbox DOM cannot override selections for a different department set", () => {
-  const getter = section("function getSubstitutionSelectedOtherTeacherNames()", "async function timetableToggleOtherDepartments(");
-  assert(getter.includes("host.dataset.departmentIds===Array.from(ids).join(\",\")"), "Checkboxes may be read only when rendered for the current selected department set");
-  assert(getter.includes("window.substitutionSelectedOtherTeacherNames=selected"), "The reconciled selection must be written back to canonical state");
-  assert(getter.includes("return [...selected]"), "The getter must return the reconciled canonical selection");
+Deno.test("the absentee screen places the two department cards above smart generation", () => {
+  const adapter=section("<script id=\"substitution-single-screen-adapter\">", "</script>");
+  assert(adapter.includes("screens.absentees.append(deptWrap)"), "Supporting departments must be selected before opening the smart proposal screen");
+  assert(adapter.includes("screens.absentees.append(generateButton)"), "The wide smart-distribution button must sit below the department cards");
+  assert(adapter.includes("if(n==='absentees')loadReserveDepartmentCards()"), "The authenticated department name must load on the absentee screen");
+  assert(adapter.includes("window.substitutionActorDepartmentName"), "The first department card must display the dynamic authenticated department");
+  assert(adapter.includes("go('smart')"), "Algorithm suggestions must open in the next independent screen");
 });
 
 Deno.test("renderPlan initializes unassigned rows before composing the empty-plan message", () => {
@@ -56,4 +55,12 @@ Deno.test("renderPlan initializes unassigned rows before composing the empty-pla
     "unassignedRows must be initialized before noPlanMessage reads its length");
   assert(render.indexOf("const unassignedRows=", declaration + 1) === -1,
     "renderPlan must declare unassignedRows only once");
+});
+
+Deno.test("legacy preview and save preserve multi-department scope", () => {
+  const preview=section("async function timetablePreviewSubstitutions()", "function timetableRenderSubstitutionLessons(");
+  const save=section("async function timetableSaveSubstitution(", "/* Smart daily timetable dashboard");
+  assert(preview.includes("otherDepartmentIds"), "Legacy preview must send all selected department IDs");
+  assert(preview.includes("timetableGetOtherDepartmentTeacherNames()"), "Legacy preview must include teachers from all selected departments");
+  assert(save.includes("otherDepartmentIds"), "Legacy save must validate against the full selected department set");
 });
