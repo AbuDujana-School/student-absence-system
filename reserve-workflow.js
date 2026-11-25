@@ -553,7 +553,7 @@
     panel.querySelectorAll("[data-premium-step]").forEach(button=>button.addEventListener("click",()=>{
       const step=Number(button.dataset.premiumStep);
       if(step<=2&&proposalScreenActive){proposalScreenActive=false;update();}
-      if(step>=4&&hasPlan&&!proposalScreenActive){proposalScreenActive=true;update();}
+      if(step>=4&&reserveBatchPreview&&!reserveBatchPreview.error&&!proposalScreenActive){proposalScreenActive=true;update();}
       const target=step===1?$("ttPremiumDateCard"):step===2?$("ttPremiumAbsentCard"):step===3?(proposalScreenActive?results:auto):results;
       if(target&&!target.hidden){target.scrollIntoView({behavior:"smooth",block:"center"});target.querySelector("input,select,button")?.focus?.({preventScroll:true});}
     }));
