@@ -10,6 +10,7 @@ import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";
+import { isSubstitutionDayOpen } from "./reserve_edit_window.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -77,15 +78,6 @@ function substitutionPeriodDeadlineMs(assignmentDate: unknown, period: unknown, 
 function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timings: Record<string, unknown>, now = Date.now()): boolean {
   const deadline = substitutionPeriodDeadlineMs(assignmentDate, period, timings);
   return deadline !== null && now < deadline;
-}
-function isSubstitutionDayOpen(assignmentDate: unknown, now = Date.now()): boolean {
-  const date = String(assignmentDate ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(now));
-  if (date < today) return false;
-  const [year, month, day] = date.split("-").map(Number);
-  const endOfAssignmentDay = Date.UTC(year, month - 1, day + 1, 0, 0, 0) - 4 * 60 * 60 * 1000;
-  return now < endOfAssignmentDay;
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
