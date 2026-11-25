@@ -2199,30 +2199,40 @@
           return;
         }
         departmentCardsHost.innerHTML=
-          '<div class="subx-department-card-toolbar"><strong>اختر الأقسام المساندة</strong><div><button type="button" data-department-bulk="all">تحديد الكل</button><button type="button" data-department-bulk="clear">إلغاء الكل</button></div></div>'+
+          '<div class="subx-department-card-toolbar"><div><strong>اختر الأقسام التي ترغب بالاستعانة بمعلميها</strong><small>اضغط على بطاقة القسم لفتح قائمة معلميه. يمكنك فتح أكثر من قسم معاً.</small></div><div><button type="button" data-department-bulk="all">تحديد كل الأقسام</button><button type="button" data-department-bulk="clear">إلغاء الكل</button></div></div>'+
           '<div class="subx-canonical-department-grid">'+departments.map(department=>{
             const id=String(department.id||"");
             const teachers=(Array.isArray(department.teachers)?department.teachers:[]).filter(teacher=>String(teacher?.name||"").trim());
             const names=new Set(teachers.map(teacher=>String(teacher.name).trim()));
             const selectedCount=[...(window.substitutionSelectedOtherTeacherNames||[])].filter(name=>names.has(String(name))).length;
-            return '<label class="subx-canonical-department-card">'+
-              '<input type="checkbox" data-canonical-department-id="'+esc(id)+'" '+(selectedIds.has(id)?"checked":"")+'>'+
-              '<span class="subx-canonical-department-icon"><i class="fa-solid fa-layer-group"></i></span>'+
-              '<span class="subx-canonical-department-copy"><strong>'+esc(department.name||"قسم")+'</strong><small>'+teachers.length+' معلم متاح · '+selectedCount+' محدد</small></span>'+
-              '<span class="subx-canonical-department-check"><i class="fa-solid fa-check"></i></span>'+
-            '</label>';
+            const isSelected=selectedIds.has(id);
+            return '<article class="subx-canonical-department-item'+(isSelected?' is-selected':'')+'" data-canonical-department-card-id="'+esc(id)+'">'+
+              '<label class="subx-canonical-department-card">'+
+                '<input type="checkbox" data-canonical-department-id="'+esc(id)+'" '+(isSelected?"checked":"")+'>'+
+                '<span class="subx-canonical-department-icon"><i class="fa-solid fa-book-open"></i></span>'+
+                '<span class="subx-canonical-department-copy"><strong>'+esc(department.name||"قسم")+'</strong><small>'+teachers.length+' معلم متاح · '+selectedCount+' محدد</small></span>'+
+                '<span class="subx-canonical-department-check"><i class="fa-solid fa-check"></i></span>'+
+                '<span class="subx-canonical-department-open"><i class="fa-solid fa-chevron-down"></i></span>'+
+              '</label>'+
+              '<div class="subx-canonical-department-expanded" '+(isSelected?'':'hidden')+'><div class="subx-canonical-department-expanded-heading"><strong>معلمو '+esc(department.name||"القسم")+'</strong><small>حدد معلماً أو أكثر، أو استخدم تحديد الكل</small></div><div class="subx-canonical-department-teachers" data-canonical-teacher-host="'+esc(id)+'"><p>جارٍ تحميل قائمة المعلمين...</p></div></div>'+
+            '</article>';
           }).join("")+'</div>';
         departmentCardsHost.querySelectorAll("[data-canonical-department-id]").forEach(box=>box.addEventListener("change",()=>{
           const id=String(box.dataset.canonicalDepartmentId||"");
           const option=Array.from(select.options).find(item=>String(item.value||"")===id);
           if(option)option.selected=box.checked;
           select.dispatchEvent(new Event("change",{bubbles:true}));
+          renderCanonicalDepartmentCards();
         }));
         departmentCardsHost.querySelectorAll("[data-department-bulk]").forEach(button=>button.addEventListener("click",()=>{
           const selectAll=button.dataset.departmentBulk==="all";
           Array.from(select.options).forEach(option=>{if(option.value)option.selected=selectAll;});
           select.dispatchEvent(new Event("change",{bubbles:true}));
+          renderCanonicalDepartmentCards();
         }));
+        // The source renderer owns the real teacher checkboxes and their change handlers.
+        // Move those existing sections into the matching expandable department card.
+        if(typeof enhanceCanonicalTeacherCards==="function")enhanceCanonicalTeacherCards();
       };
       if(select&&!select.dataset.canonicalDepartmentCardsBound){
         select.dataset.canonicalDepartmentCardsBound="1";
@@ -2231,19 +2241,19 @@
 
       const enhanceCanonicalTeacherCards=()=>{
         const host=$("substitutionOtherTeacherChoices");
-        if(!host||host.classList.contains("hidden"))return;
-        if(host.dataset.canonicalDepartmentCountBound!=="1"){
-          host.addEventListener("change",renderCanonicalDepartmentCards);
-          host.dataset.canonicalDepartmentCountBound="1";
-        }
+        if(!host)return;
         const ids=substitutionOtherDepartmentIds();
         const departments=ids.map(id=>(window.substitutionOtherDepartmentsData||[]).find(item=>String(item.id)===String(id))).filter(Boolean);
         const sections=Array.from(host.querySelectorAll(":scope > section"));
         sections.forEach((section,index)=>{
           const department=departments[index];
           if(!department)return;
-          section.dataset.canonicalTeacherDepartment=String(department.id);
+          const id=String(department.id);
+          section.dataset.canonicalTeacherDepartment=id;
           section.classList.add("subx-canonical-teacher-group");
+          const card=departmentCardsHost?.querySelector('[data-canonical-department-card-id="'+CSS.escape(id)+'"]');
+          const target=card?.querySelector(".subx-canonical-department-teachers");
+          if(target&&section.parentElement!==target)target.replaceChildren(section);
           const heading=section.querySelector("b");
           if(heading&&!section.querySelector(".subx-canonical-teacher-tools")){
             const tools=document.createElement("div");
@@ -2271,12 +2281,22 @@
             const boxes=Array.from(section.querySelectorAll("[data-other-department-teacher]"));
             const count=section.querySelector("[data-teacher-group-count]");
             if(count)count.textContent=boxes.length+" معلم متاح · "+boxes.filter(box=>box.checked).length+" محدد";
+            const item=departmentCardsHost?.querySelector('[data-canonical-department-card-id="'+CSS.escape(id)+'"]');
+            const summary=item?.querySelector(".subx-canonical-department-copy small");
+            if(summary)summary.textContent=boxes.length+" معلم متاح · "+boxes.filter(box=>box.checked).length+" محدد";
           };
           if(section.dataset.countListenerBound!=="1"){
             section.addEventListener("change",updateTeacherGroupCount);
             section.dataset.countListenerBound="1";
           }
           updateTeacherGroupCount();
+        });
+        // Keep all selected departments expanded simultaneously; their live teacher
+        // controls remain the original controls created by the existing renderer.
+        departmentCardsHost?.querySelectorAll("[data-canonical-department-card-id]").forEach(card=>{
+          const id=String(card.dataset.canonicalDepartmentCardId||"");
+          const expanded=card.querySelector(".subx-canonical-department-expanded");
+          if(expanded)expanded.hidden=!ids.includes(id);
         });
       };
       if(typeof window.renderSubstitutionOtherTeacherChoices==="function"&&!window.renderSubstitutionOtherTeacherChoices.__canonicalDepartmentCardsWrapped){
@@ -2386,7 +2406,9 @@
           "#subxScreen_smart .subx-department-choice-card{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:12px;width:100%;min-width:0;min-height:142px;padding:16px;text-align:right;border:1px solid rgba(255,255,255,.75);border-radius:22px;background:linear-gradient(135deg,rgba(14,165,233,.96),rgba(79,70,229,.94));color:#fff;box-shadow:0 14px 32px rgba(30,41,59,.13),inset 0 1px 0 rgba(255,255,255,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .18s,box-shadow .18s,border-color .18s}",
           "#subxScreen_smart .subx-department-choice-card:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(30,41,59,.18)}",
           "#subxScreen_smart .subx-department-choice-card[data-reserve-scope=external]{background:linear-gradient(135deg,rgba(16,185,129,.97),rgba(5,150,105,.95),rgba(13,148,136,.96))}",
-          "#subxScreen_smart .subx-department-choice-card.is-active{border:2px solid #f5d27a;box-shadow:0 0 0 3px rgba(245,210,122,.2),0 16px 34px rgba(30,41,59,.18)}",
+          "#subxScreen_smart .subx-department-choice-card.is-active{border:2px solid rgba(255,255,255,.98);filter:saturate(1.18) brightness(1.06);transform:translateY(-2px);box-shadow:0 0 0 4px rgba(37,99,235,.28),0 18px 38px rgba(30,41,59,.25),inset 0 1px 0 rgba(255,255,255,.48)}",
+          "#subxScreen_smart .subx-department-choice-card[data-reserve-scope=external].is-active{box-shadow:0 0 0 4px rgba(16,185,129,.3),0 18px 38px rgba(6,95,70,.28),inset 0 1px 0 rgba(255,255,255,.5)}",
+          "#subxScreen_smart .subx-department-choice-card.is-active:after{content:'✓';position:absolute;top:9px;left:10px;width:25px;height:25px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(255,255,255,.24);color:#fff;font-size:14px;font-weight:1000;box-shadow:0 3px 10px rgba(15,23,42,.16)}",
           "#subxScreen_smart .subx-department-choice-card[hidden]{display:none!important}",
           "#subxScreen_smart .subx-department-choice-icon{width:48px;height:48px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.55);border-radius:15px;background:rgba(255,255,255,.2);font-size:20px}",
           "#subxScreen_smart .subx-department-choice-card .tt-reserve-choice-copy{display:grid;gap:4px;min-width:0}",
@@ -2397,19 +2419,30 @@
           "#subxScreen_smart .subx-smart-generate-button{display:flex!important;justify-content:center;align-items:center;width:100%;min-height:56px;margin:0 0 12px!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:18px!important;background:linear-gradient(105deg,#7c3aed,#4f46e5 38%,#0ea5e9 72%,#0d9488)!important;color:#fff!important;box-shadow:0 14px 30px rgba(79,70,229,.25),inset 0 1px 0 rgba(255,255,255,.35)!important;font-size:16px!important;font-weight:1000!important}",
 
           "#subxScreen_smart #subxReserveDepartmentCards{margin:.5rem 0 .9rem}",
-          "#subxScreen_smart .subx-department-card-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;padding:10px 12px;border:1px solid rgba(148,163,184,.2);border-radius:14px;background:rgba(255,255,255,.72);font-size:11px;color:#183653}",
-          "#subxScreen_smart .subx-department-card-toolbar>div{display:flex;gap:6px}",
-          "#subxScreen_smart .subx-department-card-toolbar button{padding:7px 10px;border:1px solid rgba(22,140,133,.25);border-radius:10px;background:#fff;color:#0f766e;font-size:10px;font-weight:900}",
-          "#subxScreen_smart .subx-canonical-department-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}",
-          "#subxScreen_smart .subx-canonical-department-card{display:grid;grid-template-columns:34px minmax(0,1fr) 20px;align-items:center;gap:9px;min-width:0;padding:11px;border:1px solid rgba(22,140,133,.2);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(236,253,245,.9));box-shadow:0 7px 18px rgba(15,23,42,.05);cursor:pointer}",
+          "#subxScreen_smart .subx-department-card-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:13px 15px;border:1px solid rgba(255,255,255,.72);border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(224,242,254,.76));box-shadow:0 9px 24px rgba(15,23,42,.07);font-size:12px;color:#17324d;backdrop-filter:blur(14px)}",
+          "#subxScreen_smart .subx-department-card-toolbar>div:first-child{display:grid;gap:4px}#subxScreen_smart .subx-department-card-toolbar>div:first-child small{font-size:10px;color:#64748b;line-height:1.6}",
+          "#subxScreen_smart .subx-department-card-toolbar>div:last-child{display:flex;flex-wrap:wrap;gap:6px}",
+          "#subxScreen_smart .subx-department-card-toolbar button{padding:8px 11px;border:1px solid rgba(14,116,144,.22);border-radius:11px;background:linear-gradient(135deg,#fff,#ecfeff);color:#0e7490;font-size:10px;font-weight:900;box-shadow:0 3px 10px rgba(15,23,42,.05)}",
+          "#subxScreen_smart .subx-canonical-department-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
+          "#subxScreen_smart .subx-canonical-department-item{min-width:0;overflow:hidden;border:1px solid rgba(255,255,255,.78);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(226,232,240,.58));box-shadow:0 10px 24px rgba(15,23,42,.07);backdrop-filter:blur(16px);transition:transform .18s,box-shadow .18s,border-color .18s}",
+          "#subxScreen_smart .subx-canonical-department-item.is-selected{border-color:rgba(13,148,136,.58);background:linear-gradient(145deg,rgba(204,251,241,.9),rgba(224,242,254,.82));box-shadow:0 0 0 2px rgba(13,148,136,.12),0 13px 28px rgba(13,148,136,.12)}",
+          "#subxScreen_smart .subx-canonical-department-card{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) 24px 18px;align-items:center;gap:11px;min-height:88px;padding:15px;border:0;border-radius:19px;background:transparent;cursor:pointer}",
           "#subxScreen_smart .subx-canonical-department-card input{position:absolute;opacity:0;pointer-events:none}",
-          "#subxScreen_smart .subx-canonical-department-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,#0f766e,#0ea5a4);color:#fff}",
-          "#subxScreen_smart .subx-canonical-department-copy{display:grid;gap:3px;min-width:0}",
-          "#subxScreen_smart .subx-canonical-department-copy strong{font-size:12px;font-weight:900;color:#183653;overflow-wrap:anywhere}",
-          "#subxScreen_smart .subx-canonical-department-copy small{font-size:9px;color:#64748b;line-height:1.5}",
-          "#subxScreen_smart .subx-canonical-department-check{width:20px;height:20px;display:grid;place-items:center;border:1px solid #94a3b8;border-radius:7px;color:transparent;background:#fff;font-size:10px}",
-          "#subxScreen_smart .subx-canonical-department-card:has(input:checked){border-color:#0d9488;background:linear-gradient(145deg,#ecfdf5,#ccfbf1);box-shadow:0 0 0 2px rgba(13,148,136,.12)}",
-          "#subxScreen_smart .subx-canonical-department-card:has(input:checked) .subx-canonical-department-check{background:#0d9488;border-color:#0d9488;color:#fff}",
+          "#subxScreen_smart .subx-canonical-department-icon{width:52px;height:52px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.72);border-radius:17px;background:linear-gradient(145deg,#0e7490,#2563eb);color:#fff;font-size:22px;box-shadow:0 7px 16px rgba(37,99,235,.2),inset 0 1px 0 rgba(255,255,255,.3)}",
+          "#subxScreen_smart .subx-canonical-department-copy{display:grid;gap:5px;min-width:0}",
+          "#subxScreen_smart .subx-canonical-department-copy strong{font-size:14px;font-weight:1000;color:#17324d;overflow-wrap:anywhere}",
+          "#subxScreen_smart .subx-canonical-department-copy small{font-size:10px;color:#64748b;line-height:1.5}",
+          "#subxScreen_smart .subx-canonical-department-check{width:24px;height:24px;display:grid;place-items:center;border:1.5px solid #94a3b8;border-radius:8px;color:transparent;background:#fff;font-size:12px;transition:all .18s}",
+          "#subxScreen_smart .subx-canonical-department-open{display:grid;place-items:center;color:#64748b;transition:transform .18s}",
+          "#subxScreen_smart .subx-canonical-department-item.is-selected .subx-canonical-department-icon{background:linear-gradient(145deg,#047857,#0d9488);box-shadow:0 7px 18px rgba(13,148,136,.24)}",
+          "#subxScreen_smart .subx-canonical-department-item.is-selected .subx-canonical-department-copy strong{color:#065f46}",
+          "#subxScreen_smart .subx-canonical-department-item.is-selected .subx-canonical-department-check{background:#059669;border-color:#059669;color:#fff}",
+          "#subxScreen_smart .subx-canonical-department-item.is-selected .subx-canonical-department-open{transform:rotate(180deg);color:#047857}",
+          "#subxScreen_smart .subx-canonical-department-expanded{padding:0 12px 13px;border-top:1px solid rgba(13,148,136,.16)}",
+          "#subxScreen_smart .subx-canonical-department-expanded[hidden]{display:none!important}",
+          "#subxScreen_smart .subx-canonical-department-expanded-heading{display:grid;gap:3px;padding:12px 3px 8px;color:#065f46}",
+          "#subxScreen_smart .subx-canonical-department-expanded-heading strong{font-size:12px;font-weight:1000}#subxScreen_smart .subx-canonical-department-expanded-heading small{font-size:10px;color:#64748b}",
+          "#subxScreen_smart .subx-canonical-department-teachers{min-width:0}",
           "#subxScreen_smart .subx-department-empty{padding:12px;border:1px dashed #cbd5e1;border-radius:12px;text-align:center;font-size:11px;color:#64748b}",
           "#subxScreen_smart #substitutionOtherDepartmentSelect{display:none!important}",
           "#subxScreen_smart #substitutionOtherTeacherChoices>section.subx-canonical-teacher-group{margin:10px 0;padding:12px;border:1px solid rgba(99,102,241,.18);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(238,242,255,.86));box-shadow:0 8px 20px rgba(79,70,229,.06)}",
@@ -2417,13 +2450,20 @@
           "#subxScreen_smart .subx-canonical-teacher-tools>span{font-size:9px;font-weight:900;color:#475569}",
           "#subxScreen_smart .subx-canonical-teacher-tools>div{display:flex;gap:5px}",
           "#subxScreen_smart .subx-canonical-teacher-tools button{padding:6px 9px;border:1px solid rgba(79,70,229,.18);border-radius:9px;background:#fff;color:#4338ca;font-size:9px;font-weight:900}",
-          "#subxScreen_smart .subx-canonical-teacher-option{min-height:44px!important;padding:9px 10px!important;border:1px solid rgba(99,102,241,.16)!important;border-radius:12px!important;background:rgba(255,255,255,.88)!important;font-size:11px!important;font-weight:800!important}",
+          "#subxScreen_smart .subx-canonical-teacher-option{min-height:48px!important;padding:10px 12px!important;border:1px solid rgba(13,148,136,.18)!important;border-radius:13px!important;background:rgba(255,255,255,.9)!important;font-size:12px!important;font-weight:850!important;box-shadow:0 3px 10px rgba(15,23,42,.035)}",
+          "#subxScreen_smart .subx-canonical-teacher-checkbox{width:22px!important;height:22px!important;accent-color:#059669!important}",
+          "#subxScreen_smart .subx-canonical-teacher-tools{background:linear-gradient(135deg,rgba(204,251,241,.72),rgba(224,242,254,.72))!important;border:1px solid rgba(13,148,136,.12)}",
+          "#subxScreen_smart .subx-canonical-teacher-tools button{min-height:34px;padding:7px 11px;border-radius:10px;font-size:10px}",
           "#subxScreen_smart .subx-canonical-teacher-checkbox{width:19px;height:19px;accent-color:#4f46e5}",
           "html.dark #subxScreen_smart .subx-department-card-toolbar{background:rgba(15,23,42,.82);color:#e2e8f0}",
-          "html.dark #subxScreen_smart .subx-canonical-department-card,html.dark #subxScreen_smart #substitutionOtherTeacherChoices>section.subx-canonical-teacher-group{background:linear-gradient(145deg,rgba(15,23,42,.94),rgba(30,41,59,.92));border-color:rgba(148,163,184,.2)}",
+          "html.dark #subxScreen_smart .subx-canonical-department-item,html.dark #subxScreen_smart #substitutionOtherTeacherChoices>section.subx-canonical-teacher-group{background:linear-gradient(145deg,rgba(15,23,42,.94),rgba(30,41,59,.92));border-color:rgba(148,163,184,.2)}",
+          "html.dark #subxScreen_smart .subx-canonical-department-item.is-selected{background:linear-gradient(145deg,rgba(6,78,59,.84),rgba(15,23,42,.94));border-color:rgba(45,212,191,.55)}",
+          "html.dark #subxScreen_smart .subx-canonical-department-copy strong,html.dark #subxScreen_smart .subx-canonical-department-expanded-heading strong{color:#f1f5f9}",
+          "html.dark #subxScreen_smart .subx-canonical-department-expanded-heading small{color:#94a3b8}",
+          "html.dark #subxScreen_smart .subx-canonical-teacher-option{background:rgba(15,23,42,.82)!important;border-color:rgba(148,163,184,.2)!important;color:#f8fafc!important}",
           "html.dark #subxScreen_smart .subx-canonical-department-copy strong{color:#f1f5f9}",
           "html.dark #subxScreen_smart .subx-canonical-department-copy small{color:#94a3b8}",
-          "@media(max-width:620px){#subxScreen_smart .subx-canonical-department-grid{grid-template-columns:1fr}#subxScreen_smart .subx-department-card-toolbar{align-items:flex-start}}",
+          "@media(max-width:620px){#subxScreen_smart .subx-canonical-department-grid{grid-template-columns:1fr}#subxScreen_smart .subx-department-card-toolbar{align-items:flex-start}#subxScreen_smart .subx-canonical-department-card{min-height:82px;padding:13px}#subxScreen_smart .subx-canonical-department-icon{width:48px;height:48px}}",
           "#subxScreen_smart .subx-smart-generate-button:disabled{opacity:.45!important;filter:grayscale(.25)}",
           "html.dark #subxScreen_smart .subx-department-choice-card{border-color:rgba(255,255,255,.2);box-shadow:0 14px 32px rgba(0,0,0,.28)}",
           "@media(max-width:620px){#subxScreen_smart .subx-department-choice-grid{grid-template-columns:1fr}#subxScreen_smart .subx-department-choice-card{min-height:126px;padding:14px}}"
