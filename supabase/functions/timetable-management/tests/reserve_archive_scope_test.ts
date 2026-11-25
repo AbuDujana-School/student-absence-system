@@ -34,3 +34,11 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
     "Reserve feature permission must never grant schoolwide archive visibility",
   );
 });
+
+
+Deno.test("archive access exposes department capability to scoped accounts and schoolwide capability only to admins", async () => {
+  const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+  assert(backend.includes("canViewDepartmentArchive") && backend.includes("canViewSchoolwide"), "Access response must distinguish department and schoolwide archive");
+  assert(backend.includes("departments:canViewSchoolwide?departments:[]"), "Only admins may receive all department selector options");
+  assert(backend.includes("canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId)"), "Non-admin access requires a linked department");
+});

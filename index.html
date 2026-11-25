@@ -15498,10 +15498,136 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  const generateButton=document.getElementById('substitutionGenerateButton');if(generateButton){generateButton.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع الذكي المقترح';screens.smart.insertBefore(generateButton,plan||null);}
 
  screens.edit.innerHTML='<div class="subx-glass-card p-5 sm:p-6 space-y-4"><h2 class="text-lg font-black">التعديل على الاحتياط السابق</h2><p class="text-xs text-slate-500">تظهر هنا التكليفات التي تسمح صلاحياتك ونافذة الحصة بتعديلها أو حذفها. اختر الإجراء بجانب التكليف.</p><div id="subxEditMountArea" class="space-y-4"><p class="text-sm text-slate-500 text-center py-6">جارٍ تحميل التكليفات...</p></div></div>';
- screens.archive.innerHTML='<div class="subx-glass-card p-6 space-y-4"><div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-black">أرشيف الاحتياط</h2><button id="subxArchivePrint" class="subx-cta-primary" type="button">طباعة الأرشيف A4</button></div><div class="grid grid-cols-2 gap-2"><input id="subxArchiveFrom" type="date" class="subx-input-field"><input id="subxArchiveTo" type="date" class="subx-input-field"></div><button id="subxArchiveLoad" class="subx-cta-primary" type="button">عرض الأرشيف</button><div id="subxArchiveMountArea" class="mt-4 space-y-4"></div></div>';
+ screens.archive.innerHTML='<div id="subxArchiveMountArea" class="space-y-5">'+
+  '<section class="subx-glass-card relative overflow-hidden rounded-3xl border border-white/70 p-5 shadow-glass sm:p-6"><div class="pointer-events-none absolute -left-10 -top-12 h-36 w-36 rounded-full bg-teal-300/20 blur-3xl"></div><div class="relative flex items-start gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-teal-600 to-cyan-700 text-white shadow-lg"><i class="fa-solid fa-box-archive text-xl"></i></span><div class="min-w-0"><h2 class="text-xl font-black text-slate-900 dark:text-white">أرشيف الاحتياط</h2><p class="mt-1 text-xs leading-6 text-slate-500">اختر نوع الأرشيف، وحدد الفترة، ثم اعرض السجلات أو اطبع كشفاً رسمياً مرتباً من الأحدث إلى الأقدم.</p></div></div><div id="subxArchiveStatus" class="relative mt-4 text-xs font-bold text-slate-500" role="status" aria-live="polite">جارٍ التحقق من صلاحية الأرشيف...</div></section>'+
+  '<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">'+
+    '<article id="subxDepartmentArchiveCard" class="subx-glass-card hidden relative overflow-hidden rounded-3xl border border-teal-200/70 p-4 shadow-glass transition sm:p-5">'+
+      '<div class="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-teal-300/20 blur-3xl"></div>'+
+      '<button id="subxArchiveDepartmentOpen" type="button" class="relative flex w-full items-center gap-3 text-right" aria-expanded="false"><span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 text-white shadow-lg"><i class="fa-solid fa-book-open text-2xl"></i></span><span class="min-w-0 flex-1"><strong class="block text-base font-black text-slate-900 dark:text-white">أرشيف توزيع الاحتياط للقسم/المادة</strong><small id="subxArchiveDepartmentSummary" class="mt-1 block text-xs leading-5 text-slate-500">سجلات غياب وتوزيع القسم المصرّح لك فقط</small></span><i class="fa-solid fa-chevron-down text-teal-700 transition"></i></button>'+
+      '<div id="subxArchiveDepartmentPanel" class="relative mt-4 hidden space-y-4 border-t border-teal-100 pt-4 dark:border-teal-900">'+
+        '<div id="subxArchiveDepartmentPickerWrap" class="hidden"><label for="subxArchiveDepartmentSelect" class="mb-1 block text-xs font-extrabold text-slate-700 dark:text-slate-200">القسم/المادة</label><select id="subxArchiveDepartmentSelect" class="subx-input-field w-full"><option value="">اختر القسم أو المادة</option></select></div>'+
+        '<div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-extrabold text-slate-600 dark:text-slate-300">من تاريخ<input id="subxArchiveDepartmentFrom" type="date" class="subx-input-field mt-1 w-full"></label><label class="text-xs font-extrabold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="subxArchiveDepartmentTo" type="date" class="subx-input-field mt-1 w-full"></label></div>'+
+        '<div class="flex flex-wrap gap-2"><button id="subxArchiveDepartmentLoad" type="button" class="subx-cta-primary flex-1"><i class="fa-solid fa-magnifying-glass ml-2"></i>عرض أرشيف القسم</button><button id="subxArchiveDepartmentPrint" type="button" class="rounded-xl border border-teal-300 bg-white px-4 py-3 text-xs font-black text-teal-800 shadow-sm transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-40" disabled><i class="fa-solid fa-file-pdf ml-1"></i>كشف A4</button></div>'+
+        '<div id="subxArchiveDepartmentStatus" class="text-xs font-bold text-slate-500" role="status" aria-live="polite"></div><div id="subxArchiveDepartmentResults" class="space-y-3"></div>'+
+      '</div></article>'+
+    '<article id="subxSchoolArchiveCard" class="subx-glass-card hidden relative overflow-hidden rounded-3xl border border-indigo-200/70 p-4 shadow-glass transition sm:p-5">'+
+      '<div class="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-indigo-300/20 blur-3xl"></div>'+
+      '<button id="subxArchiveSchoolOpen" type="button" class="relative flex w-full items-center gap-3 text-right" aria-expanded="false"><span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-800 text-white shadow-lg"><i class="fa-solid fa-school text-2xl"></i></span><span class="min-w-0 flex-1"><strong class="block text-base font-black text-slate-900 dark:text-white">أرشيف احتياط المدرسة</strong><small class="mt-1 block text-xs leading-5 text-slate-500">كشف شامل لجميع الأقسام والتخصصات في اليوم نفسه</small></span><i class="fa-solid fa-chevron-down text-indigo-700 transition"></i></button>'+
+      '<div id="subxArchiveSchoolPanel" class="relative mt-4 hidden space-y-4 border-t border-indigo-100 pt-4 dark:border-indigo-900">'+
+        '<div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-extrabold text-slate-600 dark:text-slate-300">من تاريخ<input id="subxArchiveSchoolFrom" type="date" class="subx-input-field mt-1 w-full"></label><label class="text-xs font-extrabold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="subxArchiveSchoolTo" type="date" class="subx-input-field mt-1 w-full"></label></div>'+
+        '<div class="flex flex-wrap gap-2"><button id="subxArchiveSchoolLoad" type="button" class="subx-cta-primary flex-1"><i class="fa-solid fa-magnifying-glass ml-2"></i>عرض أرشيف المدرسة</button><button id="subxArchiveSchoolPrint" type="button" class="rounded-xl border border-indigo-300 bg-white px-4 py-3 text-xs font-black text-indigo-800 shadow-sm transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40" disabled><i class="fa-solid fa-file-pdf ml-1"></i>كشف A4</button></div>'+
+        '<div id="subxArchiveSchoolStatus" class="text-xs font-bold text-slate-500" role="status" aria-live="polite"></div><div id="subxArchiveSchoolResults" class="space-y-3"></div>'+
+      '</div></article>'+
+  '</div><section id="subxArchiveAdminToolsSection" class="hidden space-y-3"><h3 class="text-sm font-black text-slate-700 dark:text-slate-200">أدوات الاحتياط الإضافية</h3><div id="subxArchiveAdminToolsMount" class="space-y-3"></div></section></div>';
  const names={hub:'توزيع الاحتياط',date:'توزيع الاحتياط · التاريخ',absentees:'المعلم الغائب',smart:'التوزيع الذكي للاحتياط',edit:'التعديل على الاحتياط',archive:'أرشيف الاحتياط',stats:'إحصائيات الاحتياط'};let current='hub',history=[];
  function subxWeekdayFor(date){const parsed=new Date(String(date)+'T12:00:00Z'),day=parsed.getUTCDay();return !Number.isNaN(parsed.getTime())&&day>=0&&day<=4?['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'][day]:'';}
+ const reserveArchiveDashboardState={access:null,department:{records:[],from:'',to:'',departmentId:'',departmentName:''},school:{records:[],from:'',to:''}};
+ function subxArchiveToday(){return window.getOmanLocalDate?.()||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Muscat',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+ function subxArchiveShiftDate(date,offset){const value=new Date(String(date)+'T00:00:00Z');if(Number.isNaN(value.getTime()))return '';value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10);}
+ function subxArchiveValidDate(value){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value||'')))return false;const date=new Date(value+'T00:00:00.000Z');return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;}
+ function subxArchiveFormatDate(value){const date=new Date(String(value)+'T12:00:00+04:00');return Number.isFinite(date.getTime())?new Intl.DateTimeFormat('ar-OM',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Muscat'}).format(date):String(value||'');}
+ function subxArchiveBuildDays(records,includeDepartment){
+   const days=new Map();
+   (Array.isArray(records)?records:[]).forEach(item=>{
+     const date=String(item.assignmentDate||'').trim(),name=String(item.absentTeacherName||'غير محدد').trim();
+     if(!date||!name||item.status==='cancelled')return;
+     if(!days.has(date))days.set(date,new Map());
+     const departmentName=String(item.departmentName||item.department||'').trim(),key=includeDepartment?name+'\\u0000'+departmentName:name;
+     const absent=days.get(date);
+     if(!absent.has(key))absent.set(key,{absentName:name,departmentName,absenceReason:String(item.absenceReason||'').trim(),rows:[]});
+     absent.get(key).rows.push(item);
+   });
+   return Array.from(days.entries()).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,absent])=>({
+     date,groups:Array.from(absent.values()).sort((a,b)=>a.absentName.localeCompare(b.absentName,'ar')).map(group=>({...group,rows:group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period))}))
+   })).filter(day=>day.groups.length>0);
+ }
+ function subxArchiveRenderDays(host,records,includeDepartment){
+   if(!host)return;const days=subxArchiveBuildDays(records,includeDepartment);
+   if(!days.length){host.innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-7 text-center text-sm font-bold text-slate-500">لا توجد توزيعات احتياط في الأيام المنتهية ضمن الفترة المحددة.</div>';return;}
+   host.innerHTML=days.map(day=>{
+     const lessonCount=day.groups.reduce((total,group)=>total+group.rows.length,0);
+     const people=day.groups.map(group=>{
+       const reason=group.absenceReason&&group.absenceReason!=='-'&&group.absenceReason!=='—'?'<span class="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-800">سبب الغياب: '+escapeHtml(group.absenceReason)+'</span>':'';
+       const departmentLine=includeDepartment&&group.departmentName?'<span class="mt-1 block text-[10px] font-semibold text-indigo-700">التخصص/القسم: '+escapeHtml(group.departmentName)+'</span>':'';
+       const rows=group.rows.map(row=>'<div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-white/80 p-3 text-[11px] sm:grid-cols-[.65fr_1fr_1.2fr_1fr] sm:items-center"><span class="font-black text-teal-800">الحصة '+escapeHtml(String(row.period??'—'))+'</span><span class="text-slate-600">الصف: '+escapeHtml(row.className||'—')+'</span><span class="font-bold text-slate-800">البديل: '+escapeHtml(row.substituteTeacherName||'—')+'</span><span class="text-slate-500">سبب الاحتياط: '+escapeHtml(row.reason||'—')+'</span></div>').join('');
+       return '<section class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 sm:p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><strong class="block text-sm font-black text-slate-900">المعلم الغائب: '+escapeHtml(group.absentName)+'</strong>'+departmentLine+'</div><span class="rounded-full bg-teal-100 px-3 py-1 text-[10px] font-black text-teal-900">'+group.rows.length+' حصة</span></div><div class="mb-3 flex flex-wrap gap-2">'+reason+'</div><div class="space-y-2">'+rows+'</div></section>';
+     }).join('');
+     return '<article class="subx-glass-card overflow-hidden rounded-3xl border border-white/80 p-3 shadow-sm sm:p-4"><header class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3"><div><p class="text-[10px] font-black text-teal-700">يوم يحتوي على توزيعات</p><h3 class="mt-1 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(subxArchiveFormatDate(day.date))+'</h3></div><div class="flex gap-2"><span class="rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-black text-indigo-800">'+day.groups.length+' معلم غائب</span><span class="rounded-full bg-teal-50 px-3 py-1.5 text-[10px] font-black text-teal-800">'+lessonCount+' حصة</span></div></header><div class="space-y-3">'+people+'</div></article>';
+   }).join('');
+ }
+ function subxArchiveSetStatus(mode,message,isError=false){const node=document.getElementById(mode==='school'?'subxArchiveSchoolStatus':'subxArchiveDepartmentStatus');if(node){node.textContent=String(message||'');node.className='text-xs font-bold '+(isError?'text-rose-700':'text-slate-500');}}
+ function subxArchiveMountLegacyTools(){
+   const target=document.getElementById('subxArchiveAdminToolsMount');if(!target)return;
+   ['ttAdminReserveTools','ttDepartmentReserveTools'].map(id=>document.getElementById(id)).filter(Boolean).forEach(node=>{if(node.parentElement!==target)target.appendChild(node);});
+   const section=document.getElementById('subxArchiveAdminToolsSection');if(section)section.classList.toggle('hidden',!target.childElementCount);
+ }
+ function subxArchiveBindControls(){
+   const departmentOpen=document.getElementById('subxArchiveDepartmentOpen'),schoolOpen=document.getElementById('subxArchiveSchoolOpen'),departmentPanel=document.getElementById('subxArchiveDepartmentPanel'),schoolPanel=document.getElementById('subxArchiveSchoolPanel');
+   if(departmentOpen)departmentOpen.onclick=()=>{const open=departmentPanel?.classList.contains('hidden');departmentPanel?.classList.toggle('hidden',!open);schoolPanel?.classList.add('hidden');departmentOpen.setAttribute('aria-expanded',String(Boolean(open)));schoolOpen?.setAttribute('aria-expanded','false');};
+   if(schoolOpen)schoolOpen.onclick=()=>{const open=schoolPanel?.classList.contains('hidden');schoolPanel?.classList.toggle('hidden',!open);departmentPanel?.classList.add('hidden');schoolOpen.setAttribute('aria-expanded',String(Boolean(open)));departmentOpen?.setAttribute('aria-expanded','false');};
+   ['department','school'].forEach(mode=>{const prefix=mode==='school'?'subxArchiveSchool':'subxArchiveDepartment',load=document.getElementById(prefix+'Load'),print=document.getElementById(prefix+'Print');if(load)load.onclick=()=>void subxArchiveLoadMode(mode);if(print)print.onclick=()=>subxArchivePrintMode(mode);});
+   ['subxArchiveDepartmentFrom','subxArchiveDepartmentTo','subxArchiveDepartmentSelect','subxArchiveSchoolFrom','subxArchiveSchoolTo'].forEach(id=>{const input=document.getElementById(id);if(input)input.onchange=()=>{const mode=id.startsWith('subxArchiveSchool')?'school':'department';reserveArchiveDashboardState[mode].records=[];const button=document.getElementById(mode==='school'?'subxArchiveSchoolPrint':'subxArchiveDepartmentPrint');if(button)button.disabled=true;};});
+ }
+ async function subxArchiveLoadMode(mode){
+   const access=reserveArchiveDashboardState.access,prefix=mode==='school'?'subxArchiveSchool':'subxArchiveDepartment',from=document.getElementById(prefix+'From')?.value||'',to=document.getElementById(prefix+'To')?.value||'';
+   if(!access?.canView){subxArchiveSetStatus(mode,'لا تتوفر صلاحية عرض أرشيف الاحتياط.',true);return;}
+   if(!subxArchiveValidDate(from)||!subxArchiveValidDate(to)||from>to){subxArchiveSetStatus(mode,'حدد فترة زمنية صحيحة؛ يجب أن يسبق تاريخ البداية تاريخ النهاية أو يساويه.',true);return;}
+   const isSchool=mode==='school';if(isSchool&&access.canViewSchoolwide!==true){subxArchiveSetStatus(mode,'أرشيف المدرسة متاح لمدير النظام العام فقط.',true);return;}
+   const departmentId=document.getElementById('subxArchiveDepartmentSelect')?.value||access.departmentId||'';
+   if(!isSchool&&access.canViewSchoolwide===true&&!departmentId){subxArchiveSetStatus(mode,'اختر القسم/المادة أولاً.',true);return;}
+   const button=document.getElementById(prefix+'Load');if(button){button.disabled=true;button.dataset.originalText=button.textContent;button.textContent='جارٍ جلب السجلات...';}
+   subxArchiveSetStatus(mode,'يتم جلب السجلات المحفوظة من النظام...');
+   try{
+     const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error('انتهت جلسة الدخول. سجّل الدخول مجدداً.');
+     const payload={action:'timetable_substitution_archive',dateFrom:from,dateTo:to,archiveScope:mode};if(!isSchool)payload.departmentId=departmentId;
+     const response=await appAuthRequest(payload,token),today=subxArchiveToday();
+     const rows=(Array.isArray(response.archive)?response.archive:[]).filter(row=>{const date=String(row.assignmentDate||'');return date>=from&&date<=to&&date<today&&row.status!=='cancelled';});
+     const state=reserveArchiveDashboardState[mode];state.records=rows;state.from=from;state.to=to;state.departmentId=isSchool?'':departmentId;
+     const selectedDepartment=access.departments?.find(item=>String(item.id)===String(departmentId));
+     state.departmentName=selectedDepartment?.name||access.departmentName||rows.find(row=>row.departmentName)?.departmentName||'';
+     if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(rows);
+     subxArchiveRenderDays(document.getElementById(mode==='school'?'subxArchiveSchoolResults':'subxArchiveDepartmentResults'),rows,isSchool);
+     const printButton=document.getElementById(prefix+'Print');if(printButton)printButton.disabled=rows.length===0;
+     const dayCount=subxArchiveBuildDays(rows,isSchool).length;
+     subxArchiveSetStatus(mode,rows.length?'تم تحميل '+rows.length+' تكليفاً عبر '+dayCount+' أيام تحتوي على سجلات. تم تجاوز الأيام الخالية تلقائياً.':'لا توجد سجلات في الفترة المحددة؛ الأيام التي لا تحتوي على غياب لا تظهر في الكشف.');
+   }catch(error){
+     reserveArchiveDashboardState[mode].records=[];const printButton=document.getElementById(prefix+'Print');if(printButton)printButton.disabled=true;
+     const resultNode=document.getElementById(mode==='school'?'subxArchiveSchoolResults':'subxArchiveDepartmentResults');
+     if(resultNode)resultNode.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">'+escapeHtml(error?.message||'تعذر تحميل الأرشيف.')+'</div>';
+     subxArchiveSetStatus(mode,error?.message||'تعذر تحميل الأرشيف.',true);
+   }finally{if(button){button.disabled=false;button.textContent=button.dataset.originalText||(isSchool?'عرض أرشيف المدرسة':'عرض أرشيف القسم');}}
+ }
+ function subxArchivePrintMode(mode){
+   const state=reserveArchiveDashboardState[mode],prefix=mode==='school'?'subxArchiveSchool':'subxArchiveDepartment',from=document.getElementById(prefix+'From')?.value||'',to=document.getElementById(prefix+'To')?.value||'',selectedDepartment=document.getElementById('subxArchiveDepartmentSelect')?.value||state.departmentId||'';
+   if(!state.records.length||state.from!==from||state.to!==to||(!modeIsSchool(mode)&&state.departmentId!==selectedDepartment)){subxArchiveSetStatus(mode,'اعرض السجلات للفترة المحددة أولاً قبل إنشاء ملف PDF.',true);return;}
+   if(typeof window.timetableDailyPrintArchiveRange!=='function'){subxArchiveSetStatus(mode,'قالب كشف الاحتياط الرسمي غير جاهز. حدّث الصفحة وحاول مجدداً.',true);return;}
+   const isSchool=mode==='school',departmentName=state.departmentName||'القسم المحدد',title=isSchool?'أرشيف احتياط المدرسة':'أرشيف توزيع الاحتياط للقسم/المادة — '+departmentName;
+   window.timetableDailyPrintArchiveRange(state.records,{archiveMode:true,showDepartment:isSchool,pageTitle:title,documentTitle:isSchool?'أرشيف احتياط المدرسة':'أرشيف احتياط '+departmentName});
+ }
+ function modeIsSchool(mode){return mode==='school';}
+ async function loadArchiveDashboard(){
+   const token=appAuthSession?.token||readAppAuthToken(),statusNode=document.getElementById('subxArchiveStatus');
+   if(!token){if(statusNode)statusNode.textContent='انتهت جلسة الدخول. سجّل الدخول مجدداً لعرض الأرشيف.';return;}
+   if(statusNode)statusNode.textContent='جارٍ التحقق من صلاحيات الأرشيف ونطاق القسم...';
+   try{
+     const access=await appAuthRequest({action:'timetable_substitution_archive_access'},token);reserveArchiveDashboardState.access=access||{};
+     const departmentCard=document.getElementById('subxDepartmentArchiveCard'),schoolCard=document.getElementById('subxSchoolArchiveCard');
+     if(departmentCard)departmentCard.classList.toggle('hidden',!(access?.canView===true&&access?.canViewDepartmentArchive===true));
+     if(schoolCard)schoolCard.classList.toggle('hidden',!(access?.canView===true&&access?.canViewSchoolwide===true));
+     if(!access?.canView||(!access?.canViewDepartmentArchive&&!access?.canViewSchoolwide)){if(statusNode)statusNode.textContent='لا تملك صلاحية عرض أرشيف الاحتياط. اطلب من مدير النظام منحك صلاحية الأرشيف.';subxArchiveMountLegacyTools();return;}
+     const today=subxArchiveToday(),endDate=subxArchiveShiftDate(today,-1),startDate=subxArchiveShiftDate(endDate,-29);
+     [['subxArchiveDepartmentFrom',startDate],['subxArchiveDepartmentTo',endDate],['subxArchiveSchoolFrom',startDate],['subxArchiveSchoolTo',endDate]].forEach(([id,value])=>{const input=document.getElementById(id);if(input&&!input.value)input.value=value;});
+     const select=document.getElementById('subxArchiveDepartmentSelect'),picker=document.getElementById('subxArchiveDepartmentPickerWrap'),adminHasPicker=access?.canViewSchoolwide===true;
+     if(picker)picker.classList.toggle('hidden',!adminHasPicker);
+     if(select&&adminHasPicker){const departments=Array.isArray(access.departments)?access.departments:[];select.innerHTML='<option value="">اختر القسم أو المادة</option>'+departments.map(item=>'<option value="'+escapeHtml(item.id)+'">'+escapeHtml(item.name)+'</option>').join('');const preferred=String(access.departmentId||'');if(preferred&&departments.some(item=>String(item.id)===preferred))select.value=preferred;}
+     const summary=document.getElementById('subxArchiveDepartmentSummary');if(summary&&!adminHasPicker)summary.textContent='أرشيف '+(access.departmentName||'قسمك')+' فقط — معلمو القسم وتكليفاتهم دون بقية أقسام المدرسة.';
+     subxArchiveBindControls();subxArchiveMountLegacyTools();
+     if(statusNode)statusNode.textContent=access.canViewSchoolwide?'اختر أرشيف القسم أو الأرشيف الشامل للمدرسة.':'تعرض هذه البطاقة سجلات قسمك فقط وفق صلاحيات حسابك.';
+   }catch(error){reserveArchiveDashboardState.access=null;if(statusNode)statusNode.textContent=error?.message||'تعذر التحقق من صلاحيات الأرشيف.';subxArchiveMountLegacyTools();}
+ }
  async function loadArchive(hostId='subxArchiveMountArea'){
+  if(hostId==='subxArchiveMountArea'){await loadArchiveDashboard();return;}
+
   const host=document.getElementById(hostId);
   if(!host)return;
   const archiveTools=hostId==='subxArchiveMountArea'?['ttAdminReserveTools','ttDepartmentReserveTools'].map(id=>document.getElementById(id)).filter(Boolean):[];
@@ -15577,7 +15703,6 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
   }catch(e){host.innerHTML='<div class="subx-glass-card rounded-2xl p-5 text-center text-sm font-bold text-rose-700">'+escapeHtml(e?.message||'تعذر تحميل سجلات الاحتياط.')+'</div>';restoreArchiveTools();}
 }
 window.addEventListener('reserve:muscat-day-changed',()=>{if(current==='edit')void loadArchive('subxEditMountArea');else if(current==='archive')void loadArchive('subxArchiveMountArea');});
- document.getElementById('subxArchiveLoad')?.addEventListener('click',loadArchive);document.getElementById('subxArchivePrint')?.addEventListener('click',()=>window.print());
  function go(n,push=true){if(n!=='hub'&&!screens[n])return;if(push&&n!==current)history.push(current);current=n;hub.classList.toggle('is-visible',n==='hub');Object.entries(screens).forEach(([k,e])=>e.classList.toggle('is-visible',k===n));document.getElementById('subxScreenHeading').textContent=names[n];if(n==='date')document.getElementById('substitutionDate')?.setAttribute('min',window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10));if(n==='smart')window.timetableLoadOtherDepartmentOptions?.('substitutionOtherDepartments','substitutionOtherDepartmentSelect').then(()=>window.renderSubstitutionOtherTeacherChoices?.()).catch(error=>showToast(error?.message||'تعذر تحميل الأقسام المساندة.','error'));if(n==='stats')window.substitutionLoadStats?.();if(n==='archive')loadArchive('subxArchiveMountArea');if(n==='edit')loadArchive('subxEditMountArea');window.scrollTo({top:0,behavior:'smooth'});}
  window.subxNavigateToScreen=function(name,push){go(name,push!==false);};
  hub.querySelectorAll('[data-subx-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.subxGo)));

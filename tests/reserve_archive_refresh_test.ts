@@ -372,3 +372,23 @@ Deno.test("saved reserve review requests the archive with a valid single-day dat
     "The saved-review archive request must not use assignmentDate as a substitute for the required date range"
   );
 });
+
+
+Deno.test("reserve archive v2 separates department and school views and prints one official A4 page per day", async () => {
+  const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
+  const workflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
+  const backend = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
+  assert(html.includes("subxDepartmentArchiveCard") && html.includes("subxSchoolArchiveCard"), "Both archive cards must exist");
+  assert(html.includes("أرشيف توزيع الاحتياط للقسم/المادة") && html.includes("أرشيف احتياط المدرسة"), "Both archive labels must be explicit");
+  assert(html.includes("subxArchiveDepartmentFrom") && html.includes("subxArchiveDepartmentTo"), "Department archive needs its own date range");
+  assert(html.includes("subxArchiveSchoolFrom") && html.includes("subxArchiveSchoolTo"), "School archive needs its own date range");
+  assert(html.includes("archiveScope:mode") && html.includes("subxArchiveBuildDays"), "The client must request a defined scope and group real saved rows by day");
+  assert(html.includes("b[0].localeCompare(a[0])"), "Archive days must be sorted newest first");
+  assert(backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'), "Non-admins must be blocked from schoolwide archive");
+  assert(backend.includes('requestedArchiveScope==="department"'), "The server must enforce the department scope");
+  assert(backend.includes('departmentName:String(teacherDepartment.departmentName||"")'), "Archive rows must include the absent teacher's department");
+  assert(workflow.includes('return [reserveOfficialPrintMarkup(dayGroups,date,items[0]?.weekday||"",undefined,options)]'), "The new archive must render one official A4 page per day");
+  assert(workflow.includes("القسم: '+esc(departmentLabel)"), "The schoolwide print must stack the department under the absent teacher name");
+  assert(workflow.includes("const widths=[20,16,10.5,10.5,13,11,19]"), "Official seven-column widths must not change");
+  assert(workflow.includes("<th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th>"), "Official seven column headings must not change");
+});
