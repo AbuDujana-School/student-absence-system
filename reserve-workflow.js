@@ -808,7 +808,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
   };
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
-    if(isGeneralAdminUser(activeUser))installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftApproved=new Set(); reserveLastAbsentSignature=""; reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
@@ -1746,168 +1745,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       if(table.style.tableLayout!=="fixed")table.style.tableLayout="fixed";
     }
   }
-  async function installDepartmentReserveTools() {
-    const panel=$("timetableSubstitutionPanel");
-    if(!panel || panel.dataset.departmentReserveTools==="1")return;
-    if(activeUser?.type!=="teacher" || activeUser?.permissions?.reserve!==true)return;
-    panel.dataset.departmentReserveTools="1";
-    const card=document.createElement("section");
-    card.id="ttDepartmentReserveTools";
-    card.className="mt-5 space-y-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm";
-    card.innerHTML='<div class="flex items-start gap-3"><div class="rounded-xl bg-indigo-100 p-3 text-indigo-800"><i class="fa-solid fa-calendar-xmark"></i></div><div><h3 class="text-sm font-black text-slate-900">إدارة احتياط القسم</h3><p class="mt-1 text-[10px] leading-5 text-slate-600">يمكنك إلغاء سجلات احتياط مادتك في يوم محدد فقط. لا يؤثر الإجراء في بقية المواد أو الأيام، ويُحفظ في سجل التدقيق.</p></div></div>'+
-      '<div class="grid gap-3 rounded-xl border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">'+
-      '<label class="text-[10px] font-bold text-slate-600">تاريخ الاحتياط<input id="ttDepartmentResetDate" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label>'+
-      '<label class="text-[10px] font-bold text-slate-600">المادة<select id="ttDepartmentResetSubject" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="">حمّل مواد قسمك حسب التاريخ</option></select></label>'+
-      '<button type="button" id="ttDepartmentLoadSubjects" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-black text-white">عرض المواد</button>'+
-      '<button type="button" id="ttDepartmentResetSubjectDay" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white md:col-span-3">إلغاء احتياط المادة في هذا اليوم فقط</button></div>'+
-      '<div id="ttDepartmentToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
-    panel.appendChild(card);
-    const token=()=>appAuthSession?.token||readAppAuthToken();
-    const say=(message,error=false)=>{
-      const box=$("ttDepartmentToolsStatus");if(!box)return;
-      box.textContent=message;
-      box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");
-    };
-    const dateInput=$("ttDepartmentResetDate");
-    try{if(dateInput&&!dateInput.value)dateInput.value=timetableSubstitutionGetDate().date;}catch{}
-    $("ttDepartmentLoadSubjects")?.addEventListener("click",async()=>{
-      const date=dateInput?.value||"",select=$("ttDepartmentResetSubject"),button=$("ttDepartmentLoadSubjects");
-      if(!date){say("اختر التاريخ أولاً.",true);return;}
-      button.disabled=true;
-      try{
-        const result=await appAuthRequest({action:"timetable_substitution_reset_options",assignmentDate:date},token());
-        select.innerHTML='<option value="">اختر مادة من قسمك</option>'+
-          (result.subjects||[]).map(subject=>'<option value="'+esc(subject)+'">'+esc(subject)+'</option>').join("");
-        say((result.subjects||[]).length?"تم تحميل مواد قسمك التي لديها سجلات احتياط نشطة في هذا التاريخ.":"لا توجد سجلات احتياط نشطة لمواد قسمك في هذا التاريخ.");
-      }catch(error){say(error?.message||"تعذر تحميل مواد القسم.",true);}
-      finally{button.disabled=false;}
-    });
-    $("ttDepartmentResetSubjectDay")?.addEventListener("click",async()=>{
-      const date=dateInput?.value||"",subject=$("ttDepartmentResetSubject")?.value||"";
-      if(!date||!subject){say("حدد التاريخ والمادة أولاً.",true);return;}
-      if(!window.confirm("سيتم إلغاء سجلات احتياط مادة «"+subject+"» في تاريخ "+date+" فقط. ستبقى بقية المواد والأيام كما هي. هل تؤكد؟"))return;
-      const button=$("ttDepartmentResetSubjectDay");button.disabled=true;
-      try{
-        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"subject_day",assignmentDate:date,subject},token());
-        say("تم إلغاء "+Number(result.result?.cancelled_count||0)+" تكليف للمادة المحددة في هذا اليوم فقط.");
-        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
-        if(typeof window.timetableDailyRefreshAll==="function")await window.timetableDailyRefreshAll();
-      }catch(error){say(error?.message||"تعذر إلغاء سجلات المادة.",true);}
-      finally{button.disabled=false;}
-    });
-  }
-  async function installAdminReserveTools() {
-    const panel=$("timetableSubstitutionPanel");
-    if(!panel || panel.dataset.adminReserveTools==="1" || !isGeneralAdminUser(activeUser))return;
-    panel.dataset.adminReserveTools="1";
-    const card=document.createElement("section");
-    card.id="ttAdminReserveTools";
-    card.className="mt-6 space-y-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 p-4 shadow-sm";
-    card.innerHTML='<div class="flex items-start gap-3"><div class="rounded-xl bg-amber-100 p-3 text-amber-800"><i class="fa-solid fa-shield-halved"></i></div><div><h3 class="text-sm font-black text-slate-900">إدارة سجلات الاحتياط والصلاحيات العامة</h3><p class="mt-1 text-[10px] leading-5 text-slate-600">هذه الأدوات متاحة لمدير النظام العام فقط. الإلغاء يحفظ السجلات في سجل التدقيق ولا يحذفها نهائياً.</p></div></div>'+
-      '<div class="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">'+
-      '<label class="text-[10px] font-bold text-slate-600">تاريخ الاحتياط<input id="ttAdminResetDate" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label>'+
-      '<label class="text-[10px] font-bold text-slate-600">المادة / القسم<select id="ttAdminResetSubject" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="">حمّل المواد حسب التاريخ</option></select></label>'+
-      '<button type="button" id="ttAdminLoadSubjects" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-black text-white">عرض المواد</button>'+
-      '<button type="button" id="ttAdminResetSubjectDay" class="rounded-lg bg-amber-600 px-4 py-2 text-xs font-black text-white md:col-span-3">إلغاء احتياط المادة المحددة في هذا اليوم فقط</button>'+
-      '</div>'+
-      '<div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3"><div><strong class="block text-xs text-red-900">إعادة ضبط جميع سجلات الاحتياط النشطة</strong><span class="text-[10px] text-red-700">يشمل جميع المواد والتواريخ؛ يحتفظ النظام بالسجلات الملغاة في الأرشيف والتدقيق.</span></div><button type="button" id="ttAdminResetAll" class="rounded-lg bg-red-700 px-4 py-2 text-xs font-black text-white">تفريغ جميع الاحتياط النشط</button></div>'+
-      '<div class="rounded-xl border border-indigo-100 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><strong class="text-xs text-slate-900">من يحق له دخول الجداول ورؤية إحصائيات المدرسة؟</strong><p class="mt-1 text-[10px] text-slate-500">يمكن منح صلاحية الجداول وصلاحية الإحصائيات العامة كلٌّ على حدة، للحسابات المخصصة أيضاً.</p></div><button type="button" id="ttAdminLoadAccess" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800">تحميل الحسابات</button></div>'+
-      '<div id="ttAdminAccessList" class="mt-3 space-y-2 text-xs"><p class="text-slate-400">اضغط «تحميل الحسابات» لعرض المستخدمين.</p></div>'+
-      '<div class="mt-3 flex justify-end"><button type="button" id="ttAdminSaveAccess" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ الصلاحيات المحددة</button></div></div>'+
-      '<div class="rounded-xl border border-emerald-200 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-3"><div><strong class="block text-xs text-emerald-900">التقرير الشامل لجميع سجلات الاحتياط</strong><p class="mt-1 text-[10px] text-slate-600">يجمع جميع المواد والتواريخ المتاحة في النظام، ويقسم التقرير حسب اليوم والمادة.</p></div><button type="button" id="ttAdminPrintAllReserve" class="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-black text-white">تصدير PDF شامل</button></div></div><div id="ttAdminToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
-    panel.appendChild(card);
-    const token=()=>appAuthSession?.token||readAppAuthToken();
-    const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
-    $("ttAdminPrintAllReserve")?.addEventListener("click",async()=>{
-      const button=$("ttAdminPrintAllReserve");
-      if(!isGeneralAdminUser(activeUser)){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
-      button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
-      try{
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
-        const adminArchive=Array.isArray(response.archive)?response.archive:[];
-        const records=adminArchive.filter(item=>item.status!=="cancelled"&&item.assignmentDate);
-        if(!records.length){say("لا توجد سجلات احتياط متاحة للتصدير.");return;}
-        const dayCount=new Set(records.map(item=>String(item.assignmentDate))).size;
-        say("تم تجهيز "+records.length+" تكليف احتياط موحداً عبر "+dayCount+" يوماً.");
-        window.timetableDailyPrintArchiveRange(adminArchive);
-      }catch(error){say(error?.message||"تعذر إنشاء التقرير الشامل.",true);}
-      finally{button.disabled=false;button.textContent="تصدير PDF شامل";}
-    });
-    const dateInput=$("ttAdminResetDate");
-    try{const d=timetableSubstitutionGetDate().date;if(dateInput&&!dateInput.value)dateInput.value=d;}catch{}
-    $("ttAdminLoadSubjects")?.addEventListener("click",async()=>{
-      const date=dateInput?.value||"",select=$("ttAdminResetSubject");
-      if(!date){say("اختر التاريخ أولاً.",true);return;}
-      const button=$("ttAdminLoadSubjects");button.disabled=true;
-      try{
-        const result=await appAuthRequest({action:"timetable_substitution_reset_options",assignmentDate:date},token());
-        select.innerHTML='<option value="">اختر المادة</option>'+(result.subjects||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");
-        say((result.subjects||[]).length?"تم تحميل المواد التي لديها تكليفات نشطة في هذا التاريخ.":"لا توجد تكليفات احتياط نشطة لهذا التاريخ.");
-      }catch(error){say(error?.message||"تعذر تحميل المواد.",true);}
-      finally{button.disabled=false;}
-    });
-    $("ttAdminResetSubjectDay")?.addEventListener("click",async()=>{
-      const date=dateInput?.value||"",subject=$("ttAdminResetSubject")?.value||"";
-      if(!date||!subject){say("حدد التاريخ والمادة أولاً.",true);return;}
-      if(!window.confirm("سيتم إلغاء سجلات احتياط مادة «"+subject+"» في تاريخ "+date+" فقط. ستبقى سجلات بقية المواد كما هي. هل تريد المتابعة؟"))return;
-      const button=$("ttAdminResetSubjectDay");button.disabled=true;
-      try{
-        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"subject_day",assignmentDate:date,subject},token());
-        say("تم إلغاء "+Number(result.result?.cancelled_count||0)+" تكليف للمادة المحددة في هذا اليوم فقط. بقيت بقية المواد دون تغيير.");
-        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
-      }catch(error){say(error?.message||"تعذر إلغاء سجلات المادة.",true);}
-      finally{button.disabled=false;}
-    });
-    $("ttAdminResetAll")?.addEventListener("click",async()=>{
-      if(!window.confirm("تحذير: سيؤدي هذا الإجراء إلى إلغاء جميع تكليفات الاحتياط النشطة في جميع المواد والتواريخ. سيحتفظ النظام بسجل التدقيق. هل تؤكد التفريغ الشامل؟"))return;
-      const button=$("ttAdminResetAll");button.disabled=true;
-      try{
-        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"all_active"},token());
-        say("اكتمل التفريغ الشامل: أُلغي "+Number(result.result?.cancelled_count||0)+" تكليف نشط.");
-        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
-      }catch(error){say(error?.message||"تعذر تنفيذ التفريغ الشامل.",true);}
-      finally{button.disabled=false;}
-    });
-    $("ttAdminLoadAccess")?.addEventListener("click",loadAdminAccess);
-    $("ttAdminSaveAccess")?.addEventListener("click",saveAdminAccess);
-    async function loadAdminAccess(){
-      const host=$("ttAdminAccessList");host.innerHTML='<p class="text-slate-400">جارٍ تحميل الحسابات...</p>';
-      try{
-        const [timetable,stats]=await Promise.all([
-          appAuthRequest({action:"timetable_list_access"},token()),
-          appAuthRequest({action:"timetable_reserve_stats_access_list"},token())
-        ]);
-        const statsMap=new Map((stats.users||[]).map(u=>[u.principalType+":"+u.principalName,u.enabled===true]));
-        host.innerHTML=(timetable.users||[]).map(u=>{
-          const key=u.principal_type+":"+u.principal_name,statsOn=statsMap.get(key)===true;
-          return '<div class="grid gap-2 rounded-lg border border-slate-200 p-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center" data-admin-user="'+esc(key)+'">'+
-            '<div><strong class="block text-xs text-slate-800">'+esc(u.principal_name)+'</strong><span class="text-[10px] text-slate-500">'+(u.principal_type==="custom"?"حساب مخصص":"معلم")+(u.category?" · "+esc(u.category):"")+'</span></div>'+
-            '<label class="flex items-center gap-2 text-[10px] font-bold text-slate-700"><input type="checkbox" data-admin-timetable '+(u.can_access?"checked":"")+' data-original="'+(u.can_access?"1":"0")+'"> دخول الجداول وأرشيف الاحتياط</label>'+
-            '<label class="flex items-center gap-2 text-[10px] font-bold text-indigo-800"><input type="checkbox" data-admin-stats '+(statsOn?"checked":"")+' data-original="'+(statsOn?"1":"0")+'"> إحصائيات المدرسة كاملة</label></div>';
-        }).join("")||'<p class="text-slate-400">لا توجد حسابات قابلة لمنح الصلاحية.</p>';
-      }catch(error){host.innerHTML='<p class="text-red-700">'+esc(error?.message||"تعذر تحميل الصلاحيات.")+'</p>';}
-    }
-    async function saveAdminAccess(){
-      const button=$("ttAdminSaveAccess"),host=$("ttAdminAccessList");button.disabled=true;
-      try{
-        const rows=[...host.querySelectorAll("[data-admin-user]")],statsGrants=[];
-        for(const row of rows){
-          const [principalType,principalName]=row.dataset.adminUser.split(":",2);
-          const timetable=row.querySelector("[data-admin-timetable]"),stats=row.querySelector("[data-admin-stats]");
-          if(timetable && timetable.checked!==(timetable.dataset.original==="1")){
-            await appAuthRequest({action:"timetable_set_access",principalType,principalName,canAccess:timetable.checked},token());
-            timetable.dataset.original=timetable.checked?"1":"0";
-          }
-          statsGrants.push({principalType,principalName,enabled:stats?.checked===true});
-        }
-        await appAuthRequest({action:"timetable_reserve_stats_access_save",grants:statsGrants},token());
-        host.querySelectorAll("[data-admin-stats]").forEach(input=>input.dataset.original=input.checked?"1":"0");
-        say("تم حفظ صلاحيات الدخول إلى الجداول وإحصائيات المدرسة.");
-      }catch(error){say(error?.message||"تعذر حفظ الصلاحيات؛ راجع الاتصال ثم أعد المحاولة.",true);}
-      finally{button.disabled=false;}
-    }
-  }
-  // Legacy reserve screen: explicitly choose supporting teachers from the selected department.
   function installLegacyOtherDepartmentTeacherPicker(){
     // The current index.html already owns this picker and its selection state.
     // Do not install the legacy picker: it reused the same DOM id and overwrote
@@ -2745,6 +2582,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       apply();
       return true;
     }
+    // This mount is reserved for the canonical editor and archive cards only.
+    // Legacy administration/reset panels are intentionally not created or moved here.
     function mountCanonicalPanel(){
       const panel=$("timetableSubstitutionPanel");
       const archiveHost=$("subxArchiveMountArea");
@@ -2752,10 +2591,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       panel.classList.add("hidden");
       $("timetableDailyActivePanel")?.classList.add("hidden");
       $("timetableDailyArchivePanel")?.classList.add("hidden");
-      const adminTools=$("ttAdminReserveTools");
-      const departmentTools=$("ttDepartmentReserveTools");
-      if(adminTools&&adminTools.parentElement!==archiveHost)archiveHost.appendChild(adminTools);
-      if(departmentTools&&departmentTools.parentElement!==archiveHost)archiveHost.appendChild(departmentTools);
       return true;
     }
     function restoreCanonicalPanel(){
@@ -2772,8 +2607,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
           const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
-          if(typeof window.timetableDailyInstallAdminTools==="function")await window.timetableDailyInstallAdminTools();
-          if(typeof window.timetableDailyInstallDepartmentTools==="function")await window.timetableDailyInstallDepartmentTools();
           ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
           root.classList.remove("hidden");
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
@@ -2989,12 +2822,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
   installReserveArchiveAutoRefresh();
-  window.timetableDailyInstallAdminTools=installAdminReserveTools;
-  window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
-  // These installers are idempotent; defer reserve-specific UI until its own
-  // view is opened instead of reacting to unrelated dashboard/login mutations.
-  installDepartmentReserveTools();
-  installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"){
     const substitutionView=$("substitutionView");
@@ -3012,19 +2839,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       // can lock the browser during reserve loading.
       substitutionContentObserver.observe(substitutionView,{childList:true});
       initializeHomeReserveView();
-    }
-    const timetablePanel=$("timetableSubstitutionPanel");
-    if(timetablePanel){
-      const initializeTimetableReservePanel=()=>{
-        if(timetablePanel.classList.contains("hidden"))return;
-        installDepartmentReserveTools();
-        installAdminReserveTools();
-      };
-      const timetableVisibilityObserver=new MutationObserver(initializeTimetableReservePanel);
-      timetableVisibilityObserver.observe(timetablePanel,{attributes:true,attributeFilter:["class"]});
-      const timetableContentObserver=new MutationObserver(initializeTimetableReservePanel);
-      timetableContentObserver.observe(timetablePanel,{subtree:true,childList:true});
-      initializeTimetableReservePanel();
     }
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){

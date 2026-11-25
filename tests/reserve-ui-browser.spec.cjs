@@ -119,8 +119,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         archiveMounted: $("subxArchiveMountArea").parentElement?.id === "subxArchivePanel" && !$("substitutionView").classList.contains("hidden"),
         legacyActiveHidden: $("timetableDailyActivePanel").classList.contains("hidden"),
         legacyArchiveHidden: $("timetableDailyArchivePanel").classList.contains("hidden"),
-        adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveMountArea",
-        departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveMountArea",
+        adminToolsMounted: !!$("ttAdminReserveTools"),
+        departmentToolsMounted: !!$("ttDepartmentReserveTools"),
         crossDepartment: !$("substitutionOtherDepartmentsWrap").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
         calls: window.calls,
@@ -135,8 +135,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.archiveMounted, role.id).toBe(true);
       expect(result.legacyActiveHidden, role.id).toBe(true);
       expect(result.legacyArchiveHidden, role.id).toBe(true);
-      expect(result.adminToolsMounted, role.id).toBe(role.id === "general admin" || role.id === "delegated admin");
-      expect(result.departmentToolsMounted, role.id).toBe(role.id === "reserve teacher");
+      expect(result.adminToolsMounted, role.id).toBe(false);
+      expect(result.departmentToolsMounted, role.id).toBe(false);
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
       expect(result.calls.options, role.id).toBe(1);
