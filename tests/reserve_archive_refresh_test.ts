@@ -246,7 +246,7 @@ Deno.test("reserve archive reloads queue when the selected date range changes", 
 Deno.test("the four-section reserve workspace shows daily teaching load and preserves one A4 page per archived day", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes("const dailyCount=Number(option.dailyTeachingCount)"),"Each substitute candidate must show the number of teaching periods scheduled that day");
-  assert(html.includes("لديه '+row.dailyTeachingCount+' حصص تدريس اليوم"),"The WhatsApp message must include the substitute's daily teaching-period count when known");
+  assert(!html.includes("لديه '+row.dailyTeachingCount+' حصص تدريس اليوم"),"The WhatsApp message must follow the requested format without appending daily teaching-load details");
   for(const tab of ["daily","edit","archive","stats"]){
     assert(html.includes('data-subx-tab="'+tab+'"'),"The workspace must expose the "+tab+" section");
   }
