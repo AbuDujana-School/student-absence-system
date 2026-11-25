@@ -4,8 +4,9 @@ import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const adapter=html.match(/<script id="substitution-single-screen-adapter">([\s\S]*?)<\/script>/)?.[1]||'';
 const style=html.match(/<style id="substitution-single-screen-theme-v3">([\s\S]*?)<\/style>/)?.[1]||'';
+const backend=fs.readFileSync(new URL('../supabase/functions/timetable-management/index.ts',import.meta.url),'utf8');
 test('single-screen adapter is installed and creates the four independent portal destinations',()=>{
- assert.ok(adapter.length>5000);for(const name of ['date','edit','archive','stats','absentees','smart'])assert.ok(adapter.includes("'"+name+"'"));
+ assert.ok(adapter.length>5000);for(const name of ['date','edit','archive','stats','absentees','scope','smart'])assert.ok(adapter.includes("'"+name+"'"));
  assert.match(adapter,/subx-hub-rect/);assert.match(style,/\.subx-screen\.is-visible/);assert.match(style,/\.subx-hub-rect/);assert.match(html,/#substitutionView>\.hidden\{display:none!important\}/);
 });
 test('date and distribution transitions wait for their asynchronous data operations',()=>{
@@ -63,4 +64,47 @@ test('absence screen has a validated next step and smart distribution owns the g
  assert.match(adapter,/حدد معلماً غائباً واحداً على الأقل/);
  assert.match(adapter,/حدد سبب الغياب لكل معلم قبل الانتقال/);
  assert.match(adapter,/screens\.smart\.insertBefore\(generateButton,plan\|\|null\)/);
+});
+
+test('scope selector presents two distinct glass choices and a dedicated multi-select checklist',()=>{
+ for(const token of ['subxOwnDepartmentCard','التوزيع لمعلمي القسم','subxOtherDepartmentToggle','الاستعانة بالأقسام الأخرى','subxDepartmentChecklist','subxDepartmentApply','subxScopeStartSmart'])assert.ok(adapter.includes(token),token);
+ assert.match(style,/subx-scope-card/);assert.match(style,/backdrop-filter:blur/);assert.match(style,/subx-department-option input:checked/);
+});
+test('absence flow opens scope selection and own-department choice clears all external departments',()=>{
+ assert.match(adapter,/التالي: تحديد نطاق التوزيع/);assert.match(adapter,/go\('scope'\)/);
+ assert.match(adapter,/subxOwnDepartmentCard[^\n]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
+});
+test('scope checklist excludes the coordinator department and commits only approved department IDs',()=>{
+ assert.match(adapter,/function scopeAvailableDepartments\(\)[\s\S]*?String\(d\.id\)!==ownId/);
+ assert.match(adapter,/function applyScopeDepartments\(ids\)[\s\S]*?valid=\[\.\.\.new Set/);
+ assert.match(adapter,/substitutionSelectedOtherDepartmentIds=valid\.slice\(\)/);
+ assert.match(adapter,/اضغط «موافق» أولاً لاعتماد الأقسام التي اخترتها/);
+});
+test('scope selector keeps absent teachers in their original department flow and gates cross-department access',()=>{
+ assert.match(adapter,/canManageReserveWorkspace\(activeUser\)/);
+ assert.match(adapter,/if\(scopeOtherCard\)scopeOtherCard\.classList\.toggle\('hidden',!allowed\)/);
+ assert.match(adapter,/substitutionLoadAbsentees/);
+});
+test('scope screen does not replace the existing smart distribution engine',()=>{
+ assert.match(adapter,/substitutionGeneratePlan/);
+ assert.match(adapter,/substitutionOtherDepartmentIds\(\)/);
+ assert.match(adapter,/screens\.smart\.append\(plan\)/);
+});
+
+test('department options response identifies the coordinator even when no active timetable exists',()=>{
+ const action=backend.slice(backend.indexOf('if (action === "timetable_substitution_departments")'),backend.indexOf('if (action === "timetable_reserve_stats_access_list")'));
+ assert.ok(action.indexOf('const actor = directory.find')<action.indexOf('if(!activeVersionId)'));
+ assert.match(action,/departments:\[\],actorDepartmentName,actorDepartmentId/);
+ assert.match(action,/principal\.type !== "admin" && actor\?\.canManageSubstitutions !== true/);
+});
+
+test('scope loader temporarily enables the legacy checkbox and restores it from approved selections',()=>{
+ assert.match(adapter,/if\(master\)master\.checked=true;await timetableLoadOtherDepartmentOptions\('substitutionOtherDepartments','substitutionOtherDepartmentSelect'\);scopeDraftIds=substitutionOtherDepartmentIds\(\);if\(master\)master\.checked=scopeDraftIds\.length>0/);
+ assert.match(adapter,/if\(master\)master\.checked=valid\.length>0/);
+ assert.match(html,/function substitutionOtherDepartmentsEnabled\(\)\{const e=document\.getElementById\("substitutionOtherDepartments"\);return e\?\.type==="checkbox"\?e\.checked===true/);
+});
+test('approved support departments preselect their teachers while own-department mode clears support scope',()=>{
+ assert.match(adapter,/window\.substitutionSelectedOtherTeacherNames=new Set\(teachers\)/);
+ assert.match(adapter,/const master=document\.getElementById\('substitutionOtherDepartments'\);if\(master\)master\.checked=valid\.length>0/);
+ assert.match(adapter,/subxOwnDepartmentCard[^\n]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
 });
