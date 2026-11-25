@@ -114,10 +114,10 @@ Deno.test("main reserve entry point keeps legacy panels hidden and defers edit/a
   assert(!integration.includes("editHost.appendChild(activePanel)")&&!integration.includes("archiveHost.appendChild(archivePanel)"),"The old panels must not create a competing second edit/archive path");
   assert(integration.includes("ttAdminReserveTools")&&integration.includes("ttDepartmentReserveTools"),"Existing admin and department archive controls must remain mounted in the archive host");
   assert(integration.includes("restoreCanonicalPanel()"),"Closing the view must keep the compatibility engine hidden");
-  assert(integration.includes("window.__reserveUserInitiatedOpen=true"),"Only the dashboard-card interaction may mark an explicit reserve open");
-  assert(integration.includes("window.__reserveUserInitiatedOpen=false"),"The explicit-open marker must be cleared after the open workflow settles");
+  assert(integration.includes('dashboardCard.addEventListener("click"'),"The visible dashboard card remains the explicit reserve entry point");
   assert(!integration.includes("__canonicalReserveInitialOpenAttempted"),"Visibility observers must never auto-open the reserve workspace during unrelated view startup");
   assert(!integration.includes("return window.openSubstitutionView()"),"The integration must not replay the reserve opener merely because the view is visible");
+  assert(integration.includes("await window.substitutionLoadAbsentees()"),"The explicit dashboard entry must still load the absentee workflow");
   assert(integration.includes("window.substitutionLoadAbsentees()"),"Opening the workspace must load the new distribution interface");
   assert(!integration.includes('startBackgroundLoad(window.timetableDailyLoadArchive'),"Archive/edit reads must not run before the corresponding view is opened");
   assert(integration.includes('startBackgroundLoad(window.substitutionLoadStats'),"Authorized accounts must retain statistics loading without blocking the workspace");
