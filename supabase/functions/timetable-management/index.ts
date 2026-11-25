@@ -1434,7 +1434,7 @@ async function handle(req: Request) {
       const weekdayOptionalActions=new Set(["timetable_substitution_update","timetable_substitution_update_batch"]);
       const dateScopedCreateActions=new Set(["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_batch_preview","timetable_substitution_batch_save"]);
       const requestedAssignmentDate=String(body.assignmentDate||"").trim();
-      if(principal.type==="custom"&&dateScopedCreateActions.has(actionName)&&isValidSubstitutionDate(requestedAssignmentDate)&&requestedAssignmentDate<todayInMuscat){
+      if((principal.type==="custom"||hasReservePermission)&&dateScopedCreateActions.has(actionName)&&isValidSubstitutionDate(requestedAssignmentDate)&&requestedAssignmentDate<todayInMuscat){
         return reply(403,{error:"لا يمكن لمنسق المادة إنشاء أو معاينة توزيع بتاريخ مضى. اختر اليوم أو تاريخاً مستقبلياً."});
       }
       if (!DAYS.includes(weekday) && !weekdayOptionalActions.has(actionName)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
