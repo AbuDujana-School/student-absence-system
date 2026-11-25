@@ -1085,7 +1085,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     });
     return reserveDailyArchiveLoadPromise;
   };
-  window.timetableDailyPrintArchiveRange = function (sourceRecords, printOptions={}) {
+  window.timetableDailyPrintArchiveRange = function (sourceRecords) {
+    const printOptions=arguments[1]||{};
     const records=(Array.isArray(sourceRecords)?sourceRecords:reserveArchive).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
     const includeDepartment=printOptions?.showDepartment===true,grouped=new Map();

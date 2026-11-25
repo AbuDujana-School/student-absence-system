@@ -534,10 +534,10 @@ async function handle(req: Request) {
       .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>{
-        const teacherDepartment=teacherDepartmentByName.get(String(row.absent_teacher_name||""))||{};
+        const teacherDepartment=teacherDepartmentByName.get(String(row.absent_teacher_name||""));
         return {
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
-        departmentId:String(teacherDepartment.departmentId||""),departmentName:String(teacherDepartment.departmentName||""),
+        departmentId:String(teacherDepartment?.departmentId||""),departmentName:String(teacherDepartment?.departmentName||""),
         createdAt:row.reserve_created_at||row.created_at||null,
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           ["assigned","confirmed"].includes(String(row.status||""))&&
