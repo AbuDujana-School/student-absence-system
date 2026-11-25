@@ -25,3 +25,16 @@ test('installed pages refresh after a new worker controls the login page', () =>
   assert.match(html, /pwaUpdateNotice/);
   assert.match(html, /تحديث الآن/);
 });
+
+test('reserve scope and supporting departments use clear glass selection controls', () => {
+  const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
+  assert.ok(reserve.includes('data-reserve-scope="local"'));
+  assert.ok(reserve.includes('data-reserve-scope="external"'));
+  assert.ok(reserve.includes('.subx-department-choice-card[data-reserve-scope=local].is-active{background:linear-gradient'));
+  assert.ok(reserve.includes('data-canonical-department-id'));
+  assert.ok(reserve.includes('subx-canonical-department-card input{position:static;display:block;width:27px;height:27px'));
+  assert.ok(reserve.includes('data-department-bulk="all"'));
+  assert.ok(reserve.includes('data-teacher-group-action="all"'));
+  assert.ok(reserve.includes('expanded.hidden=!ids.includes(id)'));
+  assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
+});
