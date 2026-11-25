@@ -96,8 +96,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       await page.waitForTimeout(0);
       const quickDateNav = page.locator("#subxCanonicalDateQuickNav");
       await expect(quickDateNav, role.id + " visible canonical date navigation").toBeVisible();
-      await quickDateNav.locator('[data-date-offset="-1"]').click();
-      expect(await page.locator("#substitutionDate").inputValue(), role.id + " yesterday shortcut").toBe("2026-11-23");
+      await expect(quickDateNav.locator('[data-date-offset="-1"]')).toHaveCount(0);
+      await quickDateNav.locator('[data-date-offset="0"]').click();
+      expect(await page.locator("#substitutionDate").inputValue(), role.id + " today shortcut").toBe("2026-11-24");
+      await quickDateNav.locator('[data-date-offset="1"]').click();
+      expect(await page.locator("#substitutionDate").inputValue(), role.id + " tomorrow shortcut").toBe("2026-11-25");
+      if (role.id === "reserve teacher") {
+        expect(await page.locator("#substitutionDate").getAttribute("min"), "coordinator minimum date").toBe("2026-11-24");
+      }
       const inFlightCalls = await page.evaluate(() => window.calls.options);
       expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
       await page.evaluate(() => window.releaseOptions());
