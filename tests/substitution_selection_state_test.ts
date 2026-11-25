@@ -60,7 +60,7 @@ Deno.test("renderPlan initializes unassigned rows before composing the empty-pla
 
 
 Deno.test("reserve review renders isolated absent-teacher and period cards with the top five ranked candidates", () => {
-  const render = section("  function renderPlan(){", "\\n  window.substitutionSavePlan");
+  const render = section("  function renderPlan(){", "\n  window.substitutionSavePlan");
   assert(render.includes("subx-review-absent-head"), "Each absent teacher must have a distinct dark summary header");
   assert(render.includes("subx-review-period-pill"), "Each lesson must have its own clearly visible period card");
   assert(render.includes("const visibleOptions=candidates.slice(0,5);"), "Only the first five server-ranked eligible candidates should appear in the initial card");
@@ -72,29 +72,29 @@ Deno.test("reserve review renders isolated absent-teacher and period cards with 
 });
 
 Deno.test("selecting a candidate collapses only that lesson and keeps the official save actions pending", () => {
-  const select = section("function selectSubstitutionPlanCandidate(", "\\n  function reopenSubstitutionCandidateOptions(");
+  const select = section("function selectSubstitutionPlanCandidate(", "\n  function reopenSubstitutionCandidateOptions(");
   assert(select.includes("item.candidateOptions||[]"), "A selectable substitute must come from the server-provided eligible candidates");
   assert(select.includes("item.substituteTeacherName=selected.teacherName"), "The selected substitute must update the existing plan payload");
   assert(select.includes("expandedPlanRows.delete(rowIndex)"), "Selecting a substitute must collapse that lesson");
   assert(select.includes("pdf.disabled=true") && select.includes("wa.disabled=true"), "PDF and WhatsApp remain disabled until the changed plan is saved");
-  const reopen = section("function reopenSubstitutionCandidateOptions(", "\\n  function renderSubstitutionCandidateSearchResults(");
+  const reopen = section("function reopenSubstitutionCandidateOptions(", "\n  function renderSubstitutionCandidateSearchResults(");
   assert(reopen.includes("expandedPlanRows.add(rowIndex)"), "The Change action must reopen the same lesson options");
 });
 
 Deno.test("additional teacher search stays within the remaining server-ranked eligible candidates", () => {
-  const search = section("function renderSubstitutionCandidateSearchResults()", "\\n  function openSubstitutionCandidateSearch(");
+  const search = section("function renderSubstitutionCandidateSearchResults()", "\n  function openSubstitutionCandidateSearch(");
   assert(search.includes("(item.candidateOptions||[]).slice(5)"), "The search modal must show candidates after the first five");
   assert(search.includes("reserveCandidateBusyText(option)"), "The search results must show each candidate's occupied periods");
   assert(search.includes("toLocaleLowerCase('ar')"), "The additional-candidate list must support Arabic name search");
-  const open = section("function openSubstitutionCandidateSearch(", "\\n  window.subxCloseCandidateSearch=");
+  const open = section("function openSubstitutionCandidateSearch(", "\n  window.subxCloseCandidateSearch=");
   assert(open.includes("candidateSearchRowIndex=rowIndex"), "The search modal must retain the targeted lesson");
   assert(open.includes("الحصة "), "The search modal must identify the exact period being edited");
 });
 
 Deno.test("review redesign preserves the existing atomic save, WhatsApp, and official A4 print pipelines", () => {
-  const save = section("window.substitutionSavePlan=async function(){", "\\n  function buildShareMessage(){");
-  const share = section("window.substitutionShareWhatsapp=function(){", "\\n  window.substitutionPrintPdf=function(){");
-  const print = section("window.substitutionPrintPdf=function(){", "\\n  window.substitutionLoadStats=async function(){");
+  const save = section("window.substitutionSavePlan=async function(){", "\n  function buildShareMessage(){");
+  const share = section("window.substitutionShareWhatsapp=function(){", "\n  window.substitutionPrintPdf=function(){");
+  const print = section("window.substitutionPrintPdf=function(){", "\n  window.substitutionLoadStats=async function(){");
   assert(save.includes("timetable_substitution_batch_save"), "Approval must continue through the existing atomic server action");
   assert(share.includes("buildShareMessage()"), "WhatsApp must use the existing current-plan message builder");
   assert(print.includes("window.printOfficialReserveReport(orderedGroups,selectedDate(),weekdayFor(selectedDate()));"), "PDF must continue through the official reserve report template");
