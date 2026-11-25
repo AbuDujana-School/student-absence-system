@@ -457,7 +457,18 @@ async function handle(req: Request) {
   }
 
   if (action === "timetable_substitution_archive_access") {
-    return reply(200,{ok:true,canView:hasArchivePermission});
+    if(!hasArchivePermission)return reply(403,{error:"لا تملك صلاحية عرض أرشيف الاحتياط."});
+    const directory=await teacherDirectory();
+    const actor=directory.find((teacher:any)=>teacher.name===principal.name);
+    const departmentMap=new Map<string,string>();
+    directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId)
+      .forEach((teacher:any)=>departmentMap.set(String(teacher.departmentId),String(teacher.departmentName||teacher.department||teacher.departmentId)));
+    const departments=[...departmentMap.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,"ar"));
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type);
+    const canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId);
+    return reply(200,{ok:true,canView:true,canViewDepartmentArchive,canViewSchoolwide,
+      departmentId:String(actor?.departmentId||""),departmentName:String(actor?.departmentName||actor?.department||""),
+      departments:canViewSchoolwide?departments:[]});
   }
 
   // Archive is independent of the currently active timetable version: historical
@@ -480,12 +491,35 @@ async function handle(req: Request) {
     if(activeVersion.error)throw activeVersion.error;
     const actor=directory.find((teacher:any)=>teacher.name===principal.name);
     const homeToday=body.homeToday===true;
-    // Reserve/archive permission grants access to the feature, not schoolwide
-    // visibility. Only system admins receive the consolidated cross-department
-    // archive; every other principal is restricted to their own department.
-    const schoolwide=canViewSchoolwideReserveArchive(principal.type);
-    const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-      (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
+    const requestedArchiveScope=String(body.archiveScope||"").trim().toLowerCase();
+    if(requestedArchiveScope&&!["department","school"].includes(requestedArchiveScope))
+      return reply(400,{error:"نوع نطاق الأرشيف غير صحيح."});
+    const requestedDepartmentId=String(body.departmentId||"").trim();
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type);
+    if(requestedArchiveScope==="school"&&!canViewSchoolwide)
+      return reply(403,{error:"أرشيف المدرسة الشامل متاح لمدير النظام العام فقط."});
+    const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&canViewSchoolwide);
+    const actorDepartmentId=String(actor?.departmentId||"").trim();
+    // A non-admin's department scope is always derived from the authenticated
+    // principal; a caller-supplied departmentId can never pivot the archive.
+    const targetDepartmentId=requestedArchiveScope==="department"?(canViewSchoolwide?requestedDepartmentId:actorDepartmentId):"";
+    if(requestedArchiveScope==="department"&&!targetDepartmentId)
+      return reply(403,{error:"لا يتوفر قسم مرتبط بهذا الحساب لعرض أرشيف المادة."});
+    if(canViewSchoolwide&&requestedArchiveScope==="department"&&
+      !directory.some((teacher:any)=>teacher.role==="teacher"&&String(teacher.departmentId||"")===targetDepartmentId))
+      return reply(400,{error:"القسم المحدد غير موجود في دليل المعلمين."});
+    const visibleTeachers=directory.filter((teacher:any)=>teacher.role==="teacher"&&
+      (schoolwide||(requestedArchiveScope===""&&canViewSchoolwide)||
+        Boolean(targetDepartmentId&&String(teacher.departmentId||"")===targetDepartmentId)||
+        (requestedArchiveScope===""&&!canViewSchoolwide&&Boolean(actorDepartmentId&&String(teacher.departmentId||"")===actorDepartmentId))));
+    const visibleNames=new Set(visibleTeachers.map((teacher:any)=>teacher.name));
+    const teacherDepartmentByName=new Map<string,{departmentId:string;departmentName:string}>(
+      visibleTeachers.map((teacher:any)=>[String(teacher.name),{
+        departmentId:String(teacher.departmentId||""),
+        departmentName:String(teacher.departmentName||teacher.department||teacher.departmentId||""),
+      }] as const)
+    );
+    const archiveDepartment=targetDepartmentId?directory.find((teacher:any)=>teacher.role==="teacher"&&String(teacher.departmentId||"")===targetDepartmentId):null;
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
       .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,absence_reason,created_at,reserve_created_at")
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
@@ -501,8 +535,11 @@ async function handle(req: Request) {
     })
       .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
-      .map((row:any)=>({
+      .map((row:any)=>{
+        const teacherDepartment=teacherDepartmentByName.get(String(row.absent_teacher_name||""));
+        return {
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
+        departmentId:String(teacherDepartment?.departmentId||""),departmentName:String(teacherDepartment?.departmentName||""),
         createdAt:row.reserve_created_at||row.created_at||null,
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           ["assigned","confirmed"].includes(String(row.status||""))&&
@@ -517,8 +554,10 @@ async function handle(req: Request) {
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
-      }));
-    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
+        };
+      });
+    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide,departmentId:targetDepartmentId||"",
+      departmentName:String(archiveDepartment?.departmentName||archiveDepartment?.department||"")});
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {

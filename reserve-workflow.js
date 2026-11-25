@@ -1086,41 +1086,31 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     return reserveDailyArchiveLoadPromise;
   };
   window.timetableDailyPrintArchiveRange = function (sourceRecords) {
+    const printOptions=arguments[1]||{};
     const records=(Array.isArray(sourceRecords)?sourceRecords:reserveArchive).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
-    const grouped=new Map();
-    records.forEach(item=>{
-      const date=String(item.assignmentDate);
-      if(!grouped.has(date))grouped.set(date,[]);
-      grouped.get(date).push(item);
-    });
-    // Preserve the original approved official A4 PDF template; only reverse
-    // the date order so the newest distribution appears first.
-    const days=[...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+    const includeDepartment=printOptions?.showDepartment===true,grouped=new Map();
+    records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
+    // One official A4 sheet per day; preserve all seven approved columns and widths.
+    const days=[...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0])),pageTitle=String(printOptions?.pageTitle||"").trim();
     const pages=days.flatMap(([date,items])=>{
       const byAbsent=new Map();
       items.forEach(item=>{
-        const name=String(item.absentTeacherName||"");
-        if(!byAbsent.has(name)){
-          const rawAbsenceReason=String(item.absenceReason||"").trim();
-          const rawReserveReason=String(item.reason||"").trim();
-          byAbsent.set(name,{
-            absentName:name,
-            absenceReason:rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason,
-            reserveReason:rawReserveReason==="-"||rawReserveReason==="—"?"":rawReserveReason,
-            rows:[]
-          });
+        const name=String(item.absentTeacherName||"").trim(),departmentName=String(item.departmentName||item.department||"").trim();
+        const key=includeDepartment?name+"\\u0000"+departmentName:name;
+        if(!byAbsent.has(key)){
+          const rawAbsenceReason=String(item.absenceReason||"").trim(),rawReserveReason=String(item.reason||"").trim();
+          byAbsent.set(key,{absentName:name,departmentName,absenceReason:rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason,reserveReason:rawReserveReason==="-"||rawReserveReason==="—"?"":rawReserveReason,rows:[]});
         }
-        byAbsent.get(name).rows.push({
-          period:item.period,
-          className:item.className,
-          substitute:item.substituteTeacherName||"",
-          reserveReason:String(item.reason||"")
-        });
+        byAbsent.get(key).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||"",reserveReason:String(item.reason||"")});
       });
-      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"",undefined,{singlePage:true});
+      const dayGroups=[...byAbsent.values()].sort((a,b)=>a.absentName.localeCompare(b.absentName,"ar"));
+      const options={singlePage:true,title:pageTitle,showDepartment:includeDepartment};
+      // New archive cards force one official sheet per day; legacy callers retain measured overflow handling.
+      if(printOptions?.archiveMode===true)return [reserveOfficialPrintMarkup(dayGroups,date,items[0]?.weekday||"",undefined,options)];
+      return reserveOfficialPrintPages(dayGroups,date,items[0]?.weekday||"",undefined,options);
     });
-    printOfficialReservePages(pages);
+    printOfficialReservePages(pages,undefined,{title:String(printOptions?.documentTitle||pageTitle||"").trim()});
   };
   async function fetchArchivePreview(absentName, date, weekday) {
     const token=appAuthSession?.token||readAppAuthToken();
@@ -1578,9 +1568,9 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     let used=0;
     const rowsMarkup=(groups||[]).map(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
-      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||group.reason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
+      const absent=esc(group.absentName||""),departmentLabel=options?.showDepartment?String(group.departmentName||"").trim():"",absenceMarkup=absent+(departmentLabel?'<div style="font-size:75%;font-weight:600;line-height:1.1;margin-top:.4mm">القسم: '+esc(departmentLabel)+'</div>':""),rawAbsenceReason=String(group.absenceReason||group.reason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
       return rows.map((row,rowIndex)=>{
-        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
+        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absenceMarkup+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"") +'</td><td class="tt-official-substitute">'+esc(row.substitute||"") +'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
