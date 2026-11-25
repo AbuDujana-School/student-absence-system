@@ -44,14 +44,24 @@ test('reserve scope and supporting departments use clear glass selection control
   assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
 });
 
-test('reserve WhatsApp distribution uses the requested department and spaced WhatsApp formatting', () => {
+test('reserve WhatsApp distribution uses the shared Arabic school report template', () => {
   const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
-  const share = reserve.slice(reserve.indexOf('window.timetableDailyShareWhatsApp = async function ()'), reserve.indexOf('function applyTeacherTimetablePresentation'));
-  assert.ok(share.includes('const department=await reservePrintActorSubject();'));
-  assert.ok(share.includes('`"+department+"`'));
-  assert.ok(share.includes('*المعلم الغائب* : `'));
-  assert.ok(share.includes('*الاحتياط* : `'));
-  assert.ok(share.includes('message+="\\n\\n";'));
+  const shareStart = reserve.indexOf('window.timetableDailyShareWhatsApp = async function ()');
+  const shareEnd = reserve.indexOf('function applyTeacherTimetablePresentation', shareStart);
+  const share = reserve.slice(shareStart, shareEnd);
+  const formatterStart = reserve.indexOf('function buildReserveWhatsAppMessage(');
+  const formatterEnd = reserve.indexOf('function applyTeacherTimetablePresentation', formatterStart);
+  const formatter = reserve.slice(formatterStart, formatterEnd);
+  assert.ok(shareStart >= 0 && shareEnd > shareStart);
+  assert.ok(share.includes('const subject=await reservePrintActorSubject();'));
+  assert.ok(share.includes('const message=buildReserveWhatsAppMessage(groups,date,weekday,subject);'));
+  assert.ok(formatter.includes('مدرسة أبو دجانة الأنصاري'));
+  assert.ok(formatter.includes('📚 *المادة:*'));
+  assert.ok(formatter.includes('🗓️ *التاريخ:*'));
+  assert.ok(formatter.includes('*المعلم الغائب:*'));
+  assert.ok(formatter.includes('*الاحتياط:*'));
+  assert.ok(formatter.includes('━━━━━━━━━━━━━━━━━━'));
+  assert.ok(formatter.includes('شكرًا لتعاونكم وحرصكم الدائم'));
 });
 
 test('supporting department teacher cards recover when the source renderer populates asynchronously', () => {
