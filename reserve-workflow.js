@@ -253,19 +253,6 @@
     },String(currentValue||""));
   };
   
-  // Keep the restored premium picker as the single public entry point.
-  // Reject the legacy compact picker's late assignment and remove its DOM node.
-  const canonicalAbsenceReasonPicker = window.openSubstitutionAbsenceReasonPicker;
-  Object.defineProperty(window, "openSubstitutionAbsenceReasonPicker", {
-    configurable: true,
-    enumerable: true,
-    get() { return canonicalAbsenceReasonPicker; },
-    set(nextPicker) {
-      if (nextPicker !== canonicalAbsenceReasonPicker) {
-        document.getElementById("subxReasonPopup")?.remove();
-      }
-    }
-  });
 function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
