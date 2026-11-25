@@ -360,10 +360,10 @@ test("crowded A4 archive days split into readable sheets instead of shrinking te
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const build = new Function("esc", "formatReserveDateArabic",
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
     markup + ";" + pages + "; return reserveOfficialPrintPages;"
-  )(value => String(value ?? ""), () => "التاريخ");
+  )(value => String(value ?? ""), () => "التاريخ", 22);
   const rows = Array.from({ length: 40 }, (_, index) => ({
     period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
   }));
@@ -391,10 +391,10 @@ test("crowded schoolwide reserve day splits into readable continuation sheets wi
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const build = new Function("esc", "formatReserveDateArabic",
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
     markup + ";" + pages + "; return reserveOfficialPrintPages;"
-  )(value => String(value ?? ""), () => "التاريخ");
+  )(value => String(value ?? ""), () => "التاريخ", 22);
   const rows = Array.from({ length: 50 }, (_, index) => ({
     period: index % 8 + 1, className: "صف تجريبي " + (index + 1), substitute: "معلم احتياط " + (index + 1)
   }));
