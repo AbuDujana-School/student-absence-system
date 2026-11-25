@@ -10,6 +10,7 @@ import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";
+import { isSubstitutionDayOpen } from "./reserve_edit_window.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -78,9 +79,8 @@ function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timi
   const deadline = substitutionPeriodDeadlineMs(assignmentDate, period, timings);
   return deadline !== null && now < deadline;
 }
-function isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate: unknown, todayInMuscat: string): boolean {
-  const date = String(assignmentDate ?? "").trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= todayInMuscat;
+function isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate: unknown, _todayInMuscat: string): boolean {
+  return isSubstitutionDayOpen(assignmentDate);
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
@@ -1786,15 +1786,49 @@ async function handle(req: Request) {
         return reply(200,{ok:true,ownStats,teachers:stats,topPoints:[...stats].sort((a:any,b:any)=>b.pointsBalance-a.pointsBalance).slice(0,10),mostSubstitutions:[...stats].sort((a:any,b:any)=>b.substitutionCount-a.substitutionCount).slice(0,10),mostCoveredAbsenceDays:[...stats].sort((a:any,b:any)=>b.coveredAbsenceDays-a.coveredAbsenceDays).slice(0,10)});
       }
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
+      const forEdit=body.forEdit===true;
+      if(forEdit&&principal.type!=="admin"&&principal.type!=="custom"&&!hasReservePermission)return reply(403,{error:"لا تملك صلاحية فتح قائمة معلمي التعديل لهذا التوزيع."});
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
       const lessonOptions=lessons.map((lesson)=>{
-        const periodOpen=principal.type==="admin"||isSubstitutionPeriodOpen(date,lesson.period,periodTimings);
-        const eligible=periodOpen?getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id}):[];
+        const periodOpen=principal.type==="admin"||(forEdit
+          ?isSubstitutionAssignmentEditableUntilDayEnd(date,todayInMuscat)
+          :isSubstitutionPeriodOpen(date,lesson.period,periodTimings));
+        const eligibleRaw=periodOpen?getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id}):[];
+        const eligible=eligibleRaw.map((candidate:any)=>{
+          const teacherName=String(candidate.name||candidate.id||"");
+          const occupiedPeriods=timetable.filter((cell:any)=>cell.teacherId===teacherName&&cell.status==="teaching")
+            .map((cell:any)=>Number(cell.period)).filter((period:number)=>Number.isInteger(period)&&period>0).sort((a:number,b:number)=>a-b);
+          return {...candidate,occupiedPeriods};
+        });
         const sourceCell=dayCells.find((c:any)=>c.matched_teacher_name===absentTeacherName&&Number(c.period)===lesson.period);
         const existing=(assignmentRows||[]).find((x:any)=>x.source_cell_id===sourceCell?.id&&(!date||!x.assignment_date||x.assignment_date===date)&&x.status!=="cancelled");
         return {...lesson,candidates:eligible,blockReason:periodOpen?null:"period_passed",assignment:existing?{id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status)}:null};
       });
-      return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,lessons:lessonOptions,includeOtherDepartments});
+      const editTeacherDirectory=forEdit?directory.filter((teacher:any)=>{
+        if(teacher.role!=="teacher"||!activeTeachingTeacherNames.has(teacher.name))return false;
+        if(principal.type==="admin")return true;
+        if(principal.type==="custom")return customReserveScopeAllows(absentTeacherName,teacher.name);
+        if(String(teacher.departmentId||"")===String(absent?.departmentId||""))return true;
+        return hasReservePermission&&includeOtherDepartments&&otherDepartmentIds.includes(String(teacher.departmentId||""))&&otherTeacherNames.includes(teacher.name);
+      }).map((teacher:any)=>{
+        const teacherCells=timetable.filter((cell:any)=>cell.teacherId===teacher.name&&cell.status==="teaching");
+        const teachingPeriods=teacherCells.map((cell:any)=>Number(cell.period));
+        const reservePeriods=(assignmentRows||[]).filter((row:any)=>
+          String(row.teacher_name||"")===String(teacher.name)&&row.assignment_type==="substitution"&&
+          ["assigned","confirmed","completed"].includes(String(row.status||""))&&
+          (row.assignment_date?String(row.assignment_date)===date:String(row.weekday)===weekday&&String(row.version_id)===String(activeVersion.id))
+        ).map((row:any)=>Number(row.period));
+        const occupiedPeriods=[...new Set([...teachingPeriods,...reservePeriods])]
+          .filter((period:number)=>Number.isInteger(period)&&period>0).sort((a:number,b:number)=>a-b);
+        return {
+          name:String(teacher.name),
+          departmentId:String(teacher.departmentId||""),
+          departmentName:String(teacher.departmentName||teacher.department||""),
+          subject:[...new Set(teacherCells.map((cell:any)=>String(cell.subject||"").trim()).filter(Boolean))].join("، "),
+          occupiedPeriods
+        };
+      }):undefined;
+      return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,lessons:lessonOptions,includeOtherDepartments,...(forEdit?{editTeacherDirectory}: {})});
     } catch(error) {
       console.error("Substitution request failed:",error instanceof Error?error.message:"unknown");
       return reply(400,{error:error instanceof Error?error.message:"تعذر إتمام إجراء الاحتياط."});

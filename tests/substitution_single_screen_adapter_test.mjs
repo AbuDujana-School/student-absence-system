@@ -77,8 +77,11 @@ test('canonical single-screen adapter is the only active reserve navigation laye
  assert.match(adapter,/id='subxScreen_hub'/);
  assert.ok(adapter.includes("'edit'"));
 });
-test('future-dated saved assignments are included by the edit and archive default range',()=>{
- assert.match(adapter,/if\(!to\.value\)\{const d=new Date\(today\+'T12:00:00'\);d\.setDate\(d\.getDate\(\)\+365\)/);
+test('edit and archive use separate Muscat-local default date ranges',()=>{
+ assert.match(html,/const dateFrom=isEditMount\?today:from\.value/);
+ assert.match(html,/const dateTo=isEditMount\?shiftDate\(today,365\):to\.value/);
+ assert.match(html,/if\(!from\.value\)from\.value=shiftDate\(today,-365\)/);
+ assert.match(html,/if\(!to\.value\)to\.value=today/);
 });
 test('the canonical picker selection is reused by the absentee checkbox handler instead of opening a second modal',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
@@ -90,9 +93,19 @@ test('the canonical picker selection is reused by the absentee checkbox handler 
 test('canonical distribution date never permits a past date and quick navigation exposes only today and tomorrow',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/distributionDate\.min=today/);
- assert.match(workflow,/distributionDate\.addEventListener\("input",enforceNoPastDistributionDate\)/);
+ assert.match(workflow,/distributionDate\.addEventListener\("input",enforceNoPastDistributionDate,true\)/);
  assert.match(workflow,/data-date-offset="0"[\s\S]*data-date-offset="1"/);
  assert.doesNotMatch(workflow,/data-date-offset="-1"/);
+});
+test('initial reserve date normalization does not synthesize change events during unrelated app startup',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ const start=workflow.indexOf('const enforceNoPastDistributionDate=()=>{');
+ const end=workflow.indexOf('const dateCard=distributionDate.closest',start);
+ assert.ok(start>=0&&end>start);
+ const normalize=workflow.slice(start,end);
+ assert.match(normalize,/distributionDate\.value=today/);
+ assert.doesNotMatch(normalize,/dispatchEvent/);
+ assert.match(normalize,/addEventListener\("change",enforceNoPastDistributionDate,true\)/);
 });
 test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
@@ -134,7 +147,8 @@ test('the single canonical date navigation is Oman-local and the adapter does no
 
 test('edit and archive screens partition saved assignments at the Oman-local date boundary',()=>{
  assert.match(html,/isEditMount=hostId==='subxEditMountArea'/);
- assert.match(html,/isEditMount\?assignedDate>=today:assignedDate<today/);
+ assert.match(html,/isEditMount\s*\?allRows\.filter\(r=>String\(r\.assignmentDate\|\|''\)>=today&&r\.canEdit===true/);
+ assert.match(html,/allRows\.filter\(r=>String\(r\.assignmentDate\|\|''\)<today&&r\.status!=='cancelled'/);
  assert.match(html,/timeZone:'Asia\/Muscat'/);
  assert.match(html,/current==='edit'[\s\S]*loadArchive\('subxEditMountArea'\)[\s\S]*current==='archive'[\s\S]*loadArchive\('subxArchiveMountArea'\)/);
 });
@@ -163,13 +177,17 @@ test('the main reserve save handler independently rejects dates before the Oman-
  assert.match(save,/لا يمكن اعتماد توزيع بتاريخ سابق/);
 });
 
-test('canonical reserve panel mounts into the host IDs created by the single-screen adapter',()=>{
+test('canonical reserve panel keeps legacy edit/archive panels hidden behind the single active edit path',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  const start=workflow.indexOf('function mountCanonicalPanel()');
  const end=workflow.indexOf('function restoreCanonicalPanel()',start);
  assert.ok(start>=0&&end>start);
  const mount=workflow.slice(start,end);
- assert.match(mount,/const editHost=\$\("subxEditMountArea"\),archiveHost=\$\("subxArchiveMountArea"\)/);
+ assert.match(mount,/const archiveHost=\$\("subxArchiveMountArea"\)/);
+ assert.match(mount,/!\$\("subxEditMountArea"\)/);
+ assert.match(mount,/\$\("timetableDailyActivePanel"\)\?\.classList\.add\("hidden"\)/);
+ assert.match(mount,/\$\("timetableDailyArchivePanel"\)\?\.classList\.add\("hidden"\)/);
+ assert.match(mount,/ttAdminReserveTools/);
  assert.match(adapter,/id=\"subxEditMountArea\"/);
  assert.match(adapter,/id=\"subxArchiveMountArea\"/);
  assert.doesNotMatch(mount,/subxEditContent|subxArchiveContent/);

@@ -115,13 +115,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         visible: !$("substitutionView").classList.contains("hidden"),
         legacyHidden: $("timetableSubstitutionPanel").classList.contains("hidden"),
         legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
-        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditMountArea",
-        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveMountArea",
+        editMounted: $("subxEditMountArea").parentElement?.id === "subxEditPanel" && !$("substitutionView").classList.contains("hidden"),
+        archiveMounted: $("subxArchiveMountArea").parentElement?.id === "subxArchivePanel" && !$("substitutionView").classList.contains("hidden"),
+        legacyActiveHidden: $("timetableDailyActivePanel").classList.contains("hidden"),
+        legacyArchiveHidden: $("timetableDailyArchivePanel").classList.contains("hidden"),
         adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveMountArea",
         departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveMountArea",
         crossDepartment: !$("substitutionOtherDepartmentsWrap").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
-        archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
         calls: window.calls,
         denials: window.denials || 0
       };
@@ -132,13 +133,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.legacyStillInOrigin, role.id).toBe(true);
       expect(result.editMounted, role.id).toBe(true);
       expect(result.archiveMounted, role.id).toBe(true);
+      expect(result.legacyActiveHidden, role.id).toBe(true);
+      expect(result.legacyArchiveHidden, role.id).toBe(true);
       expect(result.adminToolsMounted, role.id).toBe(role.id === "general admin" || role.id === "delegated admin");
       expect(result.departmentToolsMounted, role.id).toBe(role.id === "reserve teacher");
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
-      expect(result.archive, role.id).toBe(!role.custom);
       expect(result.calls.options, role.id).toBe(1);
-      expect(result.calls.archive, role.id).toBe(role.custom ? 0 : 1);
+      expect(result.calls.archive, role.id).toBe(0);
       expect(result.calls.stats, role.id).toBe(role.custom ? 0 : 1);
       await page.evaluate(() => window.closeSubstitutionView());
       expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " compatibility engine remains mounted").toBe(1);
@@ -152,6 +154,55 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.denials, role.id).toBe(1);
     }
   }
+});
+
+test("reserve workspace does not prefetch preview or statistics when the view is merely visible at startup", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+  const integration = extractFunction(source, "function installMainSubstitutionViewIntegration()");
+  const generalAdminHelper = extractFunction(html, "function isGeneralAdminUser(");
+  const reserveCapabilityHelper = extractFunction(html, "function canManageReserveWorkspace(");
+  await page.setContent(`
+    <main id="dashboardSelectionView"></main>
+    <div id="substitutionDashboardCard" role="button" tabindex="0">توزيع الاحتياط</div>
+    <section id="substitutionView">
+      <input id="substitutionDate" type="date" onchange="window.reserveDateChanges += 1">
+      <section id="subxEditPanel"><div id="subxEditMountArea"></div></section>
+      <section id="subxArchivePanel"><div id="subxArchiveMountArea"></div></section>
+    </section>
+    <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden"></div></section>
+  `);
+  await page.evaluate(({ integration, generalAdminHelper, reserveCapabilityHelper }) => {
+    const $ = (id) => document.getElementById(id);
+    const activeUser = { type: "admin", name: "مدير اختبار" };
+    const appAuthSession = { principal: { type: "admin", name: "مدير اختبار" }, token: "qa-token" };
+    const canManageReserveWorkspace = new Function("activeUser", generalAdminHelper + ";" + reserveCapabilityHelper + "; return canManageReserveWorkspace;")(activeUser);
+    const showToast = () => {};
+    const getOmanLocalDate = () => "2026-11-25";
+    const status = () => {};
+    const openAbsenceReasonPicker = () => {};
+    window.reserveReads = { preview: 0, stats: 0 };
+    window.reserveDateChanges = 0;
+    window.appAuthRequest = async () => ({});
+    window.substitutionLoadAbsentees = async () => { window.reserveReads.preview += 1; };
+    window.substitutionLoadStats = async () => { window.reserveReads.stats += 1; };
+    window.timetableDailyInstallAdminTools = async () => {};
+    window.timetableDailyInstallDepartmentTools = async () => {};
+    window.timetableDailyLoadArchive = async () => ({ archive: [] });
+    window.openSubstitutionView = async () => {};
+    window.closeSubstitutionView = () => {};
+    window.refreshSubstitutionDashboardCard = () => {};
+    const install = new Function("$", "activeUser", "appAuthSession", "canManageReserveWorkspace", "showToast", "getOmanLocalDate", "status", "openAbsenceReasonPicker", integration + "; return installMainSubstitutionViewIntegration;")(
+      $, activeUser, appAuthSession, canManageReserveWorkspace, showToast, getOmanLocalDate, status, openAbsenceReasonPicker
+    );
+    install();
+  }, { integration, generalAdminHelper, reserveCapabilityHelper });
+  await page.waitForTimeout(0);
+  expect(await page.evaluate(() => window.reserveReads), "Visibility at page startup must not trigger reserve network reads").toEqual({ preview: 0, stats: 0 });
+  expect(await page.evaluate(() => ({ value: document.getElementById("substitutionDate").value, changes: window.reserveDateChanges })), "Initial date normalization must be silent").toEqual({ value: "2026-11-25", changes: 0 });
+  await page.locator("#substitutionDashboardCard").click();
+  await page.waitForFunction(() => window.reserveReads.preview === 1 && window.reserveReads.stats === 1);
+  expect(await page.evaluate(() => window.reserveReads), "Explicit dashboard action must still initialize the reserve workspace").toEqual({ preview: 1, stats: 1 });
 });
 
 test("cumulative reserve archive renders from its own cache, not the daily archive cache", async () => {

@@ -97,7 +97,8 @@ Deno.test("the custom absence reason may be left empty", () => {
 
 Deno.test("saved reserve assignments remain editable through the Muscat assignment day", () => {
   assert(timetableEndpoint.includes("isSubstitutionAssignmentEditableUntilDayEnd"), "The API must use the assignment-day edit window");
-  assert(timetableEndpoint.includes("date >= todayInMuscat"), "The edit window must include the full assignment day and future dates");
+  assert(timetableEndpoint.includes('import { isSubstitutionDayOpen } from "./reserve_edit_window.ts";'), "The edit window must use the shared Muscat-day helper");
+  assert(timetableEndpoint.includes("return isSubstitutionDayOpen(assignmentDate);"), "The edit window must include the full valid assignment day and future dates");
   assert(timetableEndpoint.includes("لا يمكن لمنسق الاحتياط اختيار تاريخ سابق"), "Coordinators must not create or preview reserve plans for past dates");
 });
 
