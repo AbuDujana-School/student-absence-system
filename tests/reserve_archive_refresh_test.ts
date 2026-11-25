@@ -304,3 +304,34 @@ Deno.test("saved reserve day editor uses live server candidates and the existing
   assert(!editor.includes("prompt("), "The redesigned day editor must not use legacy prompt-based editing");
   assert(!editor.includes("allSchoolTeachers"), "The editor must not use a hard-coded or mock teacher directory");
 });
+
+
+Deno.test("cumulative and daily reserve archives open the full saved distribution review screen", () => {
+  const cumulativeStart=source.indexOf("window.substitutionRenderCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function installReserveArchiveAutoRefresh()",cumulativeStart);
+  assert(cumulativeStart>=0&&cumulativeEnd>cumulativeStart,"The cumulative archive renderer must exist");
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(cumulative.includes('const editable=rows.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status))'),"The group edit action must count only server-approved active assignments");
+  assert(cumulative.includes('data-home-edit-group-date="'+esc(date)+'"'),"The cumulative archive must show a full-distribution edit button beside the absent teacher");
+  assert(cumulative.includes('data-home-edit-group-absent="'+esc(absentName)+'"'),"The cumulative edit button must retain the exact absent-teacher group key");
+  assert(cumulative.includes('window.timetableDailyOpenArchiveDayEdit(button.dataset.homeEditGroupDate,button.dataset.homeEditGroupAbsent)'),"The cumulative edit action must open the existing full-day review workspace");
+
+  const dailyStart=source.indexOf("window.timetableDailyRenderArchive = function ()");
+  const dailyEnd=source.indexOf("// Reclassify saved assignments",dailyStart);
+  assert(dailyStart>=0&&dailyEnd>dailyStart,"The daily archive renderer must exist");
+  const daily=source.slice(dailyStart,dailyEnd);
+  assert(daily.includes('const editableRows=rows.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status))'),"The daily archive must expose group editing only for active editable assignments");
+  assert(daily.includes('data-tt-edit-group-date="'+esc(date)+'"'),"The daily archive must show a full-distribution edit button beside the absent teacher");
+  assert(daily.includes('window.timetableDailyOpenArchiveDayEdit(button.dataset.ttEditGroupDate,button.dataset.ttEditGroupAbsent)'),"The daily archive edit action must open the same review workspace");
+
+  const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName)");
+  const editEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editStart);
+  assert(editStart>=0&&editEnd>editStart,"The existing group-edit review workspace must exist");
+  const editor=source.slice(editStart,editEnd);
+  for(const action of ["data-save","data-share","data-pdf"]) {
+    assert(editor.includes(action),"The full-distribution review workspace must retain "+action);
+  }
+  assert(editor.includes('action:"timetable_substitution_update_batch"'),"Saving the review must update the existing assignment records atomically");
+  assert(editor.includes("assignmentId:x.id"),"The save payload must target original assignment IDs rather than inserting a new distribution");
+  assert(!editor.includes('action:"timetable_substitution_batch_save"'),"Editing must never create duplicate assignments through the new-distribution save action");
+});
