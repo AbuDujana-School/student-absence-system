@@ -1352,10 +1352,10 @@
   }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
     const maxRowsPerPage=RESERVE_OFFICIAL_ROWS_PER_PAGE;
-    // Reserve a measured 176 mm content budget for the table, leaving the
-    // school heading, date, repeated table header, manager signature and stamp
-    // safely inside the A4 page.
-    const maxLineUnitsPerPage=Math.floor(RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM/4.4);
+    // The standard report uses larger type and therefore reserves less table
+    // height than the compact archive sheet.
+    const contentBudgetMm=options?.singlePage?RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM:150;
+    const maxLineUnitsPerPage=Math.floor(contentBudgetMm/4.4);
     const pages=[];let current=[],pageRows=0,pageUnits=0;
     const flushPage=()=>{if(current.length)pages.push(current);current=[];pageRows=0;pageUnits=0;};
     (groups||[]).forEach(group=>{
@@ -1383,9 +1383,12 @@
     flushPage();
     if(!pages.length)pages.push([]);
     return pages.map((pageGroups,index)=>{
-      const pageOptions=options?.singlePage&&index>0
-        ?{...options,title:options.continuationTitle||"تابع كشف توزيع الاحتياط"}
-        :options;
+      const estimatedPageHeight=pageGroups.reduce((sum,group)=>sum+(group.rows||[]).reduce((rowSum,row)=>rowSum+reserveOfficialPrintRowHeightEstimate(row),0),0);
+      const pageOptions={
+        ...options,
+        suppressReservedRows:options?.singlePage===true||estimatedPageHeight>120,
+        ...(options?.singlePage&&index>0?{title:options.continuationTitle||"تابع كشف توزيع الاحتياط"}:{})
+      };
       return reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,pageOptions);
     });
   }
@@ -1402,7 +1405,7 @@
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"") +'</td><td class="tt-official-substitute">'+esc(row.substitute||"") +'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
-    const remaining=options?.singlePage?0:Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
+    const remaining=options?.singlePage||options?.suppressReservedRows?0:Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
     const singlePageFontSize=used>85?4.8:used>70?5.2:used>60?5.8:used>44?6.6:used>30?7.4:used>22?8.2:9.2;
     const reservedSecondTeacher=remaining>0
       ?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join("")
