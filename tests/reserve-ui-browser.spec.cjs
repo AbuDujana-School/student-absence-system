@@ -353,13 +353,30 @@ test("official reserve archive printing orders days newest first and creates one
 
 test("single-day A4 archive sheets apply compact row typography instead of clipping long days", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
-  const pages = extractFunction(source, "function reserveOfficialPrintPages(");
-  const markup = extractFunction(source, "function reserveOfficialPrintMarkup(");
+  const extractPrintFunction = marker => {
+    const start = source.indexOf(marker);
+    if (start < 0) throw new Error("Missing " + marker);
+    const brace = source.indexOf("){", start) + 1;
+    let depth = 0, quote = null, escaped = false, line = false, block = false;
+    for (let i = brace; i < source.length; i++) {
+      const ch = source[i], next = source[i + 1];
+      if (line) { if (ch === "\\n") line = false; continue; }
+      if (block) { if (ch === "*" && next === "/") { block = false; i++; } continue; }
+      if (quote) { if (escaped) { escaped = false; continue; } if (ch === "\\\\") { escaped = true; continue; } if (ch === quote) quote = null; continue; }
+      if (ch === "/" && next === "/") { line = true; i++; continue; }
+      if (ch === "/" && next === "*") { block = true; i++; continue; }
+      if (ch === "'" || ch === '"' || ch === "`") { quote = ch; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}" && --depth === 0) return source.slice(start, i + 1);
+    }
+    throw new Error("Unbalanced " + marker);
+  };
+  const pages = extractPrintFunction("function reserveOfficialPrintPages(");
+  const markup = extractPrintFunction("function reserveOfficialPrintMarkup(");
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const fullDate = extractFunction(source, "function formatReservePrintFullDate(");
   const build = new Function("esc", "formatReserveDateArabic",
-    period + ";" + fullDate + ";" + markup + ";" + pages +
-    "; return reserveOfficialPrintPages;"
+    period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
+    markup + ";" + pages + "; return reserveOfficialPrintPages;"
   )(value => String(value ?? ""), () => "التاريخ");
   const rows = Array.from({ length: 40 }, (_, index) => ({
     period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
