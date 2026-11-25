@@ -1320,7 +1320,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         if(button.hasAttribute("data-share")){
           const grouped=new Map();items.forEach(x=>{const n=String(x.absentTeacherName||"غير محدد");if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(x);});
           const tick=String.fromCharCode(96);let message="*توزيع حصص الاحتياط*\n\n"+date+"\n\n",number=0;
-          for(const [name,rows] of grouped){number++;message+="*"+number+"-* *المعلم الغائب* : "+tick+name+tick+"\\n\\n";for(const x of rows){message+="- الحصة *"+fmt(x.period)+"* | الصف "+(x.className||"غير محدد")+"\\n*الاحتياط* : "+tick+(state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد")+tick+"\\n\\n";}}
+          for(const [name,rows] of grouped){number++;message+="*"+number+"-* *المعلم الغائب* : "+tick+name+tick+"\n\n";for(const x of rows){message+="- الحصة *"+fmt(x.period)+"* | الصف "+(x.className||"غير محدد")+"\n*الاحتياط* : "+tick+(state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد")+tick+"\n\n";}}
           window.open("https://wa.me/?text="+encodeURIComponent(message.trim()),"_blank","noopener,noreferrer");return;
         }
         if(button.hasAttribute("data-pdf")){
