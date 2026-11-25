@@ -2232,6 +2232,10 @@
       const enhanceCanonicalTeacherCards=()=>{
         const host=$("substitutionOtherTeacherChoices");
         if(!host||host.classList.contains("hidden"))return;
+        if(host.dataset.canonicalDepartmentCountBound!=="1"){
+          host.addEventListener("change",renderCanonicalDepartmentCards);
+          host.dataset.canonicalDepartmentCountBound="1";
+        }
         const ids=substitutionOtherDepartmentIds();
         const departments=ids.map(id=>(window.substitutionOtherDepartmentsData||[]).find(item=>String(item.id)===String(id))).filter(Boolean);
         const sections=Array.from(host.querySelectorAll(":scope > section"));
@@ -2308,6 +2312,7 @@
           Array.from(select.options).forEach(option=>{option.selected=false;});
           select.dispatchEvent(new Event("change",{bubbles:true}));
         }
+        renderCanonicalDepartmentCards();
         window.substitutionSelectedOtherDepartmentIds=[];
         window.substitutionSelectedOtherDepartmentId="";
         window.substitutionSelectedOtherTeacherNames=new Set();
@@ -2320,8 +2325,10 @@
         deptWrap.classList.remove("hidden");
         try{
           if(!Array.isArray(window.substitutionOtherDepartmentsData)||!window.substitutionOtherDepartmentsData.length){
-            await window.timetableLoadOtherDepartmentOptions?.("substitutionOtherDepartments","substitutionOtherDepartmentSelect");
+              await window.timetableLoadOtherDepartmentOptions?.("substitutionOtherDepartments","substitutionOtherDepartmentSelect");
           }
+          select?.classList.add("hidden");
+          renderCanonicalDepartmentCards();
           window.renderSubstitutionOtherTeacherChoices?.();
           deptWrap.scrollIntoView({behavior:"smooth",block:"center"});
         }catch(error){
