@@ -30,7 +30,7 @@ test('reserve scope and supporting departments use clear glass selection control
   const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
   assert.match(reserve, /data-reserve-scope="local"/);
   assert.match(reserve, /data-reserve-scope="external"/);
-  assert.match(reserve, /\.subx-department-choice-card\.is-active\{[^}]*background:linear-gradient/);
+  assert.match(reserve, /\\.subx-department-choice-card\\[data-reserve-scope=local\\]\\.is-active\\{background:linear-gradient/);
   assert.match(reserve, /data-canonical-department-id/);
   assert.match(reserve, /subx-canonical-department-card input\{position:static;display:block;width:27px;height:27px/);
   assert.match(reserve, /data-department-bulk="all"/);
