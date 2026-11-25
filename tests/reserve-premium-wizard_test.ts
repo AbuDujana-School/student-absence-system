@@ -28,7 +28,7 @@ Deno.test("visible canonical date navigation defaults to Muscat today and provid
   assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
 });
 
-Deno.test("supporting teachers can be selected from multiple departments", () => {
+Deno.test("supporting department cards automatically include all eligible teachers from every selected section", () => {
   assert(reserveWorkflow.includes('multiple class="hidden"'), "The department ID control must preserve multiple selections behind the visual picker");
   assert(reserveWorkflow.includes("timetableDailyOtherDepartmentChoices"), "Departments must be shown as visible selectable cards");
   assert(reserveWorkflow.includes("selectedOtherDepartmentIds"), "The UI must track the selected department set");
@@ -37,11 +37,24 @@ Deno.test("supporting teachers can be selected from multiple departments", () =>
   const batchPreviewEnd = reserveWorkflow.indexOf("window.timetableDailySetBusy", batchPreviewStart);
   const batchPreview = reserveWorkflow.slice(batchPreviewStart, batchPreviewEnd);
   assert(batchPreview.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Batch preview must send every selected supporting department to the server");
-  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)))"), "Teacher cards must be rendered for every selected department");
-  assert(reserveWorkflow.includes("data-select-all-department"), "Each department must provide a select-all control");
-  assert(reserveWorkflow.includes("data-clear-department"), "Each department must provide a clear-all control");
-  assert(reserveWorkflow.includes("data-other-teacher-name"), "Individual supporting teachers must remain selectable");
+  assert(batchPreview.includes("otherTeacherNames:selectedOtherTeacherNames()"), "Batch preview must send all eligible teachers from the selected sections");
+  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.has(String(item.id)))"), "The summary must be built from every selected department");
+  assert(reserveWorkflow.includes("data-other-department-id"), "Each department must have a visible checkbox");
+  assert(reserveWorkflow.includes("new Set(selectedOtherTeacherNames())"), "All eligible teachers must be selected automatically");
+  assert(reserveWorkflow.includes("سيُدرجون تلقائيًا ضمن البدلاء"), "The user must be told all teachers will be included automatically");
+  assert(!reserveWorkflow.includes("data-other-teacher-name"), "Individual teacher checkboxes must no longer be required");
+  assert(!reserveWorkflow.includes("timetableDailyAddOtherTeachersButton"), "The separate manual-add button must be removed");
   assert(reserveWorkflow.includes("reserveOtherDepartmentIds"), "Multiple department selections must survive draft persistence");
+});
+Deno.test("local department name is dynamic and smart generation opens a separate proposals screen", () => {
+  assert(reserveWorkflow.includes('id="ttReserveLocalDepartmentTitle"'), "The local section card must expose its dynamic title");
+  assert(reserveWorkflow.includes("currentReserveActorDepartmentName()"), "The local card must read the authenticated user's department");
+  assert(reserveWorkflow.includes('title.textContent="التوزيع لمعلمي "+label'), "The section name must appear in the local distribution card");
+  assert(reserveWorkflow.includes("ttReserveProposalHeader"), "Smart proposals must have a dedicated next-screen heading");
+  assert(reserveWorkflow.includes("ttReserveProposalBack"), "The proposals screen must provide a clear back action");
+  assert(reserveWorkflow.includes("proposalScreenActive=true"), "Successful smart generation must switch to the proposal screen");
+  assert(reserveWorkflow.includes("tt-reserve-proposal-mode"), "The proposal screen must hide setup cards while showing suggestions");
+  assert(reserveWorkflow.includes("absentCard.insertAdjacentElement(\"afterend\",choiceGrid)"), "The two department cards must follow absent-teacher selection");
 });
 
 Deno.test("server validates each supporting teacher against the explicitly selected departments", () => {
