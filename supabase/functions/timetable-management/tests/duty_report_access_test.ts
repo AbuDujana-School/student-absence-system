@@ -61,15 +61,26 @@ Deno.test("disabled dutyToday flag blocks category-based duty access", () => {
   }
 });
 
-Deno.test("direct duty and administrator permissions preserve their existing override", () => {
-  for (const permissions of [{ duty: true }, { admin: true }]) {
-    if (!isDutyReportEligibleOnDay("teacher", permissions, {}, "الأربعاء")) {
-      throw new Error("Direct duty/admin permission was denied");
-    }
+Deno.test("general administrators and explicit duty grants retain access, but generic admin bits do not", () => {
+  if (!isDutyReportEligibleOnDay("admin", {}, {}, "الأربعاء")) {
+    throw new Error("General administrator access was denied");
+  }
+  if (!isDutyReportEligibleOnDay("teacher", { duty: true }, {}, "الأربعاء")) {
+    throw new Error("Explicit duty permission was denied");
+  }
+  if (isDutyReportEligibleOnDay("teacher", { admin: true }, {}, "الأربعاء")) {
+    throw new Error("Generic admin bit must not bypass duty-report authorization");
   }
   if (!isDutyReportEligibleOnDay("custom", { duty: true }, {}, "الأربعاء")) {
     throw new Error("Custom account with explicit duty permission was denied");
   }
+});
+
+Deno.test("general administrator and explicit duty permission bypass the period window, generic admin bit does not", () => {
+  const base = { date: "2026-11-18", weekday: "الأربعاء", period: 1, periods: SETTINGS.periods, graceMinutes: 5, now: new Date("2026-11-18T07:00:00+04:00") };
+  if (!canReadDutyReportPeriod({ ...base, principalType: "admin", permissions: {}, subjectDays: {} })) throw new Error("General admin should retain period access");
+  if (!canReadDutyReportPeriod({ ...base, principalType: "teacher", permissions: { duty: true }, subjectDays: {} })) throw new Error("Explicit duty permission should retain period access");
+  if (canReadDutyReportPeriod({ ...base, principalType: "teacher", permissions: { admin: true }, subjectDays: {} })) throw new Error("Generic admin bit must not bypass period authorization");
 });
 
 Deno.test("category duty teacher can read the currently open period after grace", () => {
