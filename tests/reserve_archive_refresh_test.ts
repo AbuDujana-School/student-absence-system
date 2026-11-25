@@ -36,8 +36,9 @@ Deno.test("reserve archive refresh is centralized and mutation-only", () => {
     assert(!auto.includes('"'+readOnlyAction+'"'), "Read-only action must not trigger mutation archive refresh: " + readOnlyAction);
   }
   assert(auto.includes("const reserveMutation=mutationActions.has(action)"), "Only allowlisted mutations may trigger the reserve archive refresh path");
-  assert(auto.includes("if(accessGranted||reserveMutation)refreshDailyArchiveInBackground()"), "Archive refresh must run after authorization or successful mutation without blocking the original request");
-  assert(auto.includes('action==="timetable_substitution_archive_access"&&result?.canView===true'), "Authorized archive opening must still load the archive");
+  assert(auto.includes("if(reserveMutation)refreshDailyArchiveInBackground()"), "Archive refresh must run only after a successful mutation without blocking the original request");
+  assert(source.includes('appAuthRequest({action:"timetable_substitution_archive_access"},token).then(result=>'), "Archive permission must be checked before the archive UI loads");
+  assert(source.includes('if(result?.canView===true)installHomeReserveArchive()'), "The archive UI must load only after the server grants archive access");
 });
 
 
@@ -57,13 +58,14 @@ Deno.test("home reserve archive handles non-school days without an uncaught erro
 
 Deno.test("main substitution view requires, saves, and prints the selected absence reason", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(source.includes("window.openSubstitutionAbsenceReasonPicker = function"),"The main substitution view must have access to the shared reason picker");
+  assert(html.includes("window.openSubstitutionAbsenceReasonPicker=function"),"The main substitution view must own the single shared reason picker");
+  assert(source.includes("const picker=window.openSubstitutionAbsenceReasonPicker"),"Every reserve workflow reason request must delegate to the shared picker");
   assert(html.includes("function requestAbsenceReason(input,onComplete)"),"Selecting an absent teacher must request an absence reason");
   assert(html.includes("absenceReasonsByTeacher.has(name)"),"A reason is required for each selected absent teacher");
   assert(html.includes('absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"'),"The chosen reason must be included in the atomic batch-save payload");
   assert(html.includes("absenceReasonsByTeacher.get(name)||storedReason"),"The selected reason must be available to the official PDF when preview rows do not carry it yet");
-  assert(source.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'),"The picker must present the requested reasons first and preserve the existing training option");
-  assert(source.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'),"The custom reason may be entered or left empty when «أخرى» is selected");
+  assert(html.includes("[['طارئة','طارئة'],['مرضية','إجازة مرضية'],['دورة تدريبية','دورة تدريبية'],['موعد مستشفى','موعد مستشفى'],['أخرى','أخرى']]"),"The original picker must present the requested reasons first and preserve the training option");
+  assert(html.includes("draft=detail?'أخرى: '+detail:'أخرى'"),"The custom reason may be entered or left empty when «أخرى» is selected");
 });
 
 Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {

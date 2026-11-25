@@ -209,49 +209,15 @@
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
-    const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
-    const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
-    const normalizedCurrent=current==="إجازة مرضية"?"مرضية":current;
-    const selected=ABSENCE_REASON_OPTIONS.includes(normalizedCurrent)?normalizedCurrent:(current.startsWith("أخرى:")?"أخرى":"");
-    const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
-    const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
-    modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-    const reasonPresentation={
-      "طارئة":{label:"طارئة",icon:"fa-bolt",hint:"حالة طارئة"},
-      "موعد مستشفى":{label:"موعد مستشفى",icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
-      "مرضية":{label:"إجازة مرضية",icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
-      "أخرى":{label:"أخرى",icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
-      "دورة تدريبية":{label:"دورة تدريبية",icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
-    };
-    modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
-      '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
-      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(item.label||reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
-      '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
-      '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
-      '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
-    document.body.appendChild(modal);
-    modal.querySelectorAll('input[name="ttAbsenceReasonChoice"]').forEach(radio=>radio.addEventListener("change",()=>{
-      modal.querySelector("#ttAbsenceReasonOtherWrap")?.classList.toggle("hidden",radio.value!=="أخرى");
-      if(radio.value==="أخرى")modal.querySelector("#ttAbsenceReasonOther")?.focus();
-    }));
-    let settled=false;
-    const cancel=()=>{if(settled)return;settled=true;modal.remove();if(typeof onConfirm==="function")onConfirm(null);};
-    modal.querySelector("[data-absence-reason-cancel]")?.addEventListener("click",cancel);
-    modal.addEventListener("click",event=>{if(event.target===modal)cancel();});
-    modal.querySelector("[data-absence-reason-confirm]")?.addEventListener("click",()=>{
-      const choice=modal.querySelector('input[name="ttAbsenceReasonChoice"]:checked')?.value||"";
-      const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
-      const error=modal.querySelector("#ttAbsenceReasonError");
-      if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
-      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
-      if(settled)return;settled=true;modal.remove();onConfirm(value);
+    const picker=window.openSubstitutionAbsenceReasonPicker;
+    if(typeof picker!=="function"){
+      status("تعذر فتح نافذة سبب الغياب الموحدة. أعد فتح شاشة الاحتياط.","error");
+      return;
+    }
+    picker(absentName,initialValue,value=>{
+      if(typeof onConfirm==="function")onConfirm(value);
     });
   }
-  window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
-    openAbsenceReasonPicker(absentName,function(value){
-      if(typeof onConfirm==="function")onConfirm(value);
-    },String(currentValue||""));
-  };
   function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
@@ -269,7 +235,6 @@
         const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
         if(!absentName)return original.apply(this,args);
-        if(document.getElementById("timetableDailyAbsenceReasonModal"))return;
         const selectedDate=timetableSubstitutionGetDate().date;
         const existing=[...(reserveArchive||[]),...(reserveCumulativeArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
@@ -678,7 +643,7 @@
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
       $("timetableDailyActiveReload")?.addEventListener("click", timetableDailyLoadArchive);
-      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const from=start.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;}catch{}
+      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const from=start.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value){const end=new Date(today+"T00:00:00Z");end.setUTCDate(end.getUTCDate()+365);toInput.value=end.toISOString().slice(0,10);}}catch{}
     }
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
@@ -699,9 +664,6 @@
       "#timetableSubstitutionPanel .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
       "#timetableSubstitutionPanel .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked){border-color:#10b981;background:linear-gradient(120deg,#ecfdf5,#fff);box-shadow:0 7px 18px rgba(16,185,129,.12)}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked)>span:first-of-type{background:#d1fae5;color:#047857}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:focus-within{outline:3px solid rgba(16,185,129,.2);outline-offset:2px}",
       "#timetableSubstitutionPanel .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
       "#timetableSubstitutionPanel .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
       "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
@@ -731,7 +693,6 @@
       ".dark .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
       ".dark .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
       ".dark .tt-premium-date-nav .tt-date-nav-hint{color:#94a3b8}",
-      "@media(prefers-reduced-motion:reduce){#timetableSubstitutionPanel *,#timetableDailyAbsenceReasonModal *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}",
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
@@ -764,9 +725,11 @@
       "#timetableSubstitutionPanel .tt-reserve-steps button small{font-size:.58rem;color:#64748b}",
       "@media(max-width:520px){#timetableSubstitutionPanel .tt-reserve-steps{grid-template-columns:1fr}#timetableSubstitutionPanel .tt-reserve-steps button{grid-template-columns:2rem 1fr;grid-template-rows:auto auto}}",
       "#timetableSubstitutionPanel .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
-      "#timetableSubstitutionPanel .tt-period-indicator{display:inline-flex;align-items:center;gap:.5rem;width:max-content;min-width:6.5rem;padding:.45rem .7rem;border:1px solid #c4b5fd;border-radius:.85rem;background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#5b21b6;box-shadow:0 3px 10px rgba(109,40,217,.1)}",
-      "#timetableSubstitutionPanel .tt-period-indicator span{font-size:.7rem;font-weight:800}",
-      "#timetableSubstitutionPanel .tt-period-indicator strong{font-size:1.35rem;line-height:1;font-weight:950;font-variant-numeric:tabular-nums}",
+      "#timetableSubstitutionPanel .tt-period-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.38rem;width:max-content;min-width:10.5rem;min-height:6.2rem;padding:1rem 1.45rem;border:2px solid #0f766e;border-radius:1.25rem;background:linear-gradient(145deg,#ecfeff 0%,#cffafe 48%,#ccfbf1 100%);color:#134e4a;box-shadow:0 12px 28px rgba(13,148,136,.2),inset 0 1px 0 rgba(255,255,255,.9)}",
+      "#timetableSubstitutionPanel .tt-period-indicator span{font-size:1rem;font-weight:950;line-height:1.2;letter-spacing:.01em}",
+      "#timetableSubstitutionPanel .tt-period-indicator strong{font-size:2.65rem;line-height:1;font-weight:1000;font-variant-numeric:tabular-nums}",
+      "#timetableSubstitutionPanel .tt-period-indicator em{font-size:.85rem;font-style:normal;font-weight:900;line-height:1.2}",
+      "@media(max-width:640px){#timetableSubstitutionPanel .tt-period-indicator{min-width:9.2rem;min-height:5.8rem;padding:.85rem 1.1rem}#timetableSubstitutionPanel .tt-period-indicator strong{font-size:2.35rem}}",
       "#timetableSubstitutionPanel .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
       "#timetableSubstitutionPanel .tt-lesson-choice{min-width:0}",
       "#timetableSubstitutionPanel .tt-lesson-choice select{display:block;width:100%;min-width:0;max-width:100%;border:1px solid #cbd5e1;border-radius:.8rem;background:#fff;padding:.7rem;font-size:16px;line-height:1.4}",
@@ -880,7 +843,7 @@
       if(pendingRows.length&&absentName!==activeAbsentName)return "";
       if(!pendingRows.length){
         const savedRows=rows.filter(item=>item.kind==="saved");
-        const date=timetableSubstitutionGetDate().date;
+        const date=String(savedRows[0]?.assignmentDate||timetableSubstitutionGetDate().date);
         const canDelete=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
         const canEdit=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
         const savedReason=String(savedRows.find(item=>item.absenceReason&&item.absenceReason!=="-")?.absenceReason||reserveAbsenceReasons[absentName]||"");
@@ -891,7 +854,7 @@
       if(savedAbsenceReason)reserveAbsenceReasons[absentName]=savedAbsenceReason;
       const absenceReason=savedAbsenceReason||reserveAbsenceReasons[absentName]||"";
       const savedRows=rows.filter(item=>item.kind==="saved");
-      const savedGroupDate=timetableSubstitutionGetDate().date;
+      const savedGroupDate=String(savedRows[0]?.assignmentDate||timetableSubstitutionGetDate().date);
       const canDeleteSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
       const canEditSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
       const mixedSavedActions=pendingRows.length&&(canDeleteSavedGroup||canEditSavedGroup)?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+(canDeleteSavedGroup?'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button>':"")+'</div>':"";
@@ -915,7 +878,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-period-indicator" aria-label="رقم الحصة"><span>الحصة</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong></div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-period-indicator" aria-label="الحصة '+esc(item.period)+'"><span>الحصة الحالية</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong><em>'+esc(item.className||"الشعبة غير محددة")+'</em></div><div class="mt-2 text-xs font-black text-slate-800">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -1020,10 +983,22 @@
       reserveManualChoices=Object.create(null);
       reserveDraftApproved=new Set();
       clearStoredDraft();
+      // Include the exact committed date in the active/edit query, including future dates.
+      // The initial archive range normally ends at today and would otherwise hide a future save.
+      const archiveFrom=$("timetableDailyArchiveFrom"),archiveTo=$("timetableDailyArchiveTo");
+      if(archiveFrom&&(!archiveFrom.value||archiveFrom.value>date)){
+        const archiveStart=new Date(date+"T00:00:00Z");
+        archiveStart.setUTCDate(archiveStart.getUTCDate()-365);
+        archiveFrom.value=archiveStart.toISOString().slice(0,10);
+      }
+      if(archiveTo&&(!archiveTo.value||archiveTo.value<date))archiveTo.value=date;
       status("تم تأكيد حفظ "+savedCount+" تكليف في الخادم. يجري تحديث العرض والأرشيف...","success");
       try{
         await timetableDailyRefreshAll();
         await timetableDailyLoadArchive();
+        if(typeof window.subxLoadEditableAssignments==="function"){
+          await window.subxLoadEditableAssignments();
+        }
         // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
         if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
         status("تم حفظ "+savedCount+" تكليف وتحديث العرض والأرشيف بنجاح.","success");
@@ -1172,6 +1147,45 @@
     host.querySelectorAll("[data-tt-open-day-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveDayEdit(button.dataset.ttOpenDayEdit)));
     host.querySelectorAll("[data-tt-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.ttDeleteGroupDate,button.dataset.ttDeleteGroupAbsent)));
   };
+  // Reclassify saved assignments at the exact Muscat day boundary. The server
+  // remains authoritative; this timer only refreshes the active/archive view.
+  let reserveMidnightRefreshTimer=null;
+  let reserveLastObservedOmanDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  function reserveScheduleMidnightRefresh(){
+    if(reserveMidnightRefreshTimer)clearTimeout(reserveMidnightRefreshTimer);
+    const today=reserveLastObservedOmanDate.split("-").map(Number);
+    const nextMidnightUtc=Date.UTC(today[0],today[1]-1,today[2]+1,0)-4*60*60*1000;
+    const delay=Math.max(1000,nextMidnightUtc-Date.now()+1200);
+    reserveMidnightRefreshTimer=setTimeout(async()=>{
+      const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const dayChanged=current!==reserveLastObservedOmanDate;
+      reserveLastObservedOmanDate=current;
+      if(dayChanged){
+        window.dispatchEvent(new CustomEvent("reserve:muscat-day-changed",{detail:{date:current}}));
+        try{if(reserveIsDailyArchivePanelVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      }
+      reserveScheduleMidnightRefresh();
+    },delay);
+  }
+  function reserveIsDailyArchivePanelVisible(){
+    const panel=document.getElementById("timetableDailyArchivePanel");
+    return Boolean(panel&&!panel.classList.contains("hidden")&&panel.getClientRects().length);
+  }
+  function reserveRefreshOmanDayIfChanged(){
+    const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    if(current===reserveLastObservedOmanDate)return;
+    reserveLastObservedOmanDate=current;
+    window.dispatchEvent(new CustomEvent("reserve:muscat-day-changed",{detail:{date:current}}));
+    if(reserveIsDailyArchivePanelVisible())window.timetableDailyLoadArchive?.();
+    reserveScheduleMidnightRefresh();
+  }
+  if(!window.__reserveOmanDayRefreshBound){
+    window.__reserveOmanDayRefreshBound=true;
+    window.addEventListener("focus",reserveRefreshOmanDayIfChanged);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reserveRefreshOmanDayIfChanged();});
+  }
+  reserveScheduleMidnightRefresh();
+
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
@@ -2087,9 +2101,10 @@
     window.appAuthRequest=async function(body,token,signal) {
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token,signal);
-      const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
       const reserveMutation=mutationActions.has(action);
-      if(accessGranted||reserveMutation)refreshDailyArchiveInBackground();
+      // Do not warm archive/preview/statistics reads as a side effect of a permission check.
+      // The edit/archive screen loads its own data when the user opens it.
+      if(reserveMutation)refreshDailyArchiveInBackground();
       if(reserveMutation&&$("substitutionTodayAssignmentsResults")){
         refreshInBackground("Reserve home-today refresh failed.",window.substitutionLoadHomeTodayAssignments);
       }
@@ -2569,6 +2584,22 @@
     }
     const distributionDate=$("substitutionDate");
     if(distributionDate){
+      const omanToday=()=>typeof getOmanLocalDate==="function"
+        ?String(getOmanLocalDate())
+        :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      const enforceNoPastDistributionDate=()=>{
+        const today=omanToday();
+        distributionDate.min=today;
+        distributionDate.setAttribute("min",today);
+        if(!distributionDate.value||distributionDate.value<today){
+          distributionDate.value=today;
+          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
+          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+      };
+      enforceNoPastDistributionDate();
+      distributionDate.addEventListener("input",enforceNoPastDistributionDate);
+      distributionDate.addEventListener("change",enforceNoPastDistributionDate);
       const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
       if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
         const nav=document.createElement("div");

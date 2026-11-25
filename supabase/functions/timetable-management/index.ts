@@ -1586,7 +1586,7 @@ async function handle(req: Request) {
               (principal.type==="admin"?isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat):
                 hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             canDelete:String(row.version_id)===String(activeVersion.id)&&
-              (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")):
+              (principal.type==="admin"?isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)&&["assigned","confirmed","completed"].includes(String(row.status||"")):
                 hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
@@ -1629,9 +1629,7 @@ async function handle(req: Request) {
         if(normalized.some((item:any)=>{
           const row=editableById.get(item.assignmentId) as any;
           if(!row||!["assigned","confirmed"].includes(String(row.status||"")))return true;
-          return principal.type==="admin"
-            ? String(row.assignment_date||"")!==todayInMuscat
-            : !isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat);
+          return !isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat);
         }))return reply(409,{error:"لا يمكن تعديل مجموعة التوزيع؛ انتهت مهلة حصة واحدة على الأقل أو لم تعد نشطة."});
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,

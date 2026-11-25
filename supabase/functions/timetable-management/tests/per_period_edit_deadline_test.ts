@@ -19,3 +19,14 @@ Deno.test("reserve server permissions follow each lesson's configured end time",
   assert(source.includes("hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)"), "Archive edit grants must follow the assignment day and coordinator scope");
   assert(source.includes("canDelete:Boolean(activeVersion.data"), "Archive rows must expose a separate delete permission");
 });
+
+Deno.test("authorized future reserve assignments remain editable and deletable until their assigned Muscat day ends", () => {
+  assert(source.includes('return /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date >= todayInMuscat;'),
+    "Today and future dates must remain open; past dates must be closed");
+  assert(source.includes('principal.type==="admin"?isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)'),
+    "Admin deletion permissions must use the same assigned-day cutoff as coordinators");
+  assert(source.includes('return !isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat);'),
+    "Batch edits must allow future dates while rejecting dates already in the past");
+  assert(!source.includes('String(row.assignment_date||"")!==todayInMuscat'),
+    "Admin batch edits must not be restricted to today when the assignment is in the future");
+});
