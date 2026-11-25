@@ -717,6 +717,10 @@
       "#timetableSubstitutionPanel .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
       "#timetableSubstitutionPanel .tt-premium-card-heading>div{min-width:0;flex:1}",
       "#timetableSubstitutionPanel .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge{display:flex;align-items:center;justify-content:center;gap:.4rem;width:max-content;min-width:5.2rem;min-height:3.35rem;margin-bottom:.55rem;padding:.4rem .75rem;border:1px solid rgba(139,92,246,.35);border-radius:1rem;background:linear-gradient(145deg,#f5f3ff,#ede9fe);color:#5b21b6;box-shadow:0 8px 18px rgba(109,40,217,.13),inset 0 1px 0 rgba(255,255,255,.9)}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge span{font-size:.68rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge strong{font-size:1.55rem;line-height:1;font-weight:1000;font-variant-numeric:tabular-nums}",
+      ".dark #timetableSubstitutionPanel .tt-lesson-period-badge{border-color:rgba(167,139,250,.45);background:linear-gradient(145deg,rgba(76,29,149,.42),rgba(91,33,182,.28));color:#ddd6fe;box-shadow:0 8px 18px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08)}",
       "#timetableSubstitutionPanel .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
       "#timetableSubstitutionPanel .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
       "#timetableSubstitutionPanel .tt-icon-date{background:#e0f2fe;color:#0369a1}",
@@ -926,7 +930,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-lesson-period-badge" aria-label="الحصة '+Number(item.period)+'"><span>الحصة</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong></div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -2618,31 +2622,6 @@
     const distributionDate=$("substitutionDate");
     if(distributionDate){
       const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
-      if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
-        const nav=document.createElement("div");
-        nav.id="subxCanonicalDateQuickNav";
-        nav.className="tt-premium-date-nav";
-        nav.setAttribute("role","group");
-        nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
-        nav.setAttribute("aria-controls","substitutionDate");
-        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
-        dateCard.appendChild(nav);
-        nav.addEventListener("click",event=>{
-          const button=event.target.closest("[data-date-offset]");
-          if(!button)return;
-          const base=typeof getOmanLocalDate==="function"
-            ?String(getOmanLocalDate())
-            :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-          const parts=base.split("-").map(Number);
-          if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return;
-          const offset=Number(button.dataset.dateOffset);
-          const selected=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+offset,12));
-          distributionDate.value=selected.toISOString().slice(0,10);
-          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
-          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
-          nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
-        });
-      }
       if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
         distributionDate.dataset.canonicalLegacyDateSync="1";
         distributionDate.addEventListener("change",()=>{
