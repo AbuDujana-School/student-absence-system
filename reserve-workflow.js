@@ -2227,8 +2227,13 @@
           Array.from(select.options).forEach(option=>{if(option.value)option.selected=selectAll;});
           select.dispatchEvent(new Event("change",{bubbles:true}));
         }));
-        // The source renderer owns the real teacher checkboxes and their change handlers.
-        // Move those existing sections into the matching expandable department card.
+        // Rebuild the source teacher list after every department-card render.
+        // The card renderer replaces the expanded-card DOM; without this call the
+        // native teacher sections can be left detached while the new cards show loaders.
+        if(typeof window.renderSubstitutionOtherTeacherChoices==="function"){
+          window.renderSubstitutionOtherTeacherChoices();
+        }
+        // Keep the original source checkboxes and their native selection handlers.
         if(typeof enhanceCanonicalTeacherCards==="function")enhanceCanonicalTeacherCards();
       };
       if(select&&!select.dataset.canonicalDepartmentCardsBound){
