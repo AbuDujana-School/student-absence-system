@@ -1185,13 +1185,16 @@
       const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
       const dayChanged=current!==reserveLastObservedOmanDate;
       reserveLastObservedOmanDate=current;
-      try{if(dayChanged&&reserveIsArchiveScreenVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      if(dayChanged){
+        window.dispatchEvent(new CustomEvent("reserve:muscat-day-changed",{detail:{date:current}}));
+        try{if(reserveIsDailyArchivePanelVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      }
       reserveScheduleMidnightRefresh();
     },delay);
   }
-  function reserveIsArchiveScreenVisible(){
-    const panel=document.getElementById("timetableSubstitutionPanel");
-    return Boolean(panel&&panel.getClientRects().length);
+  function reserveIsDailyArchivePanelVisible(){
+    const panel=document.getElementById("timetableDailyArchivePanel");
+    return Boolean(panel&&!panel.classList.contains("hidden")&&panel.getClientRects().length);
   }
   reserveScheduleMidnightRefresh();
 
