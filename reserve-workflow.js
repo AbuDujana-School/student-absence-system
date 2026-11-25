@@ -154,7 +154,7 @@
     const selected=new Set(selectedOtherDepartmentIds());
     host.innerHTML=reserveOtherDepartments.length?reserveOtherDepartments.map((department,index)=>
       '<label class="tt-department-card flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">'+
-      '<input type="checkbox" class="h-5 w-5 accent-indigo-600" data-other-department-id="'+esc(department.id)+'"'+(selected.has(String(department.id))?" checked":"")+'>'+
+      '<input type="checkbox" class="h-7 w-7 shrink-0 accent-emerald-600" data-other-department-id="'+esc(department.id)+'"'+(selected.has(String(department.id))?" checked":"")+'>'+
       '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-700"><i class="fa-solid '+reserveDepartmentIcon(department.name)+'"></i></span>'+
       '<span class="min-w-0"><strong class="block text-xs font-black text-slate-800">'+esc(department.name)+'</strong><small class="mt-1 block text-[10px] text-slate-500">'+(Array.isArray(department.teachers)?department.teachers.length:0)+' معلم متاح في الجدول</small></span></label>'
     ).join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">لا توجد تخصصات مساندة متاحة حالياً.</p>';
@@ -815,7 +815,6 @@
   }
 
   async function fetchBatchPreview() {
-    if(includeOthers()&&!selectedOtherDepartmentIds().length)throw new Error("اختر تخصصاً واحداً على الأقل قبل تحميل أسماء المعلمين.");
     if(includeOthers()&&(!selectedOtherDepartmentIds().length||!selectedOtherTeacherNames().length))throw new Error("حدد قسمًا مساندًا واحدًا على الأقل، أو أغلق خيار الاستعانة بالأقسام الأخرى.");
     const {date, weekday} = timetableSubstitutionGetDate();
     const token = appAuthSession?.token || readAppAuthToken();
@@ -2243,7 +2242,11 @@
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           const isCustomCoordinator=reservePrincipal?.type==="custom";
           $("substitutionOtherDepartmentsWrap")?.classList.toggle("hidden",!canExpand);
-          $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
+          const otherDepartmentsButton=$("timetableDailyOtherDepartmentsButton");
+          otherDepartmentsButton?.classList.toggle("hidden",!canExpand);
+          otherDepartmentsButton?.closest(".tt-reserve-support-card")?.classList.toggle("hidden",!canExpand);
+          window.ttReserveUpdateLocalDepartmentTitle?.();
+          if(canExpand)window.ttReserveRefreshDepartmentName?.();
           root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
