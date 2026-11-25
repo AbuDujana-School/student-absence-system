@@ -279,9 +279,9 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
   assert(source.includes('nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط")'),"The visible quick navigation must have an accessible label");
   assert(source.includes('".tt-premium-date-nav{display:flex'),"The visible date navigation must receive layout styling outside the hidden compatibility panel");
   assert(!source.includes("ttPremiumDateQuickNav"),"The hidden compatibility panel must not create a second date navigation");
-  assert(!reserveWorkflow.includes('data-date-offset="-1"'), "The canonical date navigation must not include yesterday");
-  assert(reserveWorkflow.includes('data-date-offset="0"'), "The canonical date navigation must include today");
-  assert(reserveWorkflow.includes('data-date-offset="1"'), "The canonical date navigation must include tomorrow");
+  assert(!source.includes('data-date-offset="-1"'), "The canonical date navigation must not include yesterday");
+  assert(source.includes('data-date-offset="0"'), "The canonical date navigation must include today");
+  assert(source.includes('data-date-offset="1"'), "The canonical date navigation must include tomorrow");
   assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
   assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The legacy date should default to Muscat today only when empty");
 });
