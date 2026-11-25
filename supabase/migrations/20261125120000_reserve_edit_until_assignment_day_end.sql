@@ -11,7 +11,7 @@ STABLE
 SET search_path TO 'public', 'pg_temp'
 AS $function$
   SELECT CASE
-    WHEN p_assignment_date IS NULL OR p_period NOT BETWEEN 1 AND 8 THEN NULL
+    WHEN p_assignment_date IS NULL OR p_period IS NULL OR p_period NOT BETWEEN 1 AND 8 THEN NULL
     ELSE ((p_assignment_date + 1)::timestamp without time zone) AT TIME ZONE 'Asia/Muscat'
   END;
 $function$;
