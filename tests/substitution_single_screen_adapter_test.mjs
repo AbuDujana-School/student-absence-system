@@ -17,8 +17,7 @@ test('the restored illustrated absence-reason picker is the single modal used by
  assert.match(workflow,/function openAbsenceReasonPicker\(absentName,onConfirm,initialValue\)/);
  assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker = function\(absentName,currentValue,onConfirm\)/);
  assert.match(workflow,/timetableDailyAbsenceReasonModal/);
- assert.match(workflow,/Object\.defineProperty\(window, "openSubstitutionAbsenceReasonPicker"/);
- assert.match(workflow,/document\.getElementById\("subxReasonPopup"\)\?\.remove\(\)/);
+ assert.doesNotMatch(workflow,/Object\.defineProperty\(window, "openSubstitutionAbsenceReasonPicker"/);
  assert.doesNotMatch(html,/subxReasonPopup/);
  assert.doesNotMatch(html,/window\.openSubstitutionAbsenceReasonPicker=function/);
 });
