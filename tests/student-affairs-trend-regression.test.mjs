@@ -123,8 +123,8 @@ test("dashboard home includes a permission-mirrored Student Affairs card",()=>{
   const affairsStart = dashboard.indexOf('id="studentAffairsDashboardCard"');
   const behaviorStart = dashboard.indexOf('id="behaviorDashboardCard"');
   const dutyStart = dashboard.indexOf('id="dutyDashboardCard"');
-  assert.ok(gridStart >= 0 && affairsStart > gridStart && behaviorStart > affairsStart && dutyStart > behaviorStart,
-    "Student Affairs card is placed with the main dashboard cards");
+  assert.ok(gridStart >= 0 && behaviorStart > gridStart && affairsStart > behaviorStart && dutyStart > affairsStart,
+    "Student Affairs card is placed between behavior and duty in the main dashboard grid");
   const card = getElementById(dashboard,"studentAffairsDashboardCard");
   assert.ok(card.includes('onclick="openStudentAffairsView(true)"'));
   assert.ok(card.includes('role="button"') && card.includes('tabindex="0"'));
