@@ -496,9 +496,41 @@
       }
     }
     installReserveAbsenteeChecklist(panel);
+    const choiceGrid=panel.querySelector(".tt-reserve-choice-grid");
+    const absentCard=$("ttPremiumAbsentCard");
+    if(choiceGrid&&absentCard)absentCard.insertAdjacentElement("afterend",choiceGrid);
     if(defaultDateInitialized)date?.dispatchEvent(new Event("change",{bubbles:true}));
     const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
     const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
+    const auto=toolbar?.querySelector('button[onclick*="timetableDailyAutoAssign"]');
+    if(auto)auto.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>التوزيع الذكي للاحتياط';
+    let proposalScreenActive=false;
+    const summary=$("timetableDailySummary");
+    if(summary&&!panel.querySelector("#ttReserveProposalHeader")){
+      const header=document.createElement("section");header.id="ttReserveProposalHeader";header.className="tt-reserve-proposal-header";
+      header.innerHTML='<div><span class="tt-reserve-proposal-kicker"><i class="fa-solid fa-wand-magic-sparkles"></i> نتيجة التحليل الذكي</span><strong>اقتراحات توزيع الاحتياط</strong><small>راجع البدلاء المقترحين لكل حصة، ويمكنك تعديل الاختيار قبل الاعتماد.</small></div><button type="button" id="ttReserveProposalBack"><i class="fa-solid fa-arrow-right"></i> رجوع للإعدادات</button>';
+      summary.parentNode?.insertBefore(header,summary);
+      header.querySelector("#ttReserveProposalBack")?.addEventListener("click",()=>{proposalScreenActive=false;update();$("ttPremiumAbsentCard")?.scrollIntoView({behavior:"smooth",block:"center"});});
+    }
+    const proposalStyle=document.createElement("style");proposalStyle.id="ttReserveProposalScreenStyles";
+    proposalStyle.textContent=[
+      "#timetableSubstitutionPanel:not(.tt-reserve-proposal-mode) .tt-premium-results,#timetableSubstitutionPanel:not(.tt-reserve-proposal-mode) #timetableDailySummary,#timetableSubstitutionPanel:not(.tt-reserve-proposal-mode) #ttReserveProposalHeader{display:none!important}",
+      "#timetableSubstitutionPanel.tt-reserve-proposal-mode #ttPremiumDateCard,#timetableSubstitutionPanel.tt-reserve-proposal-mode #ttPremiumAbsentCard,#timetableSubstitutionPanel.tt-reserve-proposal-mode .tt-reserve-choice-grid{display:none!important}",
+      "#timetableSubstitutionPanel.tt-reserve-proposal-mode .tt-premium-results{display:block!important}#timetableSubstitutionPanel.tt-reserve-proposal-mode #timetableDailySummary{display:grid!important}#timetableSubstitutionPanel.tt-reserve-proposal-mode #ttReserveProposalHeader{display:flex!important}",
+      "#timetableSubstitutionPanel.tt-reserve-proposal-mode .tt-premium-toolbar button[onclick*=timetableDailyAutoAssign]{display:none!important}",
+      "#timetableSubstitutionPanel .tt-reserve-proposal-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1rem 0;padding:1.15rem 1.25rem;border:1px solid rgba(255,255,255,.72);border-radius:1.4rem;background:linear-gradient(120deg,rgba(255,255,255,.94),rgba(225,245,241,.9),rgba(235,241,255,.9));box-shadow:0 16px 38px rgba(30,64,89,.12);backdrop-filter:blur(18px)}",
+      "#timetableSubstitutionPanel .tt-reserve-proposal-header>div{display:grid;gap:.25rem;min-width:0}#timetableSubstitutionPanel .tt-reserve-proposal-kicker{font-size:.65rem;font-weight:950;color:#0d9488}#timetableSubstitutionPanel .tt-reserve-proposal-header strong{font-size:1.1rem;font-weight:1000;color:#183653}#timetableSubstitutionPanel .tt-reserve-proposal-header small{font-size:.72rem;line-height:1.7;color:#64748b}",
+      "#timetableSubstitutionPanel #ttReserveProposalBack{display:flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.8rem;flex:0 0 auto;padding:.7rem 1rem;border:1px solid rgba(14,116,144,.2);border-radius:1rem;background:rgba(255,255,255,.8);color:#155e75;font-size:.75rem;font-weight:950}",
+      "#timetableSubstitutionPanel .tt-premium-toolbar button[onclick*=timetableDailyAutoAssign]{width:100%;min-height:4.2rem;border-radius:1.25rem;font-size:1rem;font-weight:1000}",
+      ".dark #timetableSubstitutionPanel .tt-reserve-proposal-header{border-color:rgba(255,255,255,.16);background:linear-gradient(120deg,rgba(15,35,54,.96),rgba(6,78,59,.72),rgba(30,41,59,.94))}.dark #timetableSubstitutionPanel .tt-reserve-proposal-header strong{color:#eff6ff}.dark #timetableSubstitutionPanel .tt-reserve-proposal-header small{color:#b6c7d8}",
+      "@media(max-width:640px){#timetableSubstitutionPanel .tt-reserve-proposal-header{align-items:stretch;flex-direction:column}#timetableSubstitutionPanel #ttReserveProposalBack{width:100%}}"
+    ].join("\n");document.head.appendChild(proposalStyle);
+    auto?.addEventListener("click",async event=>{
+      event.preventDefault();event.stopImmediatePropagation();
+      try{await window.timetableDailyAutoAssign?.();}catch{return;}
+      const ready=!!(reserveBatchPreview&&!reserveBatchPreview.error&&reserveBatchPreview.active!==false&&((reserveBatchPreview.assignments||[]).length||(reserveBatchPreview.unassigned||[]).length||(reserveBatchPreview.existingAssignments||[]).length));
+      if(ready){proposalScreenActive=true;update();summary?.scrollIntoView({behavior:"smooth",block:"start"});}
+    },true);
     const update=()=>{
       const hasDate=!!String(date?.value||"").trim(),hasAbsentees=Array.isArray(timetableDailyAbsentTeachers)&&timetableDailyAbsentTeachers.length>0;
       const hasPlan=!!(reserveBatchPreview&&(reserveBatchPreview.assignments?.length||reserveBatchPreview.unassigned?.length||reserveBatchPreview.existingAssignments?.length));
@@ -507,15 +539,19 @@
       const hasSaved=(reserveBatchPreview?.existingAssignments||[]).length>0;
       const workflowComplete=allApproved||(required.length===0&&hasSaved);
       const stage=!hasDate?1:!hasAbsentees?2:!hasPlan?3:workflowComplete?4:3;
+      if(!hasPlan)proposalScreenActive=false;
+      panel.classList.toggle("tt-reserve-proposal-mode",proposalScreenActive);
       panel.querySelectorAll("[data-premium-step]").forEach(step=>{const n=Number(step.dataset.premiumStep);step.classList.toggle("is-active",n===stage);step.classList.toggle("is-complete",n<stage);});
       $("ttPremiumDateCard")?.classList.toggle("is-complete",hasDate);
       const absentCard=$("ttPremiumAbsentCard");
       if(absentCard){absentCard.hidden=!hasDate;absentCard.classList.toggle("is-current",hasDate);absentCard.classList.toggle("is-complete",hasAbsentees);}
+      if(choiceGrid)choiceGrid.hidden=!hasAbsentees;
       if(toolbar){toolbar.hidden=!hasAbsentees;toolbar.classList.toggle("tt-premium-toolbar-ready",hasAbsentees);}
+      if(auto)auto.hidden=!hasAbsentees||proposalScreenActive;
       if(results)results.classList.toggle("tt-premium-results-ready",hasAbsentees);
     };
     panel.querySelectorAll("[data-premium-step]").forEach(button=>button.addEventListener("click",()=>{
-      const target=Number(button.dataset.premiumStep)===1?$("ttPremiumDateCard"):Number(button.dataset.premiumStep)===2?$("ttPremiumAbsentCard"):Number(button.dataset.premiumStep)===3?toolbar:results;
+      const target=Number(button.dataset.premiumStep)===1?$("ttPremiumDateCard"):Number(button.dataset.premiumStep)===2?$("ttPremiumAbsentCard"):Number(button.dataset.premiumStep)===3?(proposalScreenActive?results:auto):results;
       if(target&&!target.hidden){target.scrollIntoView({behavior:"smooth",block:"center"});target.querySelector("input,select,button")?.focus?.({preventScroll:true});}
     }));
     date?.addEventListener("change",update);date?.addEventListener("input",update);
