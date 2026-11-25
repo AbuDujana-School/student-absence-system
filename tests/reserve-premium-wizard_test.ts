@@ -58,6 +58,18 @@ Deno.test("the primary reserve route displays the authenticated coordinator depa
   assert(timetableEndpoint.includes("actorDepartmentName:principal.type===\"admin\"?\"\":String(actor?.departmentName||\"\").trim()"), "The endpoint must derive the department from the authenticated teacher directory record");
 });
 
+
+Deno.test("department choice cards are mounted in the visible single-screen smart route", () => {
+  assert(reserveWorkflow.includes('const smartScreen=$("subxScreen_smart");'), "Department choices must target the visible smart screen");
+  assert(reserveWorkflow.includes('grid.id="subxReserveDepartmentChoiceCards"'), "The canonical smart screen must create its own department choice cards");
+  assert(reserveWorkflow.includes('smartScreen.insertBefore(grid,deptWrap)'), "Department choices must be inserted into the visible smart screen, not the hidden legacy panel");
+  assert(reserveWorkflow.includes('data-reserve-scope="local"'), "The primary department route must be selectable");
+  assert(reserveWorkflow.includes('data-reserve-scope="external"'), "The supporting departments route must be selectable");
+  assert(reserveWorkflow.includes('loadOtherDepartments()'), "The primary department label must resolve from the authenticated coordinator record");
+  assert(reserveWorkflow.includes('grid.dataset.scope==="external"&&canExpand'), "The supporting department picker must only appear after explicit selection");
+  assert(reserveWorkflow.includes('subx-smart-generate-button'), "The actual smart distribution action must be emphasized in the visible smart screen");
+});
+
 Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
