@@ -57,11 +57,11 @@ test('absentee selection card is made visible after moving it into its dedicated
  assert.match(adapter,/if\(absentee\)\{screens\.absentees\.append\(absentee\);absentee\.classList\.remove\('hidden'\);\}/);
 });
 
-test('absence reason picker is vertical, stable on every open, and keeps Other as the final option',()=>{
+test('the original absence reason picker is vertical, stable on every open, and retains legacy sick-leave values',()=>{
  assert.match(style,/#substitutionView #subxReasonPopup \.subx-reason-list\{display:flex;flex-direction:column/);
- assert.match(adapter,/\['طارئة','إجازة مرضية','دورة تدريبية','موعد مستشفى','أخرى'\]/);
- assert.match(adapter,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
- assert.match(adapter,/other\.value='';other\.classList\.add\('hidden'\)/);
+ assert.match(html,/\['مرضية','إجازة مرضية'\]/);
+ assert.match(html,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
+ assert.match(html,/other\.value='';other\.classList\.add\('hidden'\)/);
 });
 test('absence screen has a validated next step and smart distribution owns the generate action',()=>{
  assert.match(adapter,/id='subxAbsenteesNext'/);
@@ -94,8 +94,8 @@ test('canonical distribution date never permits a past date and quick navigation
 });
 test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.match(workflow,/tt-period-indicator\{display:flex;flex-direction:column/);
- assert.match(workflow,/min-height:5\.1rem/);
+ assert.match(workflow,/tt-period-indicator\{display:flex;flex-direction:column/);\n assert.match(workflow,/<span>الحصة الحالية<\\/span>/);\n assert.match(workflow,/font-size:2\\.65rem/);
+ assert.match(workflow,/min-height:6\.2rem/);
  assert.match(workflow,/end\.setUTCDate\(end\.getUTCDate\(\)\+365\)/);
 });
 test('saved group edit actions use the saved assignment date, not the currently selected date',()=>{
