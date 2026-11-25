@@ -94,9 +94,11 @@ test('canonical distribution date never permits a past date and quick navigation
 });
 test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.match(workflow,/tt-period-indicator\{display:flex;flex-direction:column/);\n assert.match(workflow,/<span>الحصة الحالية<\\/span>/);\n assert.match(workflow,/font-size:2\\.65rem/);
- assert.match(workflow,/min-height:6\.2rem/);
- assert.match(workflow,/end\.setUTCDate\(end\.getUTCDate\(\)\+365\)/);
+ assert.match(workflow,/tt-period-indicator\\{display:flex;flex-direction:column/);
+ assert.match(workflow,/<span>الحصة الحالية<\\/span>/);
+ assert.match(workflow,/font-size:2\\.65rem/);
+ assert.match(workflow,/min-height:6\\.2rem/);
+ assert.match(workflow,/end\\.setUTCDate\\(end\\.getUTCDate\\(\\)\\+365\\)/);
 });
 test('saved group edit actions use the saved assignment date, not the currently selected date',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
