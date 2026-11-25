@@ -12,7 +12,7 @@ Deno.test("new reserve assignments and direct deletions retain period deadlines 
   assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,period,periodTimings)"), "Single new assignments must be blocked after the lesson deadline");
   assert(source.includes("normalized.some((item:any)=>!isSubstitutionPeriodOpen(assignmentDate,item.period,periodTimings))"), "Batch additions must validate every proposed lesson deadline");
   assert(source.includes('if(principal.type!=="admin"&&!isSubstitutionPeriodOpen(assignmentDate,period,periodTimings))'), "Single additions must retain the lesson deadline");
-  assert(source.includes("planningTimetable=principal.type===\\"admin\\"?timetable:"), "Batch preview must not suggest new assignments for expired lessons");
+  assert(source.includes('planningTimetable=principal.type==="admin"?timetable:'), "Batch preview must not suggest new assignments for expired lessons");
   assert(source.includes("isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings)"), "Individual deletion must retain the assigned period deadline");
   assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings)"), "Group deletion must retain the assigned period deadline");
   assert(source.includes("const withinWindow=isSubstitutionAssignmentDayOpen(editableAssignment.assignment_date,todayInMuscat)"), "Single edits must remain open through the end of their assignment date");
