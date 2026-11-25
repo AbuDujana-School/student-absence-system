@@ -463,3 +463,14 @@ Deno.test("reserve archive date controls provide premium styling and safe comple
   assert(source.includes("const today=reserveCurrentMuscatDate(),to=shiftDate(today,-1);"), "Quick ranges must end on the last completed day in the Muscat timezone");
   assert(source.includes('setAttribute("aria-label","اختصارات تحديد فترة أرشيف الاحتياط")'), "Date shortcuts must be accessible to assistive technology");
 });
+
+
+Deno.test("reserve archive observer updates its summary idempotently", () => {
+  const start=source.indexOf("function installReserveArchivePremiumDateControls()");
+  const end=source.indexOf("function mountCanonicalPanel()",start);
+  const enhancement=source.slice(start,end);
+  const summaryText="أرشيف القسم المرتبط بحسابك فقط، ويمكنك أيضاً فتح أرشيف احتياط المدرسة الشامل من البطاقة الثانية.";
+  assert(start>=0&&end>start,"The archive date-control enhancement must be present");
+  assert(enhancement.includes('const summaryText="'+summaryText+'";'),"The archive summary must be centralized before updating it");
+  assert(enhancement.includes("if(summary&&summary.textContent!==summaryText)summary.textContent=summaryText;"),"The observer must not rewrite identical summary text and trigger its own childList observer");
+});
