@@ -51,3 +51,16 @@ test('archive edit and delete refresh the active mount rather than a hidden arch
 test('absentee selection card is made visible after moving it into its dedicated screen',()=>{
  assert.match(adapter,/if\(absentee\)\{screens\.absentees\.append\(absentee\);absentee\.classList\.remove\('hidden'\);\}/);
 });
+
+test('absence reason picker is vertical, stable on every open, and keeps Other as the final option',()=>{
+ assert.match(style,/#subxReasonPopup \.subx-reason-list\{display:flex;flex-direction:column/);
+ assert.match(adapter,/\['طارئة','إجازة مرضية','دورة تدريبية','موعد مستشفى','أخرى'\]/);
+ assert.match(adapter,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
+ assert.match(adapter,/other\.value='';other\.classList\.add\('hidden'\)/);
+});
+test('absence screen has a validated next step and smart distribution owns the generate action',()=>{
+ assert.match(adapter,/id='subxAbsenteesNext'/);
+ assert.match(adapter,/حدد معلماً غائباً واحداً على الأقل/);
+ assert.match(adapter,/حدد سبب الغياب لكل معلم قبل الانتقال/);
+ assert.match(adapter,/screens\.smart\.insertBefore\(generateButton,plan\|\|null\)/);
+});
