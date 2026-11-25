@@ -115,3 +115,19 @@ test("notice modal and print entry points remain present outside the four tab pa
     assert.ok(html.includes("function " + fn + "(") || html.includes("async function " + fn + "("), "original function " + fn + " remains");
   }
 });
+
+
+test("dashboard home includes a permission-mirrored Student Affairs card",()=>{
+  const dashboard = getElementById(html,"dashboardSelectionView");
+  const gridStart = dashboard.indexOf('id="attendanceDashboardCard"');
+  const affairsStart = dashboard.indexOf('id="studentAffairsDashboardCard"');
+  const behaviorStart = dashboard.indexOf('id="behaviorDashboardCard"');
+  const dutyStart = dashboard.indexOf('id="dutyDashboardCard"');
+  assert.ok(gridStart >= 0 && affairsStart > gridStart && behaviorStart > affairsStart && dutyStart > behaviorStart,
+    "Student Affairs card is placed with the main dashboard cards");
+  const card = getElementById(dashboard,"studentAffairsDashboardCard");
+  assert.ok(card.includes('onclick="openStudentAffairsView(true)"'));
+  assert.ok(card.includes('role="button"') && card.includes('tabindex="0"'));
+  assert.ok(!card.includes('class="hidden'));
+  assert.ok(html.includes('body:has(#studentAffairsBtn:not(.hidden)) #studentAffairsDashboardCard{display:flex!important}'));
+});
