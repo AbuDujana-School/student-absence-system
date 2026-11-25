@@ -2634,7 +2634,13 @@
         event.stopImmediatePropagation();
         event.stopPropagation();
         input.checked=false;
-        openAbsenceReasonPicker(absentName,value=>{
+        const picker=window.openSubstitutionAbsenceReasonPicker;
+        if(typeof picker!=="function"){
+          input.checked=false;
+          showToast("نافذة سبب الغياب غير جاهزة. حدّث الصفحة ثم حاول مجدداً.","error");
+          return;
+        }
+        picker(absentName,"",value=>{
           if(!value)return;
           reasons[reasonKey(absentName)]=value;
           input.checked=true;
@@ -2659,7 +2665,7 @@
             const absentName=String(box.value||"").trim();
             if(!absentName)continue;
             if(!reasons[reasonKey(absentName)]){
-              const value=await new Promise(resolve=>openAbsenceReasonPicker(absentName,resolve));
+              const value=await new Promise(resolve=>window.openSubstitutionAbsenceReasonPicker(absentName,"",resolve));
               if(!value)break;
               reasons[reasonKey(absentName)]=value;
             }

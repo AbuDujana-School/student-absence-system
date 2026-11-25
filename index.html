@@ -2418,92 +2418,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   </div>
   <div id="subxFloatingBar" class="subx-floating-bar" aria-live="polite"><div class="subx-floating-copy"><span class="subx-floating-dot"></span><div><b>جاهز لإنشاء التوزيع؟</b><small id="subxSelectedSummary">لم يتم تحديد أي معلم بعد</small></div></div><div id="subxGenerateDock"></div></div>
 </section>
-<script id="substitution-cinematic-interactions">
-/* تفاعلات العرض فقط: تبويبات إضافية، اختصارات التاريخ، مؤشرات حية، وسجل المعاينة. */
-(function(){
- const root=document.getElementById('substitutionView');
- if(!root||root.dataset.subxEnhancedV2==='yes')return;
- root.dataset.subxEnhancedV2='yes';
- const $=q=>root.querySelector(q);
- const tabs=Array.from(root.querySelectorAll('[data-subx-tab]'));
- const stats=$('#substitutionStatsPanel');
- const stepper=$('.subx-stepper');
- const dateGrid=$('#substitutionDate')?.closest('.grid');
- const absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl');
- const plan=$('#substitutionPlanPanel');
- const search=$('#subxTeacherSearch');
- const floating=$('#subxFloatingBar');
- const generate=$('#substitutionGenerateButton');
- const dock=$('#subxGenerateDock');
- const summary=$('#subxSelectedSummary');
- const rules=$('#subxRulesDrawer');
- let activeTab='daily';
- if(generate&&dock&&!dock.contains(generate))dock.appendChild(generate);
- const tabsHost=$('.subx-tabs');
- function addTab(name,label,icon){
-  if(!tabsHost||tabsHost.querySelector('[data-subx-tab="'+name+'"]'))return;
-  const button=document.createElement('button');
-  button.type='button';button.className='subx-tab';button.dataset.subxTab=name;button.setAttribute('role','tab');button.setAttribute('aria-selected','false');
-  button.innerHTML='<i class="'+icon+'"></i> '+label;tabsHost.appendChild(button);
-  button.addEventListener('click',()=>setTab(name));
- }
- addTab('edit','التعديل','fa-solid fa-pen-to-square');
- addTab('archive','الأرشيف','fa-solid fa-box-archive');
- const logPanel=document.createElement('section');
- logPanel.id='subxLogPanel';logPanel.className='subx-v2-panel hidden';logPanel.innerHTML='<div><h3><i class="fa-solid fa-pen-to-square"></i> التعديل</h3><p>التكليفات النشطة لهذا اليوم، مع إتاحة التعديل أو الإلغاء بحسب الصلاحيات والمهلة المعتمدة.</p></div><div id="subxEditContent" class="mt-3"></div>';
- const reportsPanel=document.createElement('section');
- reportsPanel.id='subxReportsPanel';reportsPanel.className='subx-v2-panel hidden';reportsPanel.innerHTML='<div><h3><i class="fa-solid fa-box-archive"></i> أرشيف الاحتياط</h3><p>السجلات المحفوظة مرتبة حسب التاريخ، مع أدوات الاستعراض والطباعة الرسمية.</p></div><div id="subxArchiveContent" class="mt-3"></div>';
- root.append(logPanel,reportsPanel);
- const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
- // Date navigation is installed once by reserve-workflow.js in the premium date card.
- const metrics=document.createElement('div');metrics.className='subx-live-metrics';metrics.innerHTML='<div class="subx-live-metric"><i class="fa-solid fa-user-minus"></i><div><small>المعلمون المحددون</small><strong id="subxMetricAbsentees">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-hourglass-half"></i><div><small>حصص دون بديل</small><strong id="subxMetricUnassigned">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-circle-check"></i><div><small>حصص موزعة</small><strong id="subxMetricAssigned">0</strong></div></div>';
- if(dateGrid)dateGrid.insertAdjacentElement('afterend',metrics);
- function updateMetrics(){
-  const absent=root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked').length;
-  const assigned=root.querySelectorAll('#substitutionPlanAssignments select[data-substitution-row]').length;
-  const unassigned=root.querySelectorAll('#substitutionUnassigned .border-t').length;
-  if($('#subxMetricAbsentees'))$('#subxMetricAbsentees').textContent=String(absent);
-  if($('#subxMetricAssigned'))$('#subxMetricAssigned').textContent=String(assigned);
-  if($('#subxMetricUnassigned'))$('#subxMetricUnassigned').textContent=String(unassigned);
-  if(summary)summary.textContent=absent?absent+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
-  if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&absent>0);
- }
- function mountReserveSections(){
-  const editHost=$('#subxEditContent'),archiveHost=$('#subxArchiveContent');
-  const activePanel=document.getElementById('timetableDailyActivePanel');
-  const archivePanel=document.getElementById('timetableDailyArchivePanel');
-  if(activePanel&&editHost&&activePanel.parentElement!==editHost)editHost.appendChild(activePanel);
-  if(archivePanel&&archiveHost&&archivePanel.parentElement!==archiveHost)archiveHost.appendChild(archivePanel);
- }
- function refreshReserveSections(){
-  mountReserveSections();
-  if(typeof window.timetableDailyLoadArchive==='function')window.timetableDailyLoadArchive();
- }
- function setTab(name){
-  activeTab=['daily','edit','archive','stats'].includes(name)?name:'daily';
-  root.querySelectorAll('[data-subx-tab]').forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
-  [dateGrid,absenteeCard,plan,stepper,metrics].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
-  stats?.classList.toggle('hidden',activeTab!=='stats');
-  logPanel.classList.toggle('hidden',activeTab!=='edit');
-  reportsPanel.classList.toggle('hidden',activeTab!=='archive');
-  if(activeTab==='stats'&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
-  if(activeTab==='edit'||activeTab==='archive')refreshReserveSections();
-  updateMetrics();
- }
- tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.subxTab)));
- $('#subxRulesToggle')?.addEventListener('click',()=>{if(rules)rules.hidden=!rules.hidden;});
- $('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
- search?.addEventListener('input',()=>{const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));});
- root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateMetrics();});
- root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('#substitutionSaveButton'))setTimeout(updateMetrics,150);});
- const observer=new MutationObserver(updateMetrics);
- if($('#substitutionPlanAssignments'))observer.observe($('#substitutionPlanAssignments'),{childList:true,subtree:true});
- if($('#substitutionUnassigned'))new MutationObserver(updateMetrics).observe($('#substitutionUnassigned'),{childList:true,subtree:true,attributes:true});
- if(plan)new MutationObserver(updateMetrics).observe(plan,{attributes:true,attributeFilter:['class']});
- if($('#substitutionAbsenteeList'))new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateMetrics();}).observe($('#substitutionAbsenteeList'),{childList:true,subtree:true});
- setTab('daily');updateMetrics();
-})();
-</script><style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
+<style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
 
 
 <section id="teacherTimetableView" class="hidden space-y-5" dir="rtl">
@@ -14585,6 +14500,16 @@ async function timetableSaveOwner() {
   function requestAbsenceReason(input,onComplete){
     const name=String(input?.value||'').trim();
     if(!name||!input?.checked){if(typeof onComplete==='function')onComplete();return;}
+    const reasonKey=String(document.getElementById('substitutionDate')?.value||'')+'::'+name;
+    const sharedReason=window.__mainReserveAbsenceReasons?.[reasonKey];
+    if(sharedReason){
+      absenceReasonsByTeacher.set(name,String(sharedReason));
+      const reasonLabel=input.closest('label')?.querySelector('[data-subx-absence-reason]');
+      if(reasonLabel)reasonLabel.textContent='سبب الغياب: '+String(sharedReason);
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+      return;
+    }
     const openPicker=window.openSubstitutionAbsenceReasonPicker;
     if(typeof openPicker!=='function'){
       input.checked=false;
@@ -15160,7 +15085,7 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  async function loadArchive(hostId='subxArchiveMountArea'){
  const host=document.getElementById(hostId);if(!host)return;
  const today=window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10),from=document.getElementById('subxArchiveFrom'),to=document.getElementById('subxArchiveTo');
- if(!from.value){const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-365);from.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}if(!to.value)to.value=today;
+ if(!from.value){const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-365);from.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}if(!to.value){const d=new Date(today+'T12:00:00');d.setDate(d.getDate()+365);to.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
  host.textContent='جارٍ تحميل الأرشيف...';
  try{const data=await appAuthRequest({action:'timetable_substitution_archive',dateFrom:from.value,dateTo:to.value},appAuthSession?.token||readAppAuthToken()),rows=Array.isArray(data.archive)?data.archive:[];if(!rows.length){host.textContent='لا توجد توزيعات احتياط في الفترة المحددة لهذا القسم.';return;}
  const groups=new Map();rows.forEach(r=>{const d=String(r.assignmentDate||'');if(!groups.has(d))groups.set(d,[]);groups.get(d).push(r);});
