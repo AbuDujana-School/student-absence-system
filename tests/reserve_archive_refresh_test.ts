@@ -271,13 +271,12 @@ Deno.test("daily and cumulative reserve archive requests time out and release th
 });
 
 
-Deno.test("reserve date navigation includes yesterday and permits historical date selection", async () => {
+Deno.test("reserve date navigation is installed once in the premium Muscat date card", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(html.includes('data-subx-date-shift="-1">أمس</button>'),"The reserve date shortcuts must include yesterday");
-  assert(html.includes('data-subx-date-shift="0">اليوم</button>'),"The reserve date shortcuts must include today");
-  assert(html.includes('data-subx-date-shift="1">غداً</button>'),"The reserve date shortcuts must include tomorrow");
-  assert(html.includes("base=today,parsed=new Date(base+'T12:00:00+04:00')"),"Yesterday and tomorrow shortcuts must always be relative to Muscat today, not the currently selected date");
-  assert(!html.includes("base=shift===0?today:(date.value||today)"),"A previously selected date must not shift the yesterday/tomorrow shortcuts");
-  assert(!source.includes("date.min=today"),"Historical reserve dates must not be blocked by a minimum date");
-  assert(source.includes("if(!date.value)date.value=today;"),"The reserve date should default to Muscat today only when empty");
+  assert(!html.includes("subx-date-shortcuts"),"The legacy inline shortcut row must not duplicate the premium date navigation");
+  assert(source.includes('data-date-offset="-1"'),"The premium date navigation must include yesterday");
+  assert(source.includes('data-date-offset="0"'),"The premium date navigation must include today");
+  assert(source.includes('data-date-offset="1"'),"The premium date navigation must include tomorrow");
+  assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
+  assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The reserve date should default to Muscat today only when empty");
 });
