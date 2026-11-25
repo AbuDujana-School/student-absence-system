@@ -64,3 +64,18 @@ test('absence screen has a validated next step and smart distribution owns the g
  assert.match(adapter,/حدد سبب الغياب لكل معلم قبل الانتقال/);
  assert.match(adapter,/screens\.smart\.insertBefore\(generateButton,plan\|\|null\)/);
 });
+
+test('canonical single-screen adapter is the only active reserve navigation layer',()=>{
+ assert.doesNotMatch(html,/<script id="substitution-cinematic-interactions">/);
+ assert.match(adapter,/id='subxScreen_hub'/);
+ assert.match(adapter,/id='subxScreen_edit'/);
+});
+test('future-dated saved assignments are included by the edit and archive default range',()=>{
+ assert.match(adapter,/if\(!to\.value\)\{const d=new Date\(today\+'T12:00:00'\);d\.setDate\(d\.getDate\(\)\+365\)/);
+});
+test('the canonical picker selection is reused by the absentee checkbox handler instead of opening a second modal',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/picker\(absentName,"",value=>/);
+ assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker\(absentName,"",resolve\)/);
+ assert.match(html,/const sharedReason=window\.__mainReserveAbsenceReasons\?\.\[reasonKey\]/);
+});
