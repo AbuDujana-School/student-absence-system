@@ -1172,6 +1172,35 @@
     host.querySelectorAll("[data-tt-open-day-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveDayEdit(button.dataset.ttOpenDayEdit)));
     host.querySelectorAll("[data-tt-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.ttDeleteGroupDate,button.dataset.ttDeleteGroupAbsent)));
   };
+  // Reclassify saved assignments at the exact Muscat day boundary. The server
+  // remains authoritative; this timer only refreshes the active/archive view.
+  let reserveMidnightRefreshTimer=null;
+  let reserveLastObservedOmanDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  function reserveScheduleMidnightRefresh(){
+    if(reserveMidnightRefreshTimer)clearTimeout(reserveMidnightRefreshTimer);
+    const today=reserveLastObservedOmanDate.split("-").map(Number);
+    const nextMidnightUtc=Date.UTC(today[0],today[1]-1,today[2]+1,0)-4*60*60*1000;
+    const delay=Math.max(1000,nextMidnightUtc-Date.now()+1200);
+    reserveMidnightRefreshTimer=setTimeout(async()=>{
+      reserveLastObservedOmanDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+      try{await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      reserveScheduleMidnightRefresh();
+    },delay);
+  }
+  function reserveRefreshAfterOmanDateChange(){
+    const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    if(current===reserveLastObservedOmanDate)return;
+    reserveLastObservedOmanDate=current;
+    window.timetableDailyLoadArchive?.();
+    reserveScheduleMidnightRefresh();
+  }
+  if(!window.__reserveMidnightRefreshBound){
+    window.__reserveMidnightRefreshBound=true;
+    window.addEventListener("focus",reserveRefreshAfterOmanDateChange);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reserveRefreshAfterOmanDateChange();});
+  }
+  reserveScheduleMidnightRefresh();
+
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
