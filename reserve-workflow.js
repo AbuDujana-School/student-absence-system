@@ -2145,6 +2145,150 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
+
+    // The current single-screen adapter moves the real distribution flow into
+    // #subxScreen_smart. Build the department choices there, not in the hidden
+    // legacy timetable panel.
+    function installCanonicalDepartmentChoiceCards(){
+      const smartScreen=$("subxScreen_smart");
+      const deptWrap=$("substitutionOtherDepartmentsWrap");
+      if(!smartScreen||!deptWrap)return;
+      let grid=$("subxReserveDepartmentChoiceCards");
+      if(!grid){
+        grid=document.createElement("section");
+        grid.id="subxReserveDepartmentChoiceCards";
+        grid.className="subx-department-choice-grid";
+        grid.setAttribute("role","group");
+        grid.setAttribute("aria-label","اختر نطاق توزيع الاحتياط");
+        grid.innerHTML=
+          '<button type="button" class="subx-department-choice-card tt-reserve-choice-card tt-reserve-local-card is-active" data-reserve-scope="local" aria-pressed="true">'+
+            '<span class="subx-department-choice-icon"><i class="fa-solid fa-people-group"></i></span>'+
+            '<span class="tt-reserve-choice-copy"><small class="subx-department-choice-kicker">المسار الأساسي</small><strong data-reserve-department-title>التوزيع لمعلمي قسمك</strong><small>توزيع الغياب على معلمي قسمك فقط، وتبقى قائمة الغائبين ضمن نطاق القسم.</small></span>'+
+            '<span class="subx-department-choice-action">اعتماد هذا المسار <i class="fa-solid fa-arrow-left"></i></span>'+
+          '</button>'+
+          '<button type="button" class="subx-department-choice-card tt-reserve-choice-card tt-reserve-support-card" data-reserve-scope="external" aria-pressed="false">'+
+            '<span class="subx-department-choice-icon"><i class="fa-solid fa-handshake-angle"></i></span>'+
+            '<span class="tt-reserve-choice-copy"><small class="subx-department-choice-kicker">مسار مساند اختياري</small><strong>الاستعانة بالأقسام الأخرى</strong><small>اختر الأقسام المساندة، ثم حدد المعلمين الذين تريد إضافتهم إلى البدلاء.</small></span>'+
+            '<span class="subx-department-choice-action">اختيار الأقسام المساندة <i class="fa-solid fa-arrow-left"></i></span>'+
+          '</button>';
+        const intro=smartScreen.querySelector(".subx-glass-card");
+        if(intro)intro.insertAdjacentElement("afterend",grid);
+        else smartScreen.insertBefore(grid,deptWrap);
+      }
+      const localCard=grid.querySelector('[data-reserve-scope="local"]');
+      const externalCard=grid.querySelector('[data-reserve-scope="external"]');
+      const localTitle=grid.querySelector("[data-reserve-department-title]");
+      const select=$("substitutionOtherDepartmentSelect");
+      const teacherChoices=$("substitutionOtherTeacherChoices");
+      const principal=appAuthSession?.principal;
+      const sameSessionAdmin=principal?.type==="admin"&&principal?.name===activeUser?.name;
+      const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||
+        (principal?.type==="teacher"&&principal?.permissions?.reserve===true);
+      if(externalCard)externalCard.hidden=!canExpand;
+
+      const setActiveScope=scope=>{
+        grid.dataset.scope=scope;
+        [localCard,externalCard].forEach(card=>{
+          const active=card?.dataset.reserveScope===scope;
+          card?.classList.toggle("is-active",active);
+          card?.setAttribute("aria-pressed",active?"true":"false");
+        });
+      };
+      const chooseLocal=()=>{
+        setActiveScope("local");
+        deptWrap.classList.add("hidden");
+        if(select){
+          Array.from(select.options).forEach(option=>{option.selected=false;});
+          select.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+        window.substitutionSelectedOtherDepartmentIds=[];
+        window.substitutionSelectedOtherDepartmentId="";
+        window.substitutionSelectedOtherTeacherNames=new Set();
+        teacherChoices?.classList.add("hidden");
+        if(teacherChoices)teacherChoices.innerHTML='<p class="text-xs text-slate-500">تم اختيار التوزيع ضمن قسمك فقط.</p>';
+      };
+      const chooseExternal=async()=>{
+        if(!canExpand)return;
+        setActiveScope("external");
+        deptWrap.classList.remove("hidden");
+        try{
+          if(!Array.isArray(window.substitutionOtherDepartmentsData)||!window.substitutionOtherDepartmentsData.length){
+            await window.timetableLoadOtherDepartmentOptions?.("substitutionOtherDepartments","substitutionOtherDepartmentSelect");
+          }
+          window.renderSubstitutionOtherTeacherChoices?.();
+          deptWrap.scrollIntoView({behavior:"smooth",block:"center"});
+        }catch(error){
+          showToast(error?.message||"تعذر تحميل الأقسام المساندة.","error");
+        }
+      };
+      if(grid.dataset.handlersBound!=="1"){
+        localCard?.addEventListener("click",chooseLocal);
+        externalCard?.addEventListener("click",chooseExternal);
+        grid.dataset.handlersBound="1";
+        grid.dataset.scope="local";
+      }
+      if(grid.dataset.scope!=="external"||!canExpand){
+        setActiveScope("local");
+        deptWrap.classList.add("hidden");
+      }else{
+        setActiveScope("external");
+        deptWrap.classList.remove("hidden");
+      }
+
+      if(smartScreen.dataset.departmentChoiceObserver!=="1"&&typeof MutationObserver!=="undefined"){
+        const observer=new MutationObserver(()=>{
+          if(!smartScreen.classList.contains("is-visible"))return;
+          if(grid.dataset.scope==="external"&&canExpand)deptWrap.classList.remove("hidden");
+          else deptWrap.classList.add("hidden");
+          if(grid.dataset.actorDepartmentLoaded==="1"||grid.dataset.actorDepartmentLoading==="1")return;
+          grid.dataset.actorDepartmentLoading="1";
+          Promise.resolve(loadOtherDepartments()).then(()=>{
+            const department=String(reserveActorDepartmentName||"").trim();
+            if(localTitle&&department)localTitle.textContent="التوزيع لمعلمي قسم "+department;
+            grid.dataset.actorDepartmentLoaded="1";
+          }).catch(()=>{}).finally(()=>{delete grid.dataset.actorDepartmentLoading;});
+        });
+        observer.observe(smartScreen,{attributes:true,attributeFilter:["class"]});
+        smartScreen.dataset.departmentChoiceObserver="1";
+        if(smartScreen.classList.contains("is-visible")){
+          Promise.resolve(loadOtherDepartments()).then(()=>{
+            const department=String(reserveActorDepartmentName||"").trim();
+            if(localTitle&&department)localTitle.textContent="التوزيع لمعلمي قسم "+department;
+            grid.dataset.actorDepartmentLoaded="1";
+          }).catch(()=>{});
+        }
+      }
+
+      const generateButton=$("substitutionGenerateButton");
+      if(generateButton){
+        generateButton.classList.add("subx-smart-generate-button");
+        generateButton.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>التوزيع الذكي للاحتياط';
+      }
+      if(!document.getElementById("subxReserveDepartmentChoiceStyles")){
+        const style=document.createElement("style");
+        style.id="subxReserveDepartmentChoiceStyles";
+        style.textContent=[
+          "#subxScreen_smart .subx-department-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px}",
+          "#subxScreen_smart .subx-department-choice-card{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:12px;width:100%;min-width:0;min-height:142px;padding:16px;text-align:right;border:1px solid rgba(255,255,255,.75);border-radius:22px;background:linear-gradient(135deg,rgba(14,165,233,.96),rgba(79,70,229,.94));color:#fff;box-shadow:0 14px 32px rgba(30,41,59,.13),inset 0 1px 0 rgba(255,255,255,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:transform .18s,box-shadow .18s,border-color .18s}",
+          "#subxScreen_smart .subx-department-choice-card:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(30,41,59,.18)}",
+          "#subxScreen_smart .subx-department-choice-card[data-reserve-scope=external]{background:linear-gradient(135deg,rgba(16,185,129,.97),rgba(5,150,105,.95),rgba(13,148,136,.96))}",
+          "#subxScreen_smart .subx-department-choice-card.is-active{border:2px solid #f5d27a;box-shadow:0 0 0 3px rgba(245,210,122,.2),0 16px 34px rgba(30,41,59,.18)}",
+          "#subxScreen_smart .subx-department-choice-card[hidden]{display:none!important}",
+          "#subxScreen_smart .subx-department-choice-icon{width:48px;height:48px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.55);border-radius:15px;background:rgba(255,255,255,.2);font-size:20px}",
+          "#subxScreen_smart .subx-department-choice-card .tt-reserve-choice-copy{display:grid;gap:4px;min-width:0}",
+          "#subxScreen_smart .subx-department-choice-kicker{font-size:10px;font-weight:900;color:rgba(255,255,255,.85)}",
+          "#subxScreen_smart .subx-department-choice-card strong{font-size:15px;line-height:1.5;font-weight:1000;color:#fff;overflow-wrap:anywhere}",
+          "#subxScreen_smart .subx-department-choice-card .tt-reserve-choice-copy small:last-child{font-size:11px;line-height:1.7;color:rgba(255,255,255,.92)}",
+          "#subxScreen_smart .subx-department-choice-action{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:8px;min-height:38px;padding:8px;border:1px solid rgba(255,255,255,.45);border-radius:13px;background:rgba(255,255,255,.17);font-size:11px;font-weight:900}",
+          "#subxScreen_smart .subx-smart-generate-button{display:flex!important;justify-content:center;align-items:center;width:100%;min-height:56px;margin:0 0 12px!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:18px!important;background:linear-gradient(105deg,#7c3aed,#4f46e5 38%,#0ea5e9 72%,#0d9488)!important;color:#fff!important;box-shadow:0 14px 30px rgba(79,70,229,.25),inset 0 1px 0 rgba(255,255,255,.35)!important;font-size:16px!important;font-weight:1000!important}",
+          "#subxScreen_smart .subx-smart-generate-button:disabled{opacity:.45!important;filter:grayscale(.25)}",
+          "html.dark #subxScreen_smart .subx-department-choice-card{border-color:rgba(255,255,255,.2);box-shadow:0 14px 32px rgba(0,0,0,.28)}",
+          "@media(max-width:620px){#subxScreen_smart .subx-department-choice-grid{grid-template-columns:1fr}#subxScreen_smart .subx-department-choice-card{min-height:126px;padding:14px}}"
+        ].join("\n");
+        document.head.appendChild(style);
+      }
+    }
+    installCanonicalDepartmentChoiceCards();
     // Bind the visible dashboard card directly. Do not rely on its inline
     // handler: later UI installers can replace global entry points, leaving
     // a visually active card with no working click action.
