@@ -97,3 +97,11 @@ test('saved group edit actions use the saved assignment date, not the currently 
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/savedRows\[0\]\?\.assignmentDate\|\|timetableSubstitutionGetDate\(\)\.date/);
 });
+
+test('active reserve records are reclassified automatically at Muscat midnight and on app return',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/nextMidnightUtc=Date\.UTC\(today\[0\],today\[1\]-1,today\[2\]\+1,0\)-4\*60\*60\*1000/);
+ assert.match(workflow,/window\.timetableDailyLoadArchive\?\.\(\)/);
+ assert.match(workflow,/addEventListener\("focus",reserveRefreshAfterOmanDateChange\)/);
+ assert.match(workflow,/addEventListener\("visibilitychange"/);
+});
