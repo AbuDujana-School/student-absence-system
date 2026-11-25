@@ -510,3 +510,24 @@ Deno.test("archive access separates schoolwide visibility from switching departm
     "The archive access correction must not reintroduce a subtree observer that can freeze the archive",
   );
 });
+
+Deno.test("canonical reserve archive excludes the legacy extra reserve management tools", () => {
+  for (const legacyTool of [
+    "installDepartmentReserveTools",
+    "installAdminReserveTools",
+    "ttDepartmentReserveTools",
+    "ttAdminReserveTools",
+    "timetableDailyInstallDepartmentTools",
+    "timetableDailyInstallAdminTools",
+  ]) {
+    assert(!source.includes(legacyTool), "The extra reserve tool must be removed from the canonical workspace: " + legacyTool);
+  }
+  const mountStart=source.indexOf("function mountCanonicalPanel()");
+  const mountEnd=source.indexOf("function restoreCanonicalPanel()",mountStart);
+  assert(mountStart>=0&&mountEnd>mountStart,"The canonical archive mount must remain available");
+  const mount=source.slice(mountStart,mountEnd);
+  assert(mount.includes('const archiveHost=$("subxArchiveMountArea")'),"The archive host must remain mounted");
+  assert(!mount.includes("appendChild"),"The archive mount must not append legacy reserve management tools");
+  assert(source.includes("function installReserveArchiveAutoRefresh()"),"The normal reserve archive refresh integration must remain");
+  assert(source.includes('action==="timetable_substitution_archive_access"'),"Permission-checked archive access must remain");
+});
