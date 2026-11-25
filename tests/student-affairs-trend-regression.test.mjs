@@ -74,8 +74,8 @@ function getElementById(source,id){
   token.lastIndex = open.index;
   let depth = 0, match;
   while((match = token.exec(source))){
-    if(/^<\\//.test(match[0])) depth--;
-    else if(!/\\/>$/.test(match[0])) depth++;
+    if(/^<\//.test(match[0])) depth--;
+    else if(!/\/>$/.test(match[0])) depth++;
     if(depth === 0) return source.slice(open.index, token.lastIndex);
   }
   assert.fail("unclosed element #" + id);
@@ -101,7 +101,7 @@ test("four main sections are presentation-only and retain the original report co
 
 test("main menu access gates and original Student Affairs permission logic remain intact",()=>{
   assert.ok(html.includes('const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);'));
-  assert.ok(html.includes('const allowed = isGeneralAdminUser(activeUser) ||\\n    activeUser?.permissions?.studentAffairs === true;'));
+  assert.ok(html.includes('const allowed = isGeneralAdminUser(activeUser) ||\n    activeUser?.permissions?.studentAffairs === true;'));
   const controller = getElementById(html,"sa-four-section-navigation-controller");
   assert.doesNotMatch(controller,/saRequest|saReportPermissions|activeUser|saLoadReport|saLoadCompetition|saLoadStudentProfileDirectory/);
 });
