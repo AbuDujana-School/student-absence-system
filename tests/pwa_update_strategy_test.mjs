@@ -56,3 +56,12 @@ test('supporting department teacher cards recover when the source renderer popul
   assert.ok(reserve.includes('enhanceCanonicalTeacherCards();'));
   assert.match(reserve, /if\(typeof window\.renderSubstitutionOtherTeacherChoices==="function"\)\s*\{\s*window\.renderSubstitutionOtherTeacherChoices\(\);\s*\}/);
 });
+test('reserve edit lifecycle ends at midnight Muscat on the assignment date and includes future dates', () => {
+  const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
+  const endpoint = readFileSync(new URL('../supabase/functions/timetable-management/index.ts', import.meta.url), 'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/20261125120000_reserve_edit_until_assignment_day_end.sql', import.meta.url), 'utf8');
+  assert.match(endpoint, /date >= todayInMuscat && now < deadline/);
+  assert.match(migration, /p_assignment_date >= \(now\(\) AT TIME ZONE 'Asia\/Muscat'\)::date/);
+  assert.match(migration, /p_assignment_date \+ 1/);
+  assert.ok(reserve.includes('end.setUTCDate(end.getUTCDate()+365)'));
+});
