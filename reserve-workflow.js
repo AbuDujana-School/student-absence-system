@@ -13,6 +13,7 @@
   let reserveOtherDepartmentIds = [];
   let reserveOtherDepartments = [];
   let reserveSelectedOtherTeacherNames = new Set();
+  let reserveActorDepartmentName = "";
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
   // Keep the dashboard cumulative archive separate from the daily timetable archive.
@@ -104,6 +105,24 @@
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
   const selectedOtherDepartmentIds = () => {const select=$("timetableDailyOtherDepartmentSelect");if(select&&select.options.length)return Array.from(select.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);return [...reserveOtherDepartmentIds];};
   const selectedOtherDepartmentId = () => selectedOtherDepartmentIds()[0] || String(reserveOtherDepartmentId||"").trim();
+  function selectedOtherTeacherNames(){
+    const ids=new Set(selectedOtherDepartmentIds());
+    return [...new Set(reserveOtherDepartments.filter(item=>ids.has(String(item.id)))
+      .flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)))];
+  }
+  function currentReserveActorDepartmentName(){
+    const principal=appAuthSession?.principal||activeUser||{};
+    const permissions=principal.permissions||{};
+    return String(reserveActorDepartmentName||permissions.category||permissions.department_name||principal.departmentName||"").trim();
+  }
+  function updateReserveLocalDepartmentTitle(){
+    const title=$("ttReserveLocalDepartmentTitle");if(!title)return;
+    const principal=appAuthSession?.principal||activeUser||{};
+    const name=currentReserveActorDepartmentName();
+    const isAdmin=principal.type==="admin"||principal.permissions?.admin===true;
+    const label=isAdmin?"جميع الأقسام":name?(String(name).startsWith("قسم")?String(name):"قسم "+name):"قسمك";
+    title.textContent="التوزيع لمعلمي "+label;
+  }
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
     if(!button)return;
@@ -116,6 +135,19 @@
     button.disabled=!readyToSave||timetableDailyBusy;
     document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!reportsReady));
   }
+  function reserveDepartmentIcon(name){
+    const value=String(name||"");
+    if(/عربي|لغة عربية/.test(value))return "fa-book-open";
+    if(/إنجليزي|انجليزي|لغة إنجليزية|لغة انجليزية/.test(value))return "fa-language";
+    if(/اجتماع|جغرافيا|تاريخ/.test(value))return "fa-earth-asia";
+    if(/علوم|فيزياء|كيمياء|أحياء|احياء/.test(value))return "fa-flask";
+    if(/رياضيات/.test(value))return "fa-calculator";
+    if(/إسلامية|اسلامية|قرآن|قران/.test(value))return "fa-mosque";
+    if(/فنون|موسيقى|موسيقي/.test(value))return "fa-palette";
+    if(/رياضة|بدنية/.test(value))return "fa-person-running";
+    if(/تقنية|حاسوب|معلومات/.test(value))return "fa-laptop-code";
+    return "fa-book-open";
+  }
   function renderOtherDepartmentOptions() {
     const host=$("timetableDailyOtherDepartmentChoices"),select=$("timetableDailyOtherDepartmentSelect");
     if(!host||!select)return;
@@ -123,7 +155,7 @@
     host.innerHTML=reserveOtherDepartments.length?reserveOtherDepartments.map((department,index)=>
       '<label class="tt-department-card flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">'+
       '<input type="checkbox" class="h-5 w-5 accent-indigo-600" data-other-department-id="'+esc(department.id)+'"'+(selected.has(String(department.id))?" checked":"")+'>'+
-      '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-700"><i class="fa-solid fa-book-open"></i></span>'+
+      '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-700"><i class="fa-solid '+reserveDepartmentIcon(department.name)+'"></i></span>'+
       '<span class="min-w-0"><strong class="block text-xs font-black text-slate-800">'+esc(department.name)+'</strong><small class="mt-1 block text-[10px] text-slate-500">'+(Array.isArray(department.teachers)?department.teachers.length:0)+' معلم متاح في الجدول</small></span></label>'
     ).join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">لا توجد تخصصات مساندة متاحة حالياً.</p>';
     host.querySelectorAll("[data-other-department-id]").forEach(input=>input.addEventListener("change",()=>{
@@ -134,69 +166,38 @@
   }
 
   function renderOtherDepartmentTeachers() {
-    const host=$("timetableDailyOtherTeacherChoices"), add=$("timetableDailyAddOtherTeachersButton");
+    const host=$("timetableDailyOtherTeacherChoices");
     if(!host)return;
-    const selectedIds=selectedOtherDepartmentIds();
-    const departments=reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)));
-    const uniqueNames=new Set();
-    const groups=departments.map(department=>{
-      const teachers=[...(Array.isArray(department.teachers)?department.teachers:[])]
-        .filter(teacher=>teacher?.name&&!uniqueNames.has(String(teacher.name))&&uniqueNames.add(String(teacher.name)));
-      const names=teachers.map(teacher=>String(teacher.name));
-      const selectedCount=names.filter(name=>reserveSelectedOtherTeacherNames.has(name)).length;
-      return '<section class="rounded-2xl border border-indigo-100 bg-white p-3 shadow-sm" data-other-department-group="'+esc(department.id)+'">'+
-        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2">'+
-          '<div class="flex min-w-0 items-center gap-2"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><i class="fa-solid fa-book-open"></i></span><div class="min-w-0"><strong class="block text-sm font-black text-slate-900">'+esc(department.name)+'</strong><small class="text-[11px] text-slate-500">'+teachers.length+' معلم متاح · '+selectedCount+' محدد</small></div></div>'+
-          '<div class="flex shrink-0 gap-2"><button type="button" data-select-all-department="'+esc(department.id)+'" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">تحديد الكل</button><button type="button" data-clear-department="'+esc(department.id)+'" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">إلغاء الكل</button></div>'+
-        '</div>'+
-        (teachers.length?'<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+teachers.map(teacher=>{
-          const name=String(teacher.name);
-          return '<label class="tt-other-teacher-card flex min-h-[3.5rem] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm font-bold transition hover:border-indigo-300 hover:bg-indigo-50/50"><input type="checkbox" class="h-6 w-6 shrink-0 accent-indigo-600" data-other-teacher-name="'+esc(name)+'"'+(reserveSelectedOtherTeacherNames.has(name)?" checked":"")+'><span class="min-w-0"><strong class="block text-slate-800">'+esc(name)+'</strong><small class="mt-1 block text-[10px] font-medium text-indigo-600">'+esc(department.name)+'</small></span></label>';
-        }).join("")+'</div>':'<p class="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>')+
-      '</section>';
-    });
-    host.innerHTML=groups.length?groups.join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">حدد قسماً أو أكثر لعرض المعلمين المتاحين.</p>';
-    host.querySelectorAll("[data-select-all-department]").forEach(button=>button.addEventListener("click",()=>{
-      const id=String(button.dataset.selectAllDepartment||"");
-      const department=departments.find(item=>String(item.id)===id);
-      (department?.teachers||[]).forEach(teacher=>{if(teacher?.name)reserveSelectedOtherTeacherNames.add(String(teacher.name));});
-      renderOtherDepartmentTeachers();
-    }));
-    host.querySelectorAll("[data-clear-department]").forEach(button=>button.addEventListener("click",()=>{
-      const id=String(button.dataset.clearDepartment||"");
-      const department=departments.find(item=>String(item.id)===id);
-      (department?.teachers||[]).forEach(teacher=>reserveSelectedOtherTeacherNames.delete(String(teacher.name)));
-      renderOtherDepartmentTeachers();
-    }));
-    host.querySelectorAll("[data-other-teacher-name]").forEach(input=>input.addEventListener("change",()=>{
-      const name=String(input.dataset.otherTeacherName||"");
-      if(input.checked)reserveSelectedOtherTeacherNames.add(name);else reserveSelectedOtherTeacherNames.delete(name);
-      if(add)add.disabled=!host.querySelector("[data-other-teacher-name]:checked");
-      const section=input.closest("[data-other-department-group]");
-      const department=departments.find(item=>String(item.id)===String(section?.dataset.otherDepartmentGroup||""));
-      if(section&&department){
-        const names=(department.teachers||[]).map(teacher=>String(teacher.name));
-        const count=names.filter(value=>reserveSelectedOtherTeacherNames.has(value)).length;
-        const caption=section.querySelector("small");
-        if(caption)caption.textContent=names.length+" معلم متاح · "+count+" محدد";
-      }
-    }));
-    if(add)add.disabled=!host.querySelector("[data-other-teacher-name]:checked");
+    const selectedIds=new Set(selectedOtherDepartmentIds());
+    const departments=reserveOtherDepartments.filter(item=>selectedIds.has(String(item.id)));
+    reserveSelectedOtherTeacherNames=new Set(selectedOtherTeacherNames());
+    host.innerHTML=departments.length?departments.map(department=>{
+      const count=(department.teachers||[]).length;
+      return '<section class="tt-other-department-summary rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">'+
+        '<div class="flex items-center gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 text-lg"><i class="fa-solid '+reserveDepartmentIcon(department.name)+'"></i></span>'+
+        '<div class="min-w-0"><strong class="block text-sm font-black text-slate-900">'+esc(department.name)+'</strong><small class="mt-1 block text-[10px] text-emerald-700">'+count+' معلم مؤهل سيُدرجون تلقائيًا ضمن البدلاء</small></div>'+
+        '<span class="mr-auto grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700"><i class="fa-solid fa-check"></i></span></div></section>';
+    }).join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">اختر قسمًا أو أكثر؛ ستُضاف جميع أسماء المعلمين المؤهلين في الأقسام المختارة تلقائيًا.</p>';
   }
+
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
     const select=$("timetableDailyOtherDepartmentSelect");
     if(!select)return;
     reserveOtherDepartments=Array.isArray(result.departments)?result.departments:[];
+    reserveActorDepartmentName=String(result.actorDepartmentName||"").trim();
+    window.ttReserveUpdateLocalDepartmentTitle?.();
     const currentIds=selectedOtherDepartmentIds();
     const current=currentIds.length?currentIds:(reserveOtherDepartmentId?[reserveOtherDepartmentId]:[]);
     select.innerHTML=reserveOtherDepartments.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
     Array.from(select.options).forEach(option=>option.selected=current.includes(option.value));
     reserveOtherDepartmentIds=[...current];
     reserveOtherDepartmentId=selectedOtherDepartmentIds()[0]||"";
+    reserveSelectedOtherTeacherNames=new Set(selectedOtherTeacherNames());
     renderOtherDepartmentOptions();
     renderOtherDepartmentTeachers();
+    window.ttReserveUpdateLocalDepartmentTitle?.();
   }
 
   function reserveCurrentMuscatDate(){
