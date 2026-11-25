@@ -2306,6 +2306,21 @@
         window.renderSubstitutionOtherTeacherChoices=wrappedRender;
       }
 
+      // The legacy teacher renderer may be registered after this screen installer,
+      // or populate its host asynchronously. Observe its real output so the
+      // canonical cards never remain stuck on the "loading teachers" placeholder.
+      const canonicalTeacherSourceHost=$("substitutionOtherTeacherChoices");
+      if(canonicalTeacherSourceHost&&canonicalTeacherSourceHost.dataset.canonicalTeacherObserverBound!=="1"&&typeof MutationObserver!=="undefined"){
+        canonicalTeacherSourceHost.dataset.canonicalTeacherObserverBound="1";
+        const canonicalTeacherObserver=new MutationObserver(()=>{
+          if(!departmentCardsHost?.isConnected)return;
+          enhanceCanonicalTeacherCards();
+        });
+        canonicalTeacherObserver.observe(canonicalTeacherSourceHost,{childList:true,subtree:true});
+        // Also handle content that was already rendered before the observer was attached.
+        enhanceCanonicalTeacherCards();
+      }
+
       const principal=appAuthSession?.principal;
       const sameSessionAdmin=principal?.type==="admin"&&principal?.name===activeUser?.name;
       const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||
