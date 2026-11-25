@@ -1305,14 +1305,16 @@ async function handle(req: Request) {
   }
 
   if (action === "timetable_substitution_departments") {
-    if (principal.type !== "admin" && principal.type !== "teacher") return reply(403,{error:"اختيار قسم آخر متاح لموزّعي الاحتياط المعتمدين فقط."});
+    if (principal.type !== "admin" && principal.type !== "teacher" && principal.type !== "custom") return reply(403,{error:"عرض نطاق القسم متاح لمستخدمي الاحتياط المخوّلين فقط."});
     const [directory, activeVersionResult] = await Promise.all([
       teacherDirectory(),
       db.from("timetable_weekly_versions").select("id").eq("status","active").maybeSingle(),
     ]);
     if(activeVersionResult.error)throw activeVersionResult.error;
+    const actor = directory.find((teacher:any)=>teacher.name===principal.name);
+    const actorDepartmentName=String(actor?.departmentName||"").trim();
     const activeVersionId=activeVersionResult.data?.id;
-    if(!activeVersionId)return reply(200,{ok:true,departments:[]});
+    if(principal.type==="custom"||!activeVersionId)return reply(200,{ok:true,departments:[],actorDepartmentName});
     const teachingCells=await fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
       .select("matched_teacher_name,teacher_source_name").eq("version_id",activeVersionId)
       .eq("cell_status","teaching").order("id").range(from,to));
@@ -1320,7 +1322,6 @@ async function handle(req: Request) {
     const teachersInActiveTimetable=new Set((teachingCells||[]).map((cell:any)=>
       resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachers)
     ).filter(Boolean));
-    const actor = directory.find((teacher:any)=>teacher.name===principal.name);
     if (principal.type !== "admin" && actor?.canManageSubstitutions !== true) return reply(403,{error:"لا تملك صلاحية اختيار بدلاء من قسم آخر."});
     const ownDepartment = String(actor?.departmentId||"");
     const departments = [...new Map(directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId&&
@@ -1329,7 +1330,7 @@ async function handle(req: Request) {
         id:String(teacher.departmentId),name:String(teacher.departmentName||teacher.departmentId),
         teachers:directory.filter((candidate:any)=>candidate.role==="teacher"&&String(candidate.departmentId)===String(teacher.departmentId)&&teachersInActiveTimetable.has(candidate.name)).map((candidate:any)=>({name:String(candidate.name)})).sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"))
       }])).values()].sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"));
-    return reply(200,{ok:true,departments,actorDepartmentName:principal.type==="admin"?"":String(actor?.departmentName||"").trim()});
+    return reply(200,{ok:true,departments,actorDepartmentName});
   }
 
   if (action === "timetable_reserve_stats_access_list") {
