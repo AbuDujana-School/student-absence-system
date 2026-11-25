@@ -1352,24 +1352,27 @@
   }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
     const maxRowsPerPage=RESERVE_OFFICIAL_ROWS_PER_PAGE;
-    // Keep long Arabic class/teacher names readable. A row with wrapped text
-    // consumes more of the printable height than a short one-line row.
-    const maxLineUnitsPerPage=44;
+    // Reserve a measured 176 mm content budget for the table, leaving the
+    // school heading, date, repeated table header, manager signature and stamp
+    // safely inside the A4 page.
+    const maxLineUnitsPerPage=Math.floor(RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM/4.4);
     const pages=[];let current=[],pageRows=0,pageUnits=0;
     const flushPage=()=>{if(current.length)pages.push(current);current=[];pageRows=0;pageUnits=0;};
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
-      const absentLines=Math.max(1,Math.ceil(String(group.absentName||"").length/22));
-      const reasonLines=Math.max(1,Math.ceil(String(group.absenceReason||group.reason||"").length/18));
+      const absentLines=Math.max(1,Math.ceil(Array.from(String(group.absentName||"")).length/22));
+      const reasonLines=Math.max(1,Math.ceil(Array.from(String(group.absenceReason||group.reason||"")).length/18));
       let chunk=[];
       const flushChunk=()=>{if(chunk.length){current.push({...group,rows:chunk});chunk=[];}};
       rows.forEach(row=>{
-        const classLines=Math.max(1,Math.ceil(String(row.className||"").length/12));
-        const substituteLines=Math.max(1,Math.ceil(String(row.substitute||"").length/15));
-        const mergedAbsentLines=Math.max(1,Math.ceil(absentLines/rows.length));
-        const mergedReasonLines=Math.max(1,Math.ceil(reasonLines/rows.length));
-        const rowUnits=Math.max(classLines,substituteLines,mergedAbsentLines,mergedReasonLines);
+        const estimatedRowHeight=reserveOfficialPrintRowHeightEstimate(row);
+        const rowUnits=Math.max(
+          1,
+          Math.ceil((estimatedRowHeight-2)/4.4),
+          Math.ceil(absentLines/rows.length),
+          Math.ceil(reasonLines/rows.length)
+        );
         if(pageRows&&(pageRows>=maxRowsPerPage||pageUnits+rowUnits>maxLineUnitsPerPage)){
           flushChunk();flushPage();
         }
