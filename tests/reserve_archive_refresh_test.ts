@@ -276,6 +276,8 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
   assert(!html.includes("shortcuts.className='subx-date-shortcuts'"),"The legacy inline shortcut row must not duplicate the canonical date navigation");
   assert(source.includes('const distributionDate=$("substitutionDate");'),"The quick navigation must target the visible canonical date picker");
   assert(source.includes('nav.id="subxCanonicalDateQuickNav"'),"The quick navigation must be mounted in the visible reserve date card");
+  assert(source.includes('nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط")'),"The visible quick navigation must have an accessible label");
+  assert(source.includes('".tt-premium-date-nav{display:flex'),"The visible date navigation must receive layout styling outside the hidden compatibility panel");
   assert(!source.includes("ttPremiumDateQuickNav"),"The hidden compatibility panel must not create a second date navigation");
   assert(source.includes('data-date-offset="-1"'),"The canonical date navigation must include yesterday");
   assert(source.includes('data-date-offset="0"'),"The canonical date navigation must include today");
