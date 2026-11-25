@@ -15191,11 +15191,23 @@ async function timetableSaveOwner() {
         applySavedReserveReviewState(refreshed);
         const refreshedStatus=document.getElementById('substitutionSaveStatus');if(refreshedStatus)refreshedStatus.textContent='تم حفظ التعديلات وتحديث قائمة البدلاء والسجلات المحفوظة بنجاح.';
       }catch(refreshError){console.warn('Saved reserve edits committed, but the review refresh failed.',refreshError);}
-      if(typeof window.substitutionLoadStats==='function')await window.substitutionLoadStats();
+      if(typeof window.substitutionLoadStats==='function'){
+        try{await window.substitutionLoadStats();}
+        catch(refreshError){console.warn('Saved reserve edits committed, but statistics refresh failed.',refreshError);}
+      }
     }catch(error){
       showToast(error?.message||'تعذر حفظ تبديل معلمي الاحتياط؛ لم يتم اعتماد أي تعديل جزئي.','error');
       const status=document.getElementById('substitutionSaveStatus');if(status)status.textContent=(error?.message||'تعذر حفظ التعديلات.')+' بقي التوزيع المحفوظ السابق دون تغيير.';
-    }finally{if(button){button.innerHTML=oldLabel||'<i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع';}}
+    }finally{
+      if(button){
+        button.innerHTML=oldLabel||'<i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع';
+        const stillDirty=!!currentPlan?.assignments?.some(function(item){
+          const original=context.originals.get(String(item.id||item.assignmentId||''));
+          return original&&String(item.substituteTeacherName||'').trim()!==String(original.substituteTeacherName||'').trim();
+        });
+        button.disabled=!stillDirty;
+      }
+    }
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
