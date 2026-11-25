@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-modal-period-fix-1">
+<meta name="app-build" content="2026-11-25-reserve-screen-date-fix-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11675,7 +11675,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-modal-period-fix-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-screen-date-fix-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -14795,7 +14795,7 @@ async function timetableSaveOwner() {
     const omanToday=typeof window.getOmanLocalDate==="function"
       ?String(window.getOmanLocalDate())
       :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(selectedAssignmentDate)||selectedAssignmentDate<omanToday){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(selectedAssignmentDate)||selectedAssignmentDate<omanToday){
       showToast("لا يمكن اعتماد توزيع بتاريخ سابق. اختر اليوم أو تاريخاً مستقبلياً.","error");
       const dateInput=document.getElementById("substitutionDate");
       if(dateInput){dateInput.min=omanToday;dateInput.value=omanToday;dateInput.dispatchEvent(new Event("change",{bubbles:true}));}
@@ -15029,7 +15029,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-modal-period-fix-1"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-screen-date-fix-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
