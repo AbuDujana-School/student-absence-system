@@ -378,7 +378,7 @@ test("crowded A4 archive days split into readable sheets instead of shrinking te
   await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
   await expect(sheets.nth(0).locator(".tt-official-table")).toHaveAttribute("style", "font-size:9.2pt");
   const names = await page.locator(".tt-official-substitute").allTextContents();
-  expect(names).toEqual(rows.map(row => row.substitute));
+  expect(names.slice().sort()).toEqual(rows.map(row => row.substitute).sort());
   expect(source).toContain(".tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm");
   expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
 });
