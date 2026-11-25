@@ -2655,13 +2655,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         const systemAdmin=appAuthSession?.principal?.type==="admin";
         const picker=$("subxArchiveDepartmentPickerWrap");
         if(picker)picker.classList.toggle("hidden",!systemAdmin);
-        if(!systemAdmin){
-          const summary=$("subxArchiveDepartmentSummary");
-          const summaryText="أرشيف القسم المرتبط بحسابك فقط، ويمكنك أيضاً فتح أرشيف احتياط المدرسة الشامل من البطاقة الثانية.";
-          // This helper runs from a MutationObserver watching the archive subtree.
-          // Replacing identical text still emits childList mutations and re-enters apply().
-          if(summary&&summary.textContent!==summaryText)summary.textContent=summaryText;
-        }
         ["department","school"].forEach(mode=>{
           const prefix=mode==="school"?"subxArchiveSchool":"subxArchiveDepartment";
           const fromInput=$(prefix+"From"),toInput=$(prefix+"To");
@@ -2731,12 +2724,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         });
       };
       apply();
-      if(!host.dataset.premiumDateObserver){
-        host.dataset.premiumDateObserver="1";
-        const observer=new MutationObserver(()=>apply());
-        observer.observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});
-        host.__subxReserveArchivePremiumDateObserver=observer;
-      }
       return true;
     }
     function mountCanonicalPanel(){
