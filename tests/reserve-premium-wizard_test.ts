@@ -18,15 +18,20 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
   assert(reserveWorkflow.includes("installPremiumReserveExperience(panel)"), "The premium workflow must be installed on the live reserve panel");
 });
 
-Deno.test("visible canonical date navigation defaults to Muscat today and provides yesterday/today/tomorrow shortcuts", () => {
+Deno.test("visible canonical date navigation offers only today and tomorrow shortcuts", () => {
   assert(reserveWorkflow.includes('const distributionDate=$("substitutionDate");'), "Quick navigation must attach to the visible canonical date picker");
   assert(reserveWorkflow.includes('nav.id="subxCanonicalDateQuickNav"'), "The visible date card must include its own quick navigation");
-  assert(reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday shortcut is missing");
   assert(reserveWorkflow.includes('data-date-offset="0"'), "Today shortcut is missing");
+  assert(!reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday shortcut must not be rendered");
   assert(reserveWorkflow.includes('data-date-offset="1"'), "Tomorrow shortcut is missing");
   assert(reserveWorkflow.includes('getOmanLocalDate==="function"?getOmanLocalDate()'), "Quick navigation must use the Muscat-local date supplied by the app");
   assert(reserveWorkflow.includes('if(!date.value)date.value=today;'), "The visible date must default to Muscat today only when empty");
   assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
+});
+
+Deno.test("saved reserve cards use a prominent period indicator", () => {
+  assert(reserveWorkflow.includes("tt-period-indicator"), "The lesson period must be shown in a prominent indicator");
+  assert(reserveWorkflow.includes("font-size:1.35rem"), "The period number must be visually readable");
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {
