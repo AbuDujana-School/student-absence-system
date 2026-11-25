@@ -1183,15 +1183,19 @@
     const delay=Math.max(1000,nextMidnightUtc-Date.now()+1200);
     reserveMidnightRefreshTimer=setTimeout(async()=>{
       reserveLastObservedOmanDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-      try{await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
+      try{if(reserveIsArchiveScreenVisible())await window.timetableDailyLoadArchive?.();}catch(error){console.warn("Reserve archive midnight refresh failed.",error);}
       reserveScheduleMidnightRefresh();
     },delay);
+  }
+  function reserveIsArchiveScreenVisible(){
+    const panel=document.getElementById("timetableSubstitutionPanel");
+    return Boolean(panel&&panel.getClientRects().length);
   }
   function reserveRefreshAfterOmanDateChange(){
     const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     if(current===reserveLastObservedOmanDate)return;
     reserveLastObservedOmanDate=current;
-    window.timetableDailyLoadArchive?.();
+    if(reserveIsArchiveScreenVisible())window.timetableDailyLoadArchive?.();
     reserveScheduleMidnightRefresh();
   }
   if(!window.__reserveMidnightRefreshBound){
