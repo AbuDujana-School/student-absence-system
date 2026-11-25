@@ -12,14 +12,15 @@ test('date and distribution transitions wait for their asynchronous data operati
  assert.match(adapter,/await window\.substitutionLoadAbsentees\?\.\(\);go\('absentees'\)/);
  assert.match(adapter,/await window\.substitutionGeneratePlan\?\.\(\);if\(plan/);
 });
-test('the original polished vertical absence-reason picker is the only modal used by all reserve flows',()=>{
+test('the restored illustrated absence-reason picker is the single modal used by all reserve flows',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.match(workflow,/function openAbsenceReasonPicker\(absentName,onConfirm,initialValue\)/);
- assert.match(workflow,/picker\(absentName,initialValue,value=>/);
- assert.match(html,/popup\.id='subxReasonPopup'/);
- assert.match(html,/window\.openSubstitutionAbsenceReasonPicker=function/);
- assert.doesNotMatch(workflow,/timetableDailyAbsenceReasonModal/);
- assert.doesNotMatch(workflow,/window\.openSubstitutionAbsenceReasonPicker = function/);
+ assert.match(workflow,/function openAbsenceReasonPicker\\(absentName,onConfirm,initialValue\\)/);
+ assert.match(workflow,/window\\.openSubstitutionAbsenceReasonPicker = function\\(absentName,currentValue,onConfirm\\)/);
+ assert.match(workflow,/timetableDailyAbsenceReasonModal/);
+ assert.match(workflow,/Object\\.defineProperty\\(window, "openSubstitutionAbsenceReasonPicker"/);
+ assert.match(workflow,/document\\.getElementById\\("subxReasonPopup"\\)\\?\\.remove\\(\\)/);
+ assert.doesNotMatch(html,/subxReasonPopup/);
+ assert.doesNotMatch(html,/window\\.openSubstitutionAbsenceReasonPicker=function/);
 });
 test('archive is loaded from the department-scoped backend archive action and has A4 print styling',()=>{
  assert.match(adapter,/action:'timetable_substitution_archive'/);
@@ -57,11 +58,12 @@ test('absentee selection card is made visible after moving it into its dedicated
  assert.match(adapter,/if\(absentee\)\{screens\.absentees\.append\(absentee\);absentee\.classList\.remove\('hidden'\);\}/);
 });
 
-test('the original absence reason picker is vertical, stable on every open, and retains legacy sick-leave values',()=>{
- assert.match(style,/#substitutionView #subxReasonPopup \.subx-reason-list\{display:flex;flex-direction:column/);
- assert.match(html,/\['مرضية','إجازة مرضية'\]/);
- assert.match(html,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
- assert.match(html,/other\.value='';other\.classList\.add\('hidden'\)/);
+test('the restored absence modal retains its selected-state and accessible choice styling',()=>{
+ assert.match(workflow,/#timetableDailyAbsenceReasonModal \.tt-absence-reason-option:has\\(input:checked\\)/);
+ assert.match(workflow,/ttAbsenceReasonChoice/);
+ assert.match(workflow,/fa-hospital/);
+ assert.match(workflow,/fa-kit-medical/);
+ assert.doesNotMatch(html,/#substitutionView #subxReasonPopup/);
 });
 test('absence screen has a validated next step and smart distribution owns the generate action',()=>{
  assert.match(adapter,/id='subxAbsenteesNext'/);
@@ -94,7 +96,7 @@ test('canonical distribution date never permits a past date and quick navigation
 });
 test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.ok(workflow.includes('.tt-period-indicator{display:flex;flex-direction:column'));
+ assert.ok(workflow.includes(':is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator{display:flex;flex-direction:column'));
  assert.ok(workflow.includes('<span>الحصة الحالية</span>'));
  assert.ok(workflow.includes('font-size:2.65rem'));
  assert.ok(workflow.includes('min-height:6.2rem'));
