@@ -9,10 +9,12 @@ on:
       - feature/class-timetable-and-personal-portal-20261115
       - feature/weighted-batch-substitution
       - feature/reserve-same-day-corrections-20261117
+      - feature/admin-reserve-records-reset-20261126
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
     paths:
       - "supabase/functions/timetable-management/**"
+      - "supabase/functions/student-affairs/**"
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
       - "reserve-workflow.js"
@@ -25,6 +27,7 @@ on:
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
+      - "supabase/functions/student-affairs/**"
       - "index.html"
       - "reserve-workflow.js"
       - "tests/substitution_single_screen_adapter_test.mjs"
@@ -91,6 +94,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121163355_substitution_per_period_edit_deadline.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121163941_substitution_create_period_deadline.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_reserve_edit_until_muscat_day_end.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261126010000_admin_delete_saved_reserve_records.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/reserve_edit_until_muscat_day_end.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_batch_cancel_reverses_all_points.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_absent_reassignment_permissions.sql
@@ -107,6 +111,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/weighted_batch_substitution.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_reason_archive.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/admin_reserve_reset.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/admin_delete_all_reserve_records.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_points_rules.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -114,6 +119,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
+      - name: Type-check Student Affairs reset endpoint
+        run: deno check supabase/functions/student-affairs/index.ts
       - name: Verify deployed development timetable endpoint rejects missing and unknown app sessions
         if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'perf/timetable-self-read-no-preflight-20261120'
         env:
