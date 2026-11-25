@@ -1587,7 +1587,7 @@ async function handle(req: Request) {
           .map((row:any)=>({
             id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
             canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
-              (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat:
+              (principal.type==="admin"?isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat):
                 hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             canDelete:String(row.version_id)===String(activeVersion.id)&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")):
@@ -1670,7 +1670,7 @@ async function handle(req: Request) {
           return reply(400,{error:"اختر حصة صحيحة ضمن حصص اليوم."});
         }
         const withinWindow=principal.type==="admin"
-          ? String(editableAssignment.assignment_date||"")===todayInMuscat
+          ? isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat)
           : isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat);
         if(!withinWindow)return reply(409,{error:"انتهى يوم التوزيع؛ يمكن تعديل التوزيع حتى نهاية يومه بتوقيت سلطنة عمان."});
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
