@@ -351,28 +351,14 @@ test("official reserve archive printing orders days newest first and creates one
   expect(printed).toEqual(["A4:2026-11-24", "A4:2026-11-23"]);
 });
 
-test("single-day A4 archive sheets apply compact row typography instead of clipping long days", async ({ page }) => {
+test("crowded A4 archive days split into readable sheets instead of shrinking text", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
-  const extractPrintFunction = marker => {
-    const start = source.indexOf(marker);
-    if (start < 0) throw new Error("Missing " + marker);
-    const brace = source.indexOf("){", start) + 1;
-    let depth = 0, quote = null, escaped = false, line = false, block = false;
-    for (let i = brace; i < source.length; i++) {
-      const ch = source[i], next = source[i + 1];
-      if (line) { if (ch === "\\n") line = false; continue; }
-      if (block) { if (ch === "*" && next === "/") { block = false; i++; } continue; }
-      if (quote) { if (escaped) { escaped = false; continue; } if (ch === "\\\\") { escaped = true; continue; } if (ch === quote) quote = null; continue; }
-      if (ch === "/" && next === "/") { line = true; i++; continue; }
-      if (ch === "/" && next === "*") { block = true; i++; continue; }
-      if (ch === "'" || ch === '"' || ch === "`") { quote = ch; continue; }
-      if (ch === "{") depth++;
-      else if (ch === "}" && --depth === 0) return source.slice(start, i + 1);
-    }
-    throw new Error("Unbalanced " + marker);
-  };
-  const pages = extractPrintFunction("function reserveOfficialPrintPages(");
-  const markup = extractPrintFunction("function reserveOfficialPrintMarkup(");
+  const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
+  const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
+  const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
+  if (pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const pages = source.slice(pagesStart, markupStart);
+  const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
   const build = new Function("esc", "formatReserveDateArabic",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
@@ -381,15 +367,21 @@ test("single-day A4 archive sheets apply compact row typography instead of clipp
   const rows = Array.from({ length: 40 }, (_, index) => ({
     period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
   }));
-  const html = build([{ absentName: "معلم غائب", absenceReason: "مرضية", rows }], "2026-11-24", "", "", { singlePage: true })[0];
-  await page.setContent(html);
-  await expect(page.locator(".tt-official-page[data-single-page='1']")).toHaveCount(1);
-  await expect(page.locator(".tt-official-table.tt-official-single-page tbody tr")).toHaveCount(40);
-  await expect(page.locator(".tt-official-table")).toHaveAttribute("style", "font-size:7.4pt");
+  const output = build([{ absentName: "معلم غائب", absenceReason: "مرضية", rows }], "2026-11-24", "", "", { singlePage: true });
+  expect(output).toHaveLength(2);
+  await page.setContent("<div id='pages'>" + output.join("") + "</div>");
+  const sheets = page.locator(".tt-official-page");
+  await expect(sheets).toHaveCount(2);
+  await expect(sheets.nth(0).locator(".tt-official-table tbody tr")).toHaveCount(22);
+  await expect(sheets.nth(1).locator(".tt-official-table tbody tr")).toHaveCount(18);
+  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("كشف توزيع");
+  await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
+  await expect(sheets.nth(0).locator(".tt-official-table")).toHaveAttribute("style", "font-size:9.2pt");
+  const names = await page.locator(".tt-official-substitute").allTextContents();
+  expect(names).toEqual(rows.map(row => row.substitute));
+  expect(source).toContain(".tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm");
   expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
 });
-
-
 test("crowded schoolwide reserve day splits into readable continuation sheets without losing assignments", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
   const extractPrintFunction = marker => {
