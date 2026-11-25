@@ -360,10 +360,10 @@ test("crowded A4 archive days split into readable sheets instead of shrinking te
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE",
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
-    markup + ";" + pages + "; return reserveOfficialPrintPages;"
-  )(value => String(value ?? ""), () => "التاريخ", 22);
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
   const rows = Array.from({ length: 40 }, (_, index) => ({
     period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
   }));
@@ -451,10 +451,12 @@ test("crowded schoolwide reserve day uses real A4 print geometry and preserves e
 
 test("long Arabic teacher and class names paginate before the A4 signature area", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const estimateStart = source.indexOf("function reserveOfficialPrintRowHeightEstimate(");
   const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
   const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
   const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
-  if (pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  if (estimateStart < 0 || pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const estimate = source.slice(estimateStart, pagesStart);
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
