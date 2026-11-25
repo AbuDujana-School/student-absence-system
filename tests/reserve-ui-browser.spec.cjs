@@ -156,6 +156,53 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
   }
 });
 
+test("reserve workspace does not prefetch preview or statistics when the view is merely visible at startup", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+  const integration = extractFunction(source, "function installMainSubstitutionViewIntegration()");
+  const generalAdminHelper = extractFunction(html, "function isGeneralAdminUser(");
+  const reserveCapabilityHelper = extractFunction(html, "function canManageReserveWorkspace(");
+  await page.setContent(`
+    <main id="dashboardSelectionView"></main>
+    <div id="substitutionDashboardCard" role="button" tabindex="0">توزيع الاحتياط</div>
+    <section id="substitutionView">
+      <input id="substitutionDate" type="date" value="2026-11-25">
+      <section id="subxEditPanel"><div id="subxEditMountArea"></div></section>
+      <section id="subxArchivePanel"><div id="subxArchiveMountArea"></div></section>
+    </section>
+    <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden"></div></section>
+  `);
+  await page.evaluate(({ integration, generalAdminHelper, reserveCapabilityHelper }) => {
+    const $ = (id) => document.getElementById(id);
+    const activeUser = { type: "admin", name: "مدير اختبار" };
+    const appAuthSession = { principal: { type: "admin", name: "مدير اختبار" }, token: "qa-token" };
+    const canManageReserveWorkspace = new Function("activeUser", generalAdminHelper + ";" + reserveCapabilityHelper + "; return canManageReserveWorkspace;")(activeUser);
+    const showToast = () => {};
+    const getOmanLocalDate = () => "2026-11-25";
+    const status = () => {};
+    const openAbsenceReasonPicker = () => {};
+    window.reserveReads = { preview: 0, stats: 0 };
+    window.appAuthRequest = async () => ({});
+    window.substitutionLoadAbsentees = async () => { window.reserveReads.preview += 1; };
+    window.substitutionLoadStats = async () => { window.reserveReads.stats += 1; };
+    window.timetableDailyInstallAdminTools = async () => {};
+    window.timetableDailyInstallDepartmentTools = async () => {};
+    window.timetableDailyLoadArchive = async () => ({ archive: [] });
+    window.openSubstitutionView = async () => {};
+    window.closeSubstitutionView = () => {};
+    window.refreshSubstitutionDashboardCard = () => {};
+    const install = new Function("$", "activeUser", "appAuthSession", "canManageReserveWorkspace", "showToast", "getOmanLocalDate", "status", "openAbsenceReasonPicker", integration + "; return installMainSubstitutionViewIntegration;")(
+      $, activeUser, appAuthSession, canManageReserveWorkspace, showToast, getOmanLocalDate, status, openAbsenceReasonPicker
+    );
+    install();
+  }, { integration, generalAdminHelper, reserveCapabilityHelper });
+  await page.waitForTimeout(0);
+  expect(await page.evaluate(() => window.reserveReads), "Visibility at page startup must not trigger reserve network reads").toEqual({ preview: 0, stats: 0 });
+  await page.locator("#substitutionDashboardCard").click();
+  await page.waitForFunction(() => window.reserveReads.preview === 1 && window.reserveReads.stats === 1);
+  expect(await page.evaluate(() => window.reserveReads), "Explicit dashboard action must still initialize the reserve workspace").toEqual({ preview: 1, stats: 1 });
+});
+
 test("cumulative reserve archive renders from its own cache, not the daily archive cache", async () => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
   const render = extractFunction(source, "window.substitutionRenderCumulativeArchive = function()");
