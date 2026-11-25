@@ -491,10 +491,11 @@ async function handle(req: Request) {
       .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,absence_reason,created_at,reserve_created_at")
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
       .order("assignment_date").order("period").order("id").range(from,to));
-    const futureActiveRows=body.includeFutureActive===true&&!homeToday&&activeVersion.data?.id
+    const activeVersionId=activeVersion.data?.id;
+    const futureActiveRows=body.includeFutureActive===true&&!homeToday&&activeVersionId
       ?await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
         .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,absence_reason,created_at,reserve_created_at")
-        .eq("assignment_type","substitution").eq("version_id",activeVersion.data.id)
+        .eq("assignment_type","substitution").eq("version_id",activeVersionId)
         .gt("assignment_date",todayInMuscat).in("status",["assigned","confirmed","completed"])
         .order("assignment_date").order("period").order("id").range(from,to))
       :[];
