@@ -551,7 +551,10 @@
       if(results)results.classList.toggle("tt-premium-results-ready",hasAbsentees);
     };
     panel.querySelectorAll("[data-premium-step]").forEach(button=>button.addEventListener("click",()=>{
-      const target=Number(button.dataset.premiumStep)===1?$("ttPremiumDateCard"):Number(button.dataset.premiumStep)===2?$("ttPremiumAbsentCard"):Number(button.dataset.premiumStep)===3?(proposalScreenActive?results:auto):results;
+      const step=Number(button.dataset.premiumStep);
+      if(step<=2&&proposalScreenActive){proposalScreenActive=false;update();}
+      if(step>=4&&hasPlan&&!proposalScreenActive){proposalScreenActive=true;update();}
+      const target=step===1?$("ttPremiumDateCard"):step===2?$("ttPremiumAbsentCard"):step===3?(proposalScreenActive?results:auto):results;
       if(target&&!target.hidden){target.scrollIntoView({behavior:"smooth",block:"center"});target.querySelector("input,select,button")?.focus?.({preventScroll:true});}
     }));
     date?.addEventListener("change",update);date?.addEventListener("input",update);
