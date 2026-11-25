@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-edit-glass-workspace-1">
+<meta name="app-build" content="2026-11-25-reserve-per-absent-edit-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11766,7 +11766,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-edit-glass-workspace-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-per-absent-edit-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -15285,7 +15285,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-edit-glass-workspace-1"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-per-absent-edit-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
@@ -15381,7 +15381,10 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
         items.forEach(item=>{const name=String(item.absentTeacherName||'غير محدد');if(!absent.has(name))absent.set(name,[]);absent.get(name).push(item);});
         const absentMarkup=[...absent.entries()].map(([name,records])=>{
           const periods=records.map(x=>Number(x.period)).filter(Number.isFinite).sort((x,y)=>x-y).map(x=>new Intl.NumberFormat('en-US',{useGrouping:false}).format(x)).join(', ');
-          return '<div class="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/70 px-3 py-2"><span class="min-w-0 truncate text-xs font-extrabold text-slate-700">'+escapeHtml(name)+'</span><span class="shrink-0 text-[10px] font-bold text-slate-500" dir="ltr">'+records.length+' · '+periods+'</span>'+(records.every(record=>record.canDelete===true)?'<button type="button" class="subx-edit-delete-group" data-delete-edit-day="'+escapeHtml(date)+'" data-delete-edit-absent="'+escapeHtml(name)+'" aria-label="حذف توزيع المعلم '+escapeHtml(name)+'"><i class="fa-regular fa-trash-can"></i></button>':'')+'</div>';
+          const canEditAbsent=records.some(record=>record.canEdit===true&&['assigned','confirmed'].includes(String(record.status||'')));
+          const editButton=canEditAbsent?'<button type="button" class="subx-edit-open-absent inline-flex items-center gap-1 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800 shadow-sm transition hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-300" data-edit-absent-day="'+escapeHtml(date)+'" data-edit-absent-name="'+escapeHtml(name)+'" aria-label="تعديل توزيع المعلم '+escapeHtml(name)+'"><i class="fa-solid fa-pen-to-square"></i><span>تعديل</span></button>':'';
+          const deleteButton=records.every(record=>record.canDelete===true)?'<button type="button" class="subx-edit-delete-group rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 transition hover:bg-rose-100" data-delete-edit-day="'+escapeHtml(date)+'" data-delete-edit-absent="'+escapeHtml(name)+'" aria-label="حذف توزيع المعلم '+escapeHtml(name)+'"><i class="fa-regular fa-trash-can"></i></button>':'';
+          return '<div class="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/70 px-3 py-2"><div class="min-w-0 flex-1"><span class="block truncate text-xs font-extrabold text-slate-700">'+escapeHtml(name)+'</span><span class="mt-1 block text-[10px] font-bold text-slate-500" dir="ltr">'+records.length+' · '+periods+'</span></div><div class="flex shrink-0 items-center gap-1">'+editButton+deleteButton+'</div></div>';
         }).join('');
         return '<article class="subx-glass-card group relative overflow-hidden rounded-3xl border border-white/80 p-4 shadow-glass transition hover:-translate-y-0.5 hover:shadow-glassHover sm:p-5"><div class="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-teal-300/15 blur-2xl"></div><div class="relative flex items-start gap-3"><div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-sky-50 text-teal-700 shadow-sm"><i class="fa-regular fa-calendar-days text-xl"></i></div><div class="min-w-0 flex-1"><p class="text-[10px] font-black tracking-wide text-teal-700">توزيع نشط</p><h4 class="mt-1 font-display text-lg font-black text-slate-900 dark:text-white">'+escapeHtml(formatDate(date))+'</h4><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-[10px] font-extrabold text-sky-800">'+absent.size+' معلم غائب</span><span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold text-amber-800">'+items.length+' حصة احتياط</span></div></div></div><div class="relative mt-4 space-y-2">'+absentMarkup+'</div><button type="button" class="subx-edit-open-day mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-sapphire to-lagoon px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:brightness-110 active:scale-[.99]" data-open-edit-day="'+escapeHtml(date)+'"><i class="fa-solid fa-pen-to-square"></i><span>فتح وتعديل اليوم</span><i class="fa-solid fa-arrow-left mr-auto"></i></button></article>';
       }).join('')+'</div>';
@@ -15389,6 +15392,11 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
         const opener=window.timetableDailyOpenArchiveDayEdit;
         if(typeof opener!=='function'){showToast('أداة تعديل اليوم غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
         void opener(button.dataset.openEditDay);
+      }));
+      host.querySelectorAll('[data-edit-absent-day]').forEach(button=>button.addEventListener('click',()=>{
+        const opener=window.timetableDailyOpenArchiveDayEdit;
+        if(typeof opener!=='function'){showToast('أداة تعديل الاحتياط غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
+        void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName);
       }));
       host.querySelectorAll('[data-delete-edit-day]').forEach(button=>button.addEventListener('click',()=>{
         const remove=window.timetableDailyCancelAbsentDistribution;
