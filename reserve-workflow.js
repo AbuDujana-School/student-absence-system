@@ -1344,17 +1344,28 @@
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
-    if(options?.singlePage)return [reserveOfficialPrintMarkup(groups,date,weekday,subject,options)];
+    const pageLimit=options?.singlePage?RESERVE_OFFICIAL_ROWS_PER_PAGE:RESERVE_OFFICIAL_ROWS_PER_PAGE;
     const pages=[];let current=[],count=0;
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
-      if(rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){if(count){pages.push(current);current=[];count=0;}for(let i=0;i<rows.length;i+=RESERVE_OFFICIAL_ROWS_PER_PAGE)pages.push([{...group,rows:rows.slice(i,i+RESERVE_OFFICIAL_ROWS_PER_PAGE)}]);return;}
-      if(count+rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
-      current.push({...group,rows});count+=rows.length;
+      // Split oversized absent-teacher groups without dropping or duplicating a lesson.
+      // Each chunk repeats the absent teacher and absence reason in its own merged cells.
+      for(let offset=0;offset<rows.length;offset+=pageLimit){
+        const chunk=rows.slice(offset,offset+pageLimit);
+        if(count+chunk.length>pageLimit){pages.push(current);current=[];count=0;}
+        current.push({...group,rows:chunk});count+=chunk.length;
+        if(count===pageLimit){pages.push(current);current=[];count=0;}
+      }
     });
-    if(current.length)pages.push(current);if(!pages.length)pages.push([]);
-    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject));
+    if(current.length)pages.push(current);
+    if(!pages.length)pages.push([]);
+    return pages.map((pageGroups,index)=>{
+      const pageOptions=options?.singlePage&&index>0
+        ?{...options,title:options.continuationTitle||"تابع كشف توزيع الاحتياط"}
+        :options;
+      return reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,pageOptions);
+    });
   }
   function reserveOfficialPrintMarkup(groups,date,weekday,subject,options={}){
     const widths=[20,16,10.5,10.5,13,11,19];
@@ -1447,9 +1458,9 @@
     printOfficialReservePages(pages,subject);
   };
   window.printSchoolwideReserveDistributionReport=function(dayReports){
-    const options={singlePage:true,title:"توزيع الاحتياط"};
-    const pages=(Array.isArray(dayReports)?dayReports:[]).map(day=>
-      reserveOfficialPrintMarkup(Array.isArray(day?.groups)?day.groups:[],day?.date||"",day?.weekday||"","",options)
+    const options={singlePage:true,title:"توزيع الاحتياط",continuationTitle:"تابع كشف توزيع الاحتياط"};
+    const pages=(Array.isArray(dayReports)?dayReports:[]).flatMap(day=>
+      reserveOfficialPrintPages(Array.isArray(day?.groups)?day.groups:[],day?.date||"",day?.weekday||"","",options)
     );
     if(pages.length)printOfficialReservePages(pages,"",options);
   };
