@@ -134,7 +134,6 @@
       select.dispatchEvent(new Event("change",{bubbles:true}));
     }));
   }
-
   function renderOtherDepartmentTeachers() {
     const host=$("timetableDailyOtherTeacherChoices"), add=$("timetableDailyAddOtherTeachersButton");
     if(!host)return;
@@ -205,7 +204,6 @@
     renderOtherDepartmentOptions();
     renderOtherDepartmentTeachers();
   }
-
   function reserveCurrentMuscatDate(){
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
@@ -298,9 +296,6 @@
     return '<label class="mt-2 block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(التكليف المسند للمعلم البديل لهذه الحصة)</span>'+
       '<textarea data-tt-reason="'+esc(key)+'" rows="2" maxlength="500" class="tt-reason mt-1 w-full resize-y" placeholder="مثال: متابعة الصف وتنفيذ الحصة المقررة...">'+esc(value)+'</textarea></label>';
   }
-
-
-
   function installReserveAbsenteeChecklist(panel) {
     const search=$("timetableDailyAbsentSearch");
     if(!panel||!search||search.dataset.reserveChecklistBound==="1")return;
@@ -314,7 +309,6 @@
     $("timetableDailySuggestions")?.classList.add("hidden");
     const pending=new Set();
     let busy=false;
-
     const selectedNames=()=>Array.isArray(timetableDailyAbsentTeachers)?timetableDailyAbsentTeachers:[];
     const normalize=value=>typeof timetableDailyNormalizeName==="function"
       ?timetableDailyNormalizeName(value):String(value||"").trim().toLocaleLowerCase("ar");
@@ -397,7 +391,6 @@
       openReason(name,!selectedNames().includes(name));
     });
     search.addEventListener("input",render);
-
     const wrap=(name,after)=>{
       const original=window[name];
       if(typeof original!=="function"||original.__ttReserveChecklistWrapped)return;
@@ -464,7 +457,6 @@
     }
     render();
   }
-
   function installPremiumReserveExperience(panel) {
     if(!panel||panel.dataset.premiumReserveExperience==="1")return;
     panel.dataset.premiumReserveExperience="1";
@@ -530,7 +522,6 @@
     panel.addEventListener("click",event=>{if(event.target?.closest?.("[data-tt-remove-absent],[data-tt-approve],#timetableDailySaveBatchButton"))queueMicrotask(update);});
     const observer=new MutationObserver(update);if(results)observer.observe(results,{childList:true,subtree:true});const tags=$("timetableDailyAbsentTags");if(tags)observer.observe(tags,{childList:true,subtree:true});update();
   }
-
   function installReserveEnhancements() {
     const panel = $("timetableSubstitutionPanel");
     if (!panel || panel.dataset.reserveEnhanced === "1") return;
@@ -654,7 +645,6 @@
         "@media(max-width:680px){.tt-reserve-choice-grid{grid-template-columns:1fr;gap:.75rem}.tt-reserve-choice-card{padding:1rem}.tt-reserve-choice-copy strong{font-size:.98rem}}"
       ].join("\n");
       document.head.appendChild(choiceStyle);
-
       $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
         const selectedIds=selectedOtherDepartmentIds();reserveOtherDepartmentIds=[...selectedIds];reserveOtherDepartmentId=selectedIds[0]||"";
         renderOtherDepartmentOptions();
@@ -796,7 +786,6 @@
     updateBatchSaveVisibility();
     installPremiumReserveExperience(panel);
   }
-
   async function fetchBatchPreview() {
     if(includeOthers()&&!selectedOtherDepartmentIds().length)throw new Error("اختر تخصصاً واحداً على الأقل قبل تحميل أسماء المعلمين.");
     if(includeOthers()&&!reserveSelectedOtherTeacherNames.size)throw new Error("حدد معلماً واحداً على الأقل من القسم المساند واضغط إضافة المعلمين المحددين.");
@@ -808,7 +797,6 @@
       absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherDepartmentIds:selectedOtherDepartmentIds(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
     }, token);
   }
-
   window.timetableDailySetBusy = function (disabled) {
     ["timetableSubstitutionDate","timetableDailyAbsentSearch","timetableSubstitutionOtherDepartments"].forEach(id => {
       const control = $(id); if (control) control.disabled = disabled;
@@ -816,7 +804,6 @@
     document.querySelectorAll("#timetableDailyAbsentTags [data-tt-remove-absent]").forEach(button => button.disabled = disabled);
     document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyAutoAssign],#timetableSubstitutionPanel button[onclick*=timetableDailySaveBatch],#timetableDailySaveBatchButton,#timetableDailyOtherDepartmentsButton").forEach(button => button.disabled = disabled);
   };
-
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
     if(isGeneralAdminUser(activeUser))installAdminReserveTools();
@@ -847,7 +834,6 @@
       status(error?.message || "تعذر تحليل جميع الحصص دفعة واحدة.", "error"); throw error;
     }
   };
-
   window.timetableDailyRemoveAbsent = async function (name) {
     if (timetableDailyBusy) return;
     timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
@@ -857,7 +843,6 @@
     delete reserveAbsenceReasons[name];
     timetableDailyRenderTags(); await window.timetableDailyRefreshAll();
   };
-
   window.timetableDailyRenderLessons = function () {
     const host = $("timetableSubstitutionResults"), summary = $("timetableDailySummary");
     if (!host) return;
@@ -993,7 +978,6 @@
     host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
     updateBatchSaveVisibility();
   };
-
   window.timetableDailyAutoAssign = async function () {
     if(timetableDailyBusy)return;
     if(!timetableDailyAbsentTeachers.length){status("أضف معلماً غائباً واحداً على الأقل.","error");return;}
@@ -1011,7 +995,6 @@
     }catch(error){status(error?.message||"تعذر إعداد التوزيع الذكي.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
-
   window.timetableDailySaveBatch = async function () {
     if(timetableDailyBusy)return;
     if(!timetableDailyAbsentTeachers.length){status("اختر المعلمين الغائبين أولاً.","error");return;}
@@ -1051,7 +1034,6 @@
     }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي؛ لم يصل تأكيد من الخادم.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
-
   window.timetableDailyToggleArchive = async function () {
     const panel=$("timetableDailyArchivePanel");if(!panel)return;
     const opening=panel.classList.contains("hidden");panel.classList.toggle("hidden");if(opening)await timetableDailyLoadArchive();
@@ -1126,14 +1108,12 @@
     });
     printOfficialReservePages(pages);
   };
-
   async function fetchArchivePreview(absentName, date, weekday) {
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
       absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
   }
-
   window.timetableDailyRenderArchive = function () {
     const host=$("timetableDailyArchiveResults");if(!host)return;
     const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
@@ -1192,7 +1172,6 @@
     host.querySelectorAll("[data-tt-open-day-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveDayEdit(button.dataset.ttOpenDayEdit)));
     host.querySelectorAll("[data-tt-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.ttDeleteGroupDate,button.dataset.ttDeleteGroupAbsent)));
   };
-
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
@@ -1247,8 +1226,6 @@
       });
     }catch(error){status(error?.message||"تعذر فتح توزيع اليوم للتعديل.","error");}
   };
-
-
   window.timetableDailyCancelAssignment = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||reserveCumulativeArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
@@ -1264,7 +1241,6 @@
       if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
-
   window.timetableDailyCancelAbsentDistribution = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter(item=>item.assignmentDate===date&&item.absentTeacherName===absentTeacherName&&
@@ -1293,8 +1269,6 @@
       if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر حذف التوزيع بالكامل؛ لم يتم اعتماد حذف جزئي.","error");}
   };
-
-
   window.timetableDailyRegisterExternalAssignments = function(items) {
     (Array.isArray(items)?items:[]).forEach(item=>{
       if(!item||!item.id)return;
@@ -1417,7 +1391,6 @@
       });
     }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
   };
-
   function formatReservePeriod(period){
     return ({1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة"})[Number(period)]||String(period);
   }
@@ -1502,10 +1475,8 @@
     const detectedSubjects=[...new Set((groups||[]).flatMap(group=>(group.rows||[]).map(row=>String(row.subject||"").trim()).filter(Boolean)))];
     const subjectLabel=String(subject||"").trim()||detectedSubjects.join("، ");
     const subjectTitle=String(options?.title||"").trim()||(subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط");
-
     return '<main class="tt-official-page"'+(options?.singlePage?' data-single-page="1"':'')+'><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
-
       '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+(options?.singlePage?' tt-official-single-page':'')+'"'+(options?.singlePage?' style="font-size:'+singlePageFontSize+'pt"':'')+'>'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
@@ -1596,7 +1567,6 @@
     const subject=await reservePrintActorSubject();
     printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject),subject);
   };
-
   window.timetableDailyShareWhatsApp = async function () {
     if(!timetableDailyAbsentTeachers.length){status("أضف المعلمين الغائبين أولاً.","error");return;}
     const popup=window.open("about:blank","_blank");if(!popup){status("اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.","error");return;}
@@ -1623,7 +1593,6 @@
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
   };
-
   function applyTeacherTimetablePresentation() {
     const view=$("teacherTimetableView"),host=$("teacherTimetableWeekGrid");
     if(!view||!host)return;
@@ -1692,7 +1661,6 @@
       finally{button.disabled=false;}
     });
   }
-
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
     if(!panel || panel.dataset.adminReserveTools==="1" || !isGeneralAdminUser(activeUser))return;
@@ -1804,8 +1772,6 @@
       finally{button.disabled=false;}
     }
   }
-
-
   // Legacy reserve screen: explicitly choose supporting teachers from the selected department.
   function installLegacyOtherDepartmentTeacherPicker(){
     // The current index.html already owns this picker and its selection state.
@@ -1883,7 +1849,6 @@
       };
     }
   }
-
   function installHomeReserveArchive() {
     const view=$("substitutionView");
     // Do not initialize or fetch reserve archives while the user is on the login
@@ -1937,13 +1902,11 @@
     // Keep the cumulative report visible and loaded automatically for authorized reserve coordinators.
     window.substitutionLoadCumulativeArchive();
   }
-
   function setHomeArchiveStatus(message,kind) {
     const node=$("substitutionCumulativeArchiveStatus");if(!node)return;
     node.textContent=String(message||"");
     node.className="text-[10px] font-bold "+(kind==="error"?"text-rose-700":kind==="success"?"text-emerald-700":"text-slate-500");
   }
-
   window.substitutionLoadCumulativeArchive = function() {
     const host=$("substitutionCumulativeArchiveResults");if(!host)return Promise.resolve(false);
     const from=$("substitutionArchiveFrom")?.value||"",to=$("substitutionArchiveTo")?.value||"";
@@ -1974,13 +1937,11 @@
     });
     return reserveCumulativeArchiveLoadPromise;
   };
-
   function setHomeTodayStatus(message,kind) {
     const node=$("substitutionTodayAssignmentsStatus");if(!node)return;
     node.textContent=String(message||"");
     node.className="text-[10px] font-bold "+(kind==="error"?"text-rose-700":kind==="success"?"text-emerald-700":"text-slate-500");
   }
-
   window.substitutionLoadHomeTodayAssignments = async function() {
     const host=$("substitutionTodayAssignmentsResults");if(!host)return false;
     if(reserveHomeTodayLoadPromise)return reserveHomeTodayLoadPromise;
@@ -2023,7 +1984,6 @@
     })();
     return reserveHomeTodayLoadPromise;
   };
-
   window.substitutionRenderHomeTodayAssignments = function() {
     const host=$("substitutionTodayAssignmentsResults");if(!host)return;
     const today=timetableSubstitutionGetDate().date;
@@ -2064,7 +2024,6 @@
     host.querySelectorAll("[data-home-today-edit]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveEdit(button.dataset.homeTodayEdit)));
     host.querySelectorAll("[data-home-today-delete]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyCancelAssignment(button.dataset.homeTodayDelete)));
   };
-
   window.substitutionRenderCumulativeArchive = function() {
     const host=$("substitutionCumulativeArchiveResults");if(!host)return;
     // Cancelled assignments remain in the audit trail, but are not part of the
@@ -2099,7 +2058,6 @@
     host.querySelectorAll("[data-home-archive-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.homeArchiveDelete)));
     host.querySelectorAll("[data-home-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.homeDeleteGroupDate,button.dataset.homeDeleteGroupAbsent)));
   };
-
   function installReserveArchiveAutoRefresh() {
     if(window.__reserveArchiveAutoRefreshInstalled)return;
     const originalRequest=window.appAuthRequest;
@@ -2144,14 +2102,11 @@
       return result;
     };
   }
-
-
   // Integrate absence reasons and post-approval controls into the actual home
   // substitution workflow (#substitutionView), not only the timetable sub-panel.
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
-
     // The current single-screen adapter moves the real distribution flow into
     // #subxScreen_smart. Build the department choices there, not in the hidden
     // legacy timetable panel.
@@ -2246,7 +2201,6 @@
         select.dataset.canonicalDepartmentCardsBound="1";
         select.addEventListener("change",renderCanonicalDepartmentCards,true);
       }
-
       const enhanceCanonicalTeacherCards=()=>{
         const host=$("substitutionOtherTeacherChoices");
         if(!host)return;
@@ -2316,7 +2270,6 @@
         wrappedRender.__original=originalRender;
         window.renderSubstitutionOtherTeacherChoices=wrappedRender;
       }
-
       // The legacy teacher renderer may be registered after this screen installer,
       // or populate its host asynchronously. Observe its real output so the
       // canonical cards never remain stuck on the "loading teachers" placeholder.
@@ -2331,13 +2284,11 @@
         // Also handle content that was already rendered before the observer was attached.
         enhanceCanonicalTeacherCards();
       }
-
       const principal=appAuthSession?.principal;
       const sameSessionAdmin=principal?.type==="admin"&&principal?.name===activeUser?.name;
       const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||
         (principal?.type==="teacher"&&principal?.permissions?.reserve===true);
       if(externalCard)externalCard.hidden=!canExpand;
-
       const setActiveScope=scope=>{
         grid.dataset.scope=scope;
         [localCard,externalCard].forEach(card=>{
@@ -2389,7 +2340,6 @@
         setActiveScope("external");
         deptWrap.classList.remove("hidden");
       }
-
       if(smartScreen.dataset.departmentChoiceObserver!=="1"&&typeof MutationObserver!=="undefined"){
         const observer=new MutationObserver(()=>{
           if(!smartScreen.classList.contains("is-visible"))return;
@@ -2413,7 +2363,6 @@
           }).catch(()=>{});
         }
       }
-
       const generateButton=$("substitutionGenerateButton");
       if(generateButton){
         generateButton.classList.add("subx-smart-generate-button");
@@ -2439,7 +2388,6 @@
           "#subxScreen_smart .subx-department-choice-card .tt-reserve-choice-copy small:last-child{font-size:11px;line-height:1.7;color:rgba(255,255,255,.92)}",
           "#subxScreen_smart .subx-department-choice-action{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:8px;min-height:38px;padding:8px;border:1px solid rgba(255,255,255,.45);border-radius:13px;background:rgba(255,255,255,.17);font-size:11px;font-weight:900}",
           "#subxScreen_smart .subx-smart-generate-button{display:flex!important;justify-content:center;align-items:center;width:100%;min-height:56px;margin:0 0 12px!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:18px!important;background:linear-gradient(105deg,#7c3aed,#4f46e5 38%,#0ea5e9 72%,#0d9488)!important;color:#fff!important;box-shadow:0 14px 30px rgba(79,70,229,.25),inset 0 1px 0 rgba(255,255,255,.35)!important;font-size:16px!important;font-weight:1000!important}",
-
           "#subxScreen_smart #subxReserveDepartmentCards{margin:.5rem 0 .9rem}",
           "#subxScreen_smart .subx-department-card-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:13px 15px;border:1px solid rgba(255,255,255,.72);border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(224,242,254,.76));box-shadow:0 9px 24px rgba(15,23,42,.07);font-size:12px;color:#17324d;backdrop-filter:blur(14px)}",
           "#subxScreen_smart .subx-department-card-toolbar>div:first-child{display:grid;gap:4px}#subxScreen_smart .subx-department-card-toolbar>div:first-child small{font-size:10px;color:#64748b;line-height:1.6}",
@@ -2753,12 +2701,10 @@
     }
   }
   installLegacyOtherDepartmentTeacherPicker();
-  installAbsenceReasonPicker();
+    // The canonical date/absence controls own the single reason-picker flow.
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const absencePickerObserver=new MutationObserver(()=>installAbsenceReasonPicker());
-    absencePickerObserver.observe(document.body,{subtree:true,childList:true});
+    // Do not wrap timetableDailyAddAbsent here: the visible checkbox capture handler already opens the picker.
   }
-
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
   installReserveArchiveAutoRefresh();
@@ -2805,8 +2751,5 @@
       timetableObserver.observe(timetableHost,{childList:true,subtree:true});
     }
   }
-
-
   
-
 })();
