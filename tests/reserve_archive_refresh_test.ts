@@ -398,3 +398,59 @@ Deno.test("reserve archive v2 separates department and school views and prints o
   assert(workflow.includes("const widths=[20,16,10.5,10.5,13,11,19]"), "Official seven-column widths must not change");
   assert(workflow.includes("<th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th>"), "Official seven column headings must not change");
 });
+
+Deno.test("reserve WhatsApp report uses the approved school header and grouped lesson layout", () => {
+  const helperStart=source.indexOf("function formatReserveWhatsAppDigits(");
+  const helperEnd=source.indexOf("function formatReservePrintPeriod(",helperStart);
+  assert(helperStart>=0&&helperEnd>helperStart,"The shared WhatsApp formatting helpers must exist");
+  const helperSource=source.slice(helperStart,helperEnd);
+  const build=new Function("formatReserveDateArabic",helperSource+"; return buildReserveWhatsAppMessage;")(
+    () => "٢٦ نوفمبر ٢٠٢٦"
+  );
+  const message=build([{
+    absentName:"محمد أحمد هارون",
+    rows:[
+      {period:1,className:"6/12",substitute:"تامر المتولي"},
+      {period:4,className:"5/12",substitute:"فيصل مشيري"},
+      {period:6,className:"3/12",substitute:"هشام البدوي"},
+      {period:7,className:"4/12",substitute:"عبد الستار يوسف"},
+    ],
+  }],"2026-11-26","الخميس","اللغة الإنجليزية");
+  const tick=String.fromCharCode(96);
+  const expected=[
+    "✨ *كـشـف تـوزيـع حـصـص الاحـتـيـاط* ✨",
+    "🏫 *مدرسة أبو دجانة الأنصاري*",
+    "",
+    "📚 *المادة:* "+tick+"اللغة الإنجليزية"+tick,
+    "🗓️ *التاريخ:* *الخميس، ٢٦ نوفمبر ٢٠٢٦*",
+    "",
+    "━━━━━━━━━━━━━━━━━━",
+    "",
+    "👤 *١. المعلم الغائب:* "+tick+"محمد أحمد هارون"+tick,
+    "",
+    "🔹 *الحصة ١* | الصف "+tick+"6/12"+tick,
+    "   ↳ *الاحتياط:* *تامر المتولي*",
+    "",
+    "🔹 *الحصة ٤* | الصف "+tick+"5/12"+tick,
+    "   ↳ *الاحتياط:* *فيصل مشيري*",
+    "",
+    "🔹 *الحصة ٦* | الصف "+tick+"3/12"+tick,
+    "   ↳ *الاحتياط:* *هشام البدوي*",
+    "",
+    "🔹 *الحصة ٧* | الصف "+tick+"4/12"+tick,
+    "   ↳ *الاحتياط:* *عبد الستار يوسف*",
+    "",
+    "━━━━━━━━━━━━━━━━━━",
+    "",
+    "🙏 *شكرًا لتعاونكم وحرصكم الدائم، ونتمنى لكم يومًا دراسيًا موفقًا ومثمرًا.* 🌟",
+  ].join("\n");
+  assert(message===expected,"The WhatsApp message must match the supplied visual and wording exactly");
+  const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
+  const editEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editStart);
+  const dailyStart=source.indexOf("window.timetableDailyShareWhatsApp = async function () {");
+  const dailyEnd=source.indexOf("function applyTeacherTimetablePresentation()",dailyStart);
+  assert(editStart>=0&&editEnd>editStart&&source.slice(editStart,editEnd).includes("buildReserveWhatsAppMessage(groups,date,weekday,subject)"),
+    "Saved-day edit sharing must use the shared WhatsApp template");
+  assert(dailyStart>=0&&dailyEnd>dailyStart&&source.slice(dailyStart,dailyEnd).includes("buildReserveWhatsAppMessage(groups,date,weekday,subject)"),
+    "Daily reserve sharing must use the shared WhatsApp template");
+});

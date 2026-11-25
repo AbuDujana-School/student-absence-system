@@ -1317,9 +1317,12 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         }
         if(button.hasAttribute("data-share")){
           const grouped=new Map();items.forEach(x=>{const n=String(x.absentTeacherName||"غير محدد");if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(x);});
-          const tick=String.fromCharCode(96);let message="*توزيع حصص الاحتياط*\n\n"+date+"\n\n",number=0;
-          for(const [name,rows] of grouped){number++;message+="*"+number+"-* *المعلم الغائب* : "+tick+name+tick+"\n\n";for(const x of rows){message+="- الحصة *"+fmt(x.period)+"* | الصف "+(x.className||"غير محدد")+"\n*الاحتياط* : "+tick+(state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد")+tick+"\n\n";}}
-          window.open("https://wa.me/?text="+encodeURIComponent(message.trim()),"_blank","noopener,noreferrer");return;
+          const groups=[...grouped.entries()].map(([name,rows])=>({absentName:name,rows:rows.map(x=>({
+            period:x.period,className:x.className,substitute:state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد"
+          }))}));
+          const subject=await reservePrintActorSubject();
+          const message=buildReserveWhatsAppMessage(groups,date,weekday,subject);
+          window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");return;
         }
         if(button.hasAttribute("data-pdf")){
           const printable=items.map(x=>({...x,substituteTeacherName:state.get(String(x.id))?.sub||x.substituteTeacherName,reason:state.get(String(x.id))?.reason||x.reason,absenceReason:absence.get(x.absentTeacherName)||x.absenceReason}));
@@ -1509,6 +1512,42 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     if(!Number.isFinite(date.getTime()))return String(dateValue);
     return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",year:"numeric",numberingSystem:"arab",timeZone:"Asia/Muscat"}).format(date);
   }
+  function formatReserveWhatsAppDigits(value){
+    const arabicDigits="٠١٢٣٤٥٦٧٨٩";
+    return String(value??"").replace(/[0-9]/g,digit=>arabicDigits[Number(digit)]);
+  }
+  function formatReserveWeekdayArabic(dateValue,fallback){
+    const preferred=String(fallback||"").trim();
+    if(preferred)return preferred;
+    if(!dateValue)return "";
+    const date=new Date(String(dateValue)+"T12:00:00+04:00");
+    if(!Number.isFinite(date.getTime()))return "";
+    return new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(date);
+  }
+  function buildReserveWhatsAppMessage(groups,date,weekday,subject){
+    const tick=String.fromCharCode(96);
+    const visibleGroups=(Array.isArray(groups)?groups:[]).map(group=>({
+      ...group,
+      rows:(Array.isArray(group?.rows)?group.rows:[]).slice().sort((a,b)=>Number(a.period)-Number(b.period))
+    })).filter(group=>group.rows.length);
+    const dateLabel=[formatReserveWeekdayArabic(date,weekday),formatReserveDateArabic(date)].filter(Boolean).join("، ");
+    let message="✨ *كـشـف تـوزيـع حـصـص الاحـتـيـاط* ✨\n";
+    message+="🏫 *مدرسة أبو دجانة الأنصاري*\n\n";
+    message+="📚 *المادة:* "+tick+String(subject||"غير محددة").trim()+tick+"\n";
+    message+="🗓️ *التاريخ:* *"+dateLabel+"*\n\n";
+    message+="━━━━━━━━━━━━━━━━━━\n\n";
+    visibleGroups.forEach((group,index)=>{
+      message+="👤 *"+formatReserveWhatsAppDigits(index+1)+". المعلم الغائب:* "+tick+String(group.absentName||"غير محدد").trim()+tick+"\n\n";
+      group.rows.forEach(row=>{
+        message+="🔹 *الحصة "+formatReserveWhatsAppDigits(row.period)+"* | الصف "+tick+String(row.className||"غير محدد")+tick+"\n";
+        message+="   ↳ *الاحتياط:* *"+String(row.substitute||"لم يحدد")+"*\n\n";
+      });
+      if(index<visibleGroups.length-1)message+="━━━━━━━━━━━━━━━━━━\n\n";
+    });
+    message+="━━━━━━━━━━━━━━━━━━\n\n";
+    message+="🙏 *شكرًا لتعاونكم وحرصكم الدائم، ونتمنى لكم يومًا دراسيًا موفقًا ومثمرًا.* 🌟";
+    return message;
+  }
   function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
   function formatReservePrintFullDate(dateValue){
     const match=String(dateValue||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1684,21 +1723,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       const groups=buildReserveReportGroups(reserveBatchPreview||{});
       if(!groups.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-      const department=await reservePrintActorSubject();
-      let message="*توزيع حصص الاحتياط*\n";
-      if(department)message+="`"+department+"`\n\n";
-      message+="*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
-      groups.forEach((group,index)=>{
-        message+="*"+(index+1)+"-* *المعلم الغائب* : `"+group.absentName+"`\n\n";
-        if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n\n";
-        group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
-          message+="- الحصة *"+String(row.period)+"* | الصف "+(row.className||"غير محدد")+"\n";
-          message+="*الاحتياط* : `"+(row.substitute||"لم يحدد")+"`\n";
-          if(row.reserveReason&&row.reserveReason!=="-")message+="سبب الاحتياط: "+row.reserveReason+"\n";
-          message+="\n\n";
-        });
-      });
-      message+="إدارة المدرسة";
+      const subject=await reservePrintActorSubject();
+      const message=buildReserveWhatsAppMessage(groups,date,weekday,subject);
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
   };
