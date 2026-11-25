@@ -58,9 +58,18 @@ test('absence reason picker is vertical, stable on every open, and keeps Other a
  assert.match(adapter,/querySelectorAll\('\[data-reason\]'\)\.forEach\(x=>x\.classList\.remove\('is-active'\)\)/);
  assert.match(adapter,/other\.value='';other\.classList\.add\('hidden'\)/);
 });
-test('absence screen has a validated next step and smart distribution owns the generate action',()=>{
- assert.match(adapter,/id='subxAbsenteesNext'/);
- assert.match(adapter,/حدد معلماً غائباً واحداً على الأقل/);
- assert.match(adapter,/حدد سبب الغياب لكل معلم قبل الانتقال/);
- assert.match(adapter,/screens\.smart\.insertBefore\(generateButton,plan\|\|null\)/);
+test('absence screen presents the dynamic home department and optional supporting department cards before smart generation',()=>{
+ assert.match(adapter,/id='subxHomeDepartmentCard'/);
+ assert.match(adapter,/التوزيع لمعلمي القسم/);
+ assert.match(adapter,/substitutionActorDepartmentName/);
+ assert.match(adapter,/screens\.absentees\.append\(deptWrap\)/);
+ assert.match(adapter,/screens\.absentees\.append\(generateButton\)/);
+ assert.match(adapter,/id='subxAbsenteesNext'/, 'the old intermediate smart-step button must not return');
+ assert.match(html,/subx-department-choice-grid/);
+ assert.match(html,/سيُدرج جميع المعلمين تلقائيًا/);
+});
+test('checking a supporting department automatically includes every eligible teacher and opens smart suggestions on the next screen',()=>{
+ assert.match(html,/function getSubstitutionSelectedOtherTeacherNames\(\)[\s\S]*?departments\.filter\(item=>ids\.has\(String\(item\.id\)\)\)[\s\S]*?flatMap/);
+ assert.match(adapter,/if\(n==='absentees'\)loadReserveDepartmentCards\(\)/);
+ assert.match(adapter,/if\(plan&&!plan\.classList\.contains\('hidden'\)\)go\('smart'\)/);
 });
