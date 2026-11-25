@@ -236,3 +236,20 @@ Deno.test("reserve archive reloads queue when the selected date range changes", 
   assert(cumulative.includes("return reserveCumulativeArchiveLoadPromise.then(()=>window.substitutionLoadCumulativeArchive());"), "Cumulative reads with a changed range must queue a fresh request");
   assert(cumulative.includes('if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;'), "Cumulative reads must not render stale results after the range changes");
 });
+
+
+Deno.test("daily and cumulative archive requests time out and release their locks", () => {
+  assert(source.includes("function reserveArchiveRequestWithTimeout(request, timeoutMs = 30000)"), "Archive requests must have a bounded wait");
+  assert(source.includes("Promise.race([request, timeout])"), "A stalled archive request must not block the loader forever");
+  assert(source.includes("if (timeoutId !== null) clearTimeout(timeoutId);"), "Archive timeout timers must be cleared after settlement");
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("await reserveArchiveRequestWithTimeout(appAuthRequest("), "Daily archive reads must use the bounded request helper");
+  assert(cumulative.includes("await reserveArchiveRequestWithTimeout(appAuthRequest("), "Cumulative archive reads must use the bounded request helper");
+  assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}"), "Daily lock must release after a timeout");
+  assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}"), "Cumulative lock must release after a timeout");
+});
