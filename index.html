@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-live-release-1">
+<meta name="app-build" content="2026-11-25-reserve-modal-period-fix-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11675,7 +11675,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-live-release-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-modal-period-fix-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -15029,7 +15029,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-live-release-1"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-modal-period-fix-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
@@ -15046,13 +15046,6 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
 #substitutionView .subx-archive-edit{background:#e0f2fe;color:#075985}
 #substitutionView .subx-archive-delete{background:#fff1f2;color:#9f1239}
 @media print{#substitutionView .subx-no-print{display:none!important}#substitutionView .subx-a4-sheet{break-after:page;page-break-after:always}}
-#substitutionView #subxReasonPopup{align-items:center;justify-content:center;padding:16px;overflow-y:auto}
-#substitutionView #subxReasonPopup .subx-popup-box{width:min(100%,430px);max-height:min(88dvh,720px);overflow-y:auto;box-sizing:border-box;padding:22px;border-radius:24px}
-#substitutionView #subxReasonPopup .subx-reason-list{display:flex;flex-direction:column;gap:9px;margin:18px 0}
-#substitutionView #subxReasonPopup .subx-reason-btn{display:flex;width:100%;min-height:48px;align-items:center;justify-content:flex-start;text-align:right;padding:12px 16px;border-radius:14px;box-sizing:border-box}
-#substitutionView #subxReasonPopup .subx-reason-btn.is-active{background:#e6fffb;border-color:#0f9488;color:#115e59;box-shadow:0 0 0 2px #0f94881c}
-html.dark #substitutionView #subxReasonPopup .subx-reason-btn{background:#172638;color:#e2e8f0;border-color:#ffffff20}
-html.dark #substitutionView #subxReasonPopup .subx-reason-btn.is-active{background:#123c3b;border-color:#2dd4bf;color:#ccfbf1}
 #substitutionView #subxAbsenteesNext{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;margin-top:18px}
 #substitutionView #subxScreen_smart #substitutionGenerateButton{width:100%;min-height:52px;margin:0 0 4px}
 
@@ -15117,10 +15110,6 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  const gen=document.getElementById('substitutionGenerateButton');if(gen)gen.addEventListener('click',async e=>{e.preventDefault();e.stopImmediatePropagation();await window.substitutionGeneratePlan?.();if(plan&&!plan.classList.contains('hidden'))go('smart');},true);
  const save=document.getElementById('substitutionSaveButton');if(save)save.addEventListener('click',async e=>{e.preventDefault();e.stopImmediatePropagation();await window.substitutionSavePlan?.();},true);
  const search=document.getElementById('subxTeacherSearch');search?.addEventListener('input',()=>{const q=search.value.trim().toLowerCase();document.querySelectorAll('#substitutionAbsenteeList label').forEach(x=>x.style.display=x.textContent.toLowerCase().includes(q)?'':'none');});
- const popup=document.createElement('div');popup.id='subxReasonPopup';popup.className='subx-overlay hidden';popup.innerHTML='<div class="subx-popup-box"><h3 class="text-lg font-black">سبب الغياب</h3><p id="subxPopupTeacherTitle" class="text-xs font-bold mt-1"></p><div class="subx-reason-list">'+[['طارئة','طارئة'],['مرضية','إجازة مرضية'],['دورة تدريبية','دورة تدريبية'],['موعد مستشفى','موعد مستشفى'],['أخرى','أخرى']].map(([value,label])=>'<button type="button" class="subx-reason-btn" data-reason="'+value+'">'+label+'</button>').join('')+'</div><input id="subxOtherReasonText" class="subx-input-field w-full hidden" placeholder="اكتب السبب"><div class="flex justify-end gap-2 mt-4"><button id="subxReasonCancel" class="subx-quick-pill px-4">إلغاء</button><button id="subxReasonConfirm" class="subx-cta-primary">موافق</button></div></div>';root.append(popup);
- let reasonCallback=null,draft='';window.openSubstitutionAbsenceReasonPicker=function(name,initialValue,cb){reasonCallback=cb;draft='';popup.querySelector('#subxPopupTeacherTitle').textContent='المعلم: '+name;popup.querySelectorAll('[data-reason]').forEach(x=>x.classList.remove('is-active'));const other=popup.querySelector('#subxOtherReasonText');other.value='';other.classList.add('hidden');const normalized=String(initialValue||'').replace(/^أخرى:\\s*/, '');const rawInitial=String(initialValue||''),initial=rawInitial.startsWith('أخرى:')?'أخرى':rawInitial==='إجازة مرضية'?'مرضية':rawInitial;if(initial){draft=initial;popup.querySelectorAll('[data-reason]').forEach(x=>x.classList.toggle('is-active',x.dataset.reason===initial));if(initial==='أخرى'){other.classList.remove('hidden');other.value=normalized;}}popup.classList.remove('hidden');};
- popup.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{draft=b.dataset.reason;popup.querySelectorAll('[data-reason]').forEach(x=>x.classList.toggle('is-active',x===b));const other=popup.querySelector('#subxOtherReasonText');other.classList.toggle('hidden',draft!=='أخرى');if(draft!=='أخرى')other.value='';});
- popup.querySelector('#subxReasonCancel').onclick=()=>{popup.classList.add('hidden');reasonCallback?.(null);reasonCallback=null;draft='';};popup.querySelector('#subxReasonConfirm').onclick=()=>{if(draft==='أخرى'){const detail=popup.querySelector('#subxOtherReasonText').value.trim();draft=detail?'أخرى: '+detail:'أخرى';}if(!draft){popup.querySelector('#subxOtherReasonText').focus();return;}popup.classList.add('hidden');reasonCallback?.(draft);reasonCallback=null;draft='';};
  if(document.getElementById('substitutionOtherDepartmentSelect'))document.getElementById('substitutionOtherDepartmentSelect').addEventListener('change',()=>window.subxUpdateOtherDeptsCount?.());
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

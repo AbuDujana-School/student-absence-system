@@ -301,35 +301,39 @@ test("reserve absentee checklist selects teachers and edits absence reasons inde
 });
 
 
-test("the original polished absence picker is the only modal and preserves legacy reasons", async ({ page }) => {
+test("the restored illustrated absence picker is the only modal and preserves legacy reasons", async ({ page }) => {
   const workflow = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
   const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
-  const delegate = extractFunction(workflow, "function openAbsenceReasonPicker(");
-  const pickerStart = html.indexOf("const popup=document.createElement('div');popup.id='subxReasonPopup'");
-  const pickerEnd = html.indexOf("if(document.getElementById('substitutionOtherDepartmentSelect'))", pickerStart);
-  expect(pickerStart).toBeGreaterThanOrEqual(0);
-  expect(pickerEnd).toBeGreaterThan(pickerStart);
-  const pickerMarkup = html.slice(pickerStart, pickerEnd);
-
+  const modalFunction = extractFunction(workflow, "function openAbsenceReasonPicker(");
   await page.setContent("<main></main>");
-  await page.evaluate(({ pickerMarkup, delegate }) => {
-    new Function("root", pickerMarkup)(document.querySelector("main"));
-    window.__openReason = new Function("status", "window", delegate + "; return openAbsenceReasonPicker;")(() => {}, window);
+  await page.evaluate(({ modalFunction }) => {
+    const esc = value => String(value ?? "").replace(/[&<>\\"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+    window.__openReason = new Function(
+      "ABSENCE_REASON_OPTIONS", "reserveAbsenceReasons", "esc", "document",
+      modalFunction + "; return openAbsenceReasonPicker;"
+    )(["طارئة", "موعد مستشفى", "مرضية", "أخرى", "دورة تدريبية"], {}, esc, document);
     window.__reasonResult = undefined;
-  }, { pickerMarkup, delegate });
+  }, { modalFunction });
 
   await page.evaluate(() => window.__openReason("معلم تجريبي", value => { window.__reasonResult = value; }, "مرضية"));
-  await expect(page.locator("#subxReasonPopup [data-reason]")).toHaveCount(5);
-  await expect(page.locator('#subxReasonPopup [data-reason="مرضية"]')).toHaveClass(/is-active/);
-  await expect(page.locator("#subxReasonPopup").filter({ hasText: "إجازة مرضية" })).toBeVisible();
-  await expect(page.locator("#subxReasonPopup")).toHaveCount(1);
-  await expect(page.locator("#timetableDailyAbsenceReasonModal")).toHaveCount(0);
+  await expect(page.locator("#timetableDailyAbsenceReasonModal")).toHaveCount(1);
+  await expect(page.locator('input[name="ttAbsenceReasonChoice"]')).toHaveCount(5);
+  await expect(page.locator('input[name="ttAbsenceReasonChoice"][value="مرضية"]')).toBeChecked();
+  await expect(page.locator("#timetableDailyAbsenceReasonModal").filter({ hasText: "إجازة مرضية" })).toBeVisible();
+  await expect(page.locator("#subxReasonPopup")).toHaveCount(0);
 
-  await page.locator('#subxReasonPopup [data-reason="أخرى"]').click();
-  await page.locator("#subxReasonConfirm").click();
+  await page.locator('label.tt-absence-reason-option').filter({
+    has: page.locator('input[name="ttAbsenceReasonChoice"][value="أخرى"]')
+  }).click();
+  await page.locator("#ttAbsenceReasonOther").fill("");
+  await page.locator("[data-absence-reason-confirm]").click();
   expect(await page.evaluate(() => window.__reasonResult)).toBe("أخرى");
-  expect(workflow).not.toContain("timetableDailyAbsenceReasonModal");
+  expect(workflow).toContain("window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm)");
+  expect(html).not.toContain("subxReasonPopup");
 });
+
 
 test("official reserve archive printing orders days newest first and creates one A4 sheet per day", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");

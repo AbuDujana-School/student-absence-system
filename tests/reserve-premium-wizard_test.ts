@@ -30,8 +30,8 @@ Deno.test("visible canonical date navigation offers only today and tomorrow shor
 });
 
 Deno.test("saved reserve cards use a prominent period indicator", () => {
-  assert(reserveWorkflow.includes("tt-period-indicator"), "The lesson period must be shown in a prominent indicator");
-  assert(reserveWorkflow.includes("font-size:1.35rem"), "The period number must be visually readable");
+  assert(reserveWorkflow.includes(":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator{display:flex;flex-direction:column"), "The period indicator styles must apply to the visible canonical reserve workspace");
+  assert(reserveWorkflow.includes("font-size:2.65rem"), "The period number must be large and visually prominent");
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {
@@ -88,11 +88,10 @@ Deno.test("supporting departments and their teachers are selectable through visi
   assert(indexHtml.includes("getSubstitutionSelectedOtherTeacherNames()"), "The canonical distribution and save handlers must consume the selected supporting teachers");
 });
 
-Deno.test("the custom absence reason may be left empty", async () => {
-  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(html.includes("draft=detail?'أخرى: '+detail:'أخرى'"), "Selecting أخرى without text must remain valid");
-  assert(html.includes("['مرضية','إجازة مرضية']"), "Legacy مرضية values remain available with the familiar display label");
-  assert(html.includes("['طارئة','طارئة']")&&html.includes("['دورة تدريبية','دورة تدريبية']"), "The requested reasons and training option remain available");
+Deno.test("the custom absence reason may be left empty", () => {
+  assert(reserveWorkflow.includes('const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;'), "Selecting أخرى without text must remain valid");
+  assert(reserveWorkflow.includes('"مرضية":{label:"إجازة مرضية"'), "Legacy مرضية values remain available with the familiar display label");
+  assert(reserveWorkflow.includes('"طارئة":{label:"طارئة"')&&reserveWorkflow.includes('"دورة تدريبية":{label:"دورة تدريبية"'), "The requested reasons and training option remain available");
 });
 
 
