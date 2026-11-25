@@ -24,9 +24,10 @@ export function canCustomCoordinatorManageDepartment(input: {
 
 
 /**
- * Archive permissions grant access to a principal's own department only.
- * The consolidated cross-department archive is reserved for system admins.
+ * The caller supplies this grant only after server-side session and permission checks:
+ * system administrator, teacher reserve permission, or absence-coordinator timetable access.
+ * These explicitly authorized principals may view both archive scopes.
  */
-export function canViewSchoolwideReserveArchive(principalType: string): boolean {
-  return principalType === "admin";
+export function canViewSchoolwideReserveArchive(principalType: string, hasArchivePermission = false): boolean {
+  return principalType === "admin" || hasArchivePermission === true;
 }
