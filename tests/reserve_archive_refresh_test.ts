@@ -162,14 +162,14 @@ Deno.test("reserve operational views initialize only when opened", () => {
 });
 
 
-Deno.test("custom coordinator remains scoped and defers edit/archive/statistics reads", () => {
+Deno.test("custom absence coordinator remains scoped and can open the archive", () => {
   const start=source.indexOf("function installMainSubstitutionViewIntegration()");
   const end=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",start);
   assert(start>=0&&end>start,"Canonical reserve integration must be present");
   const integration=source.slice(start,end);
   assert(integration.includes('const isCustomCoordinator=reservePrincipal?.type==="custom"'),"The UI must identify the server-authenticated custom coordinator principal");
   assert(integration.includes('$("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the school statistics panel");
-  assert(integration.includes('root.querySelector(\'[data-subx-tab="archive"]\')?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive tab");
+  assert(!integration.includes('root.querySelector(\'[data-subx-tab="archive"]\')?.classList.toggle("hidden",isCustomCoordinator)'),"Custom absence coordinators must not have the archive tab forcibly hidden");
   const openStart=integration.indexOf("try{",integration.indexOf("const isCustomCoordinator="));
   const openEnd=integration.indexOf("finally{",openStart);
   const openBlock=integration.slice(openStart,openEnd);
@@ -177,6 +177,7 @@ Deno.test("custom coordinator remains scoped and defers edit/archive/statistics 
   assert(openBlock.includes("substitutionLoadAbsentees"),"Custom coordinators must retain the scoped operational preview workflow");
   assert(!openBlock.includes("timetableDailyLoadArchive"),"Edit/archive reads must be deferred until an authorized tab is opened");
   assert(openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain statistics loading");
+  assert(integration.includes("installReserveArchivePremiumDateControls();"),"The archive date interface must be enhanced when the reserve workspace opens");
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
 
@@ -390,7 +391,7 @@ Deno.test("reserve archive v2 separates department and school views and prints o
   const dateValidator=html.slice(dateValidatorStart,dateValidatorEnd);
   const caretIndex=dateValidator.indexOf("^"),digitIndex=dateValidator.indexOf("d{4}",caretIndex);
   assert(dateValidatorStart>=0&&dateValidatorEnd>dateValidatorStart&&dateValidator.slice(caretIndex+1,digitIndex)==="\\", "Date validation must use exactly one digit-matcher escape");
-  assert(backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'), "Non-admins must be blocked from schoolwide archive");
+  assert(backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'), "Accounts without an archive grant must be blocked from the schoolwide archive");
   assert(backend.includes('requestedArchiveScope==="department"'), "The server must enforce the department scope");
   assert(backend.includes('departmentName:String(teacherDepartment?.departmentName||"")'), "Archive rows must include the absent teacher's department");
   assert(workflow.includes('return [reserveOfficialPrintMarkup(dayGroups,date,items[0]?.weekday||"",undefined,options)]'), "The new archive must render one official A4 page per day");
@@ -453,4 +454,12 @@ Deno.test("reserve WhatsApp report uses the approved school header and grouped l
     "Saved-day edit sharing must use the shared WhatsApp template");
   assert(dailyStart>=0&&dailyEnd>dailyStart&&source.slice(dailyStart,dailyEnd).includes("buildReserveWhatsAppMessage(groups,date,weekday,subject)"),
     "Daily reserve sharing must use the shared WhatsApp template");
+});
+
+Deno.test("reserve archive date controls provide premium styling and safe completed-day presets", () => {
+  assert(source.includes("function installReserveArchivePremiumDateControls()"), "The archive must install the premium date-control enhancement");
+  assert(source.includes("subx-archive-date-input") && source.includes("subx-archive-date-label"), "Date inputs must receive the glass-styled responsive presentation");
+  assert(source.includes('data-subx-archive-preset="7"') && source.includes('data-subx-archive-preset="30"') && source.includes('data-subx-archive-preset="month"'), "The date picker must offer seven-day, thirty-day and current-month shortcuts");
+  assert(source.includes("const today=reserveCurrentMuscatDate(),to=shiftDate(today,-1);"), "Quick ranges must end on the last completed day in the Muscat timezone");
+  assert(source.includes('setAttribute("aria-label","اختصارات تحديد فترة أرشيف الاحتياط")'), "Date shortcuts must be accessible to assistive technology");
 });
