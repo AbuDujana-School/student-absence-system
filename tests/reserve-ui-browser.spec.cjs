@@ -384,26 +384,12 @@ test("crowded A4 archive days split into readable sheets instead of shrinking te
 });
 test("crowded schoolwide reserve day splits into readable continuation sheets without losing assignments", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
-  const extractPrintFunction = marker => {
-    const start = source.indexOf(marker);
-    if (start < 0) throw new Error("Missing " + marker);
-    const brace = source.indexOf("){", start) + 1;
-    let depth = 0, quote = null, escaped = false, line = false, block = false;
-    for (let i = brace; i < source.length; i++) {
-      const ch = source[i], next = source[i + 1];
-      if (line) { if (ch === "\\n") line = false; continue; }
-      if (block) { if (ch === "*" && next === "/") { block = false; i++; } continue; }
-      if (quote) { if (escaped) { escaped = false; continue; } if (ch === "\\\\") { escaped = true; continue; } if (ch === quote) quote = null; continue; }
-      if (ch === "/" && next === "/") { line = true; i++; continue; }
-      if (ch === "/" && next === "*") { block = true; i++; continue; }
-      if (ch === "'" || ch === '"' || ch === "`") { quote = ch; continue; }
-      if (ch === "{") depth++;
-      else if (ch === "}" && --depth === 0) return source.slice(start, i + 1);
-    }
-    throw new Error("Unbalanced " + marker);
-  };
-  const pages = extractPrintFunction("function reserveOfficialPrintPages(");
-  const markup = extractPrintFunction("function reserveOfficialPrintMarkup(");
+  const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
+  const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
+  const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
+  if (pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const pages = source.slice(pagesStart, markupStart);
+  const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
   const build = new Function("esc", "formatReserveDateArabic",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
