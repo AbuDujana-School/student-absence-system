@@ -18,14 +18,16 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
   assert(reserveWorkflow.includes("installPremiumReserveExperience(panel)"), "The premium workflow must be installed on the live reserve panel");
 });
 
-Deno.test("visible canonical date navigation defaults to Muscat today and provides yesterday/today/tomorrow shortcuts", () => {
+Deno.test("visible canonical date navigation offers only today and tomorrow and restricts custom coordinators from past dates", () => {
   assert(reserveWorkflow.includes('const distributionDate=$("substitutionDate");'), "Quick navigation must attach to the visible canonical date picker");
   assert(reserveWorkflow.includes('nav.id="subxCanonicalDateQuickNav"'), "The visible date card must include its own quick navigation");
-  assert(reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday shortcut is missing");
+  assert(!reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday must not appear as a quick action");
   assert(reserveWorkflow.includes('data-date-offset="0"'), "Today shortcut is missing");
   assert(reserveWorkflow.includes('data-date-offset="1"'), "Tomorrow shortcut is missing");
   assert(reserveWorkflow.includes('getOmanLocalDate==="function"?getOmanLocalDate()'), "Quick navigation must use the Muscat-local date supplied by the app");
-  assert(reserveWorkflow.includes('if(!date.value)date.value=today;'), "The visible date must default to Muscat today only when empty");
+  assert(reserveWorkflow.includes("distributionDate.min=today"), "Custom coordinators must not be able to select a past date");
+  assert(reserveWorkflow.includes('appAuthSession?.principal?.type!=="custom"'), "The past-date restriction must be limited to custom subject coordinators");
+  assert(reserveWorkflow.includes("data-date-offset=\"0\"")&&reserveWorkflow.includes("data-date-offset=\"1\""), "Today and tomorrow must remain the only quick date actions");
   assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
 });
 
@@ -86,4 +88,13 @@ Deno.test("supporting departments and their teachers are selectable through visi
 Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
+});
+
+Deno.test("reserve absence reason uses the primary picker once and keeps the lesson period prominent", () => {
+  assert(reserveWorkflow.includes("installPrimaryReasonPickerBridge"), "The primary absence reason picker must be restored after the legacy adapter initializes");
+  assert(reserveWorkflow.includes("window.openSubstitutionAbsenceReasonPicker=bridge"), "The secondary picker must be routed to the primary picker");
+  assert(reserveWorkflow.includes("const known=String(reasons[reasonKey(absentName)]||\"\").trim();"), "The confirmed reason must be reused instead of opening a second picker");
+  assert(reserveWorkflow.includes("openAbsenceReasonPicker(absentName,onConfirm,currentValue)"), "The first designed picker must remain the canonical reason picker");
+  assert(reserveWorkflow.includes("tt-lesson-period-badge"), "The lesson period must be displayed in a prominent badge");
+  assert(reserveWorkflow.includes("formatReservePeriod(item.period)"), "The period badge must show the readable Arabic lesson ordinal");
 });
