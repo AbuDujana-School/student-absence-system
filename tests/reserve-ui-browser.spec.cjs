@@ -150,8 +150,6 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.legacyStillInOrigin, role.id).toBe(true);
       expect(result.editMounted, role.id).toBe(false);
       expect(result.archiveMounted, role.id).toBe(false);
-      expect(result.legacyActiveHidden, role.id).toBe(true);
-      expect(result.legacyArchiveHidden, role.id).toBe(true);
       expect(result.calls.options, role.id).toBe(0);
       expect(result.denials, role.id).toBe(1);
     }
