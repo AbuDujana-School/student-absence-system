@@ -15173,6 +15173,27 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  }catch(e){host.textContent=e?.message||'تعذر تحميل الأرشيف.';}
 }
  window.subxLoadEditableAssignments=()=>loadArchive('subxEditMountArea');
+ function installReserveDayRollover(){
+   if(window.__subxReserveDayRolloverInstalled)return;
+   window.__subxReserveDayRolloverInstalled=true;
+   let lastDay=window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10);
+   const refreshIfDayChanged=()=>{
+     const today=window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10);
+     if(today===lastDay)return;
+     lastDay=today;
+     if(current==='edit')loadArchive('subxEditMountArea');
+     if(current==='archive')loadArchive('subxArchiveMountArea');
+   };
+   const scheduleNextMidnight=()=>{
+     const base=window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10),parts=base.split('-').map(Number);
+     const nextMidnight=Date.UTC(parts[0],parts[1]-1,parts[2]+1,0,0,0)-4*60*60*1000;
+     window.setTimeout(()=>{refreshIfDayChanged();scheduleNextMidnight();},Math.max(1000,nextMidnight-Date.now()+250));
+   };
+   window.addEventListener('focus',refreshIfDayChanged);
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshIfDayChanged();});
+   scheduleNextMidnight();
+ }
+ installReserveDayRollover();
  document.getElementById('subxArchiveLoad')?.addEventListener('click',loadArchive);document.getElementById('subxArchivePrint')?.addEventListener('click',()=>window.print());
  function go(n,push=true){if(n!=='hub'&&!screens[n])return;if(push&&n!==current)history.push(current);current=n;hub.classList.toggle('is-visible',n==='hub');Object.entries(screens).forEach(([k,e])=>e.classList.toggle('is-visible',k===n));document.getElementById('subxScreenHeading').textContent=names[n];if(n==='date'){const dateInput=document.getElementById('substitutionDate');if(dateInput){if((typeof appAuthSession!=='undefined'&&(appAuthSession?.principal?.type==='custom'||appAuthSession?.principal?.permissions?.reserve===true)))dateInput.setAttribute('min',window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10));else dateInput.removeAttribute('min');}}if(n==='smart')window.timetableLoadOtherDepartmentOptions?.('substitutionOtherDepartments','substitutionOtherDepartmentSelect').then(()=>window.renderSubstitutionOtherTeacherChoices?.()).catch(error=>showToast(error?.message||'تعذر تحميل الأقسام المساندة.','error'));if(n==='stats')window.substitutionLoadStats?.();if(n==='archive')loadArchive('subxArchiveMountArea');if(n==='edit')loadArchive('subxEditMountArea');window.scrollTo({top:0,behavior:'smooth'});}
  hub.querySelectorAll('[data-subx-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.subxGo)));
