@@ -27,7 +27,7 @@ Deno.test("reserve date shortcuts show only today and tomorrow without a duplica
   assert(indexHtml.includes('const base=window.getOmanLocalDate?.()'), "The lower quick buttons must use the Muscat-local date");
   assert(indexHtml.includes("appAuthSession?.principal?.type==='custom'"), "Only subject coordinators must be prevented from selecting past dates in the picker");
   assert(reserveWorkflow.includes('if(!date.value)date.value=reserveCurrentMuscatDate();'), "The visible date must default to Muscat today only when empty");
-  assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
+  assert(reserveWorkflow.includes('legacyDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
 });
 
 Deno.test("absence reasons use one picker and the reserve lesson period is prominent", () => {
