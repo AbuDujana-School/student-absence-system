@@ -1232,7 +1232,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     try{
       const names=[...new Set(items.map(x=>x.absentTeacherName))],weekday=items[0].weekday;
       const previews=await Promise.all(names.map(async name=>[name,await fetchArchivePreview(name,date,weekday)]));
-      const byAbsent=new Map(previews),state=new Map(items.map(x=>[String(x.id),{sub:String(x.substituteTeacherName||""),reason:String(x.reason||"-"),expanded:false}]));
+      const byAbsent=new Map(previews),state=new Map(items.map(x=>[String(x.id),{sub:String(x.substituteTeacherName||""),reason:String(x.reason||"-"),expanded:!String(x.substituteTeacherName||"").trim()}]));
       const absence=new Map(names.map(n=>[n,String(items.find(x=>x.absentTeacherName===n)?.absenceReason||"-")]));
       const fmt=n=>new Intl.NumberFormat("en-US",{useGrouping:false}).format(Number(n));
       const list=a=>(Array.isArray(a)?a:[]).map(Number).filter(Number.isInteger).sort((x,y)=>x-y).map(fmt).join(", ")||"لا توجد حصص مشغولة";
