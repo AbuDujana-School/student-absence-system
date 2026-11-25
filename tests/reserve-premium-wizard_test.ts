@@ -88,9 +88,11 @@ Deno.test("supporting departments and their teachers are selectable through visi
   assert(indexHtml.includes("getSubstitutionSelectedOtherTeacherNames()"), "The canonical distribution and save handlers must consume the selected supporting teachers");
 });
 
-Deno.test("the custom absence reason may be left empty", () => {
-  assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
-  assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
+Deno.test("the custom absence reason may be left empty", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("draft=detail?'أخرى: '+detail:'أخرى'"), "Selecting أخرى without text must remain valid");
+  assert(html.includes("['مرضية','إجازة مرضية']"), "Legacy مرضية values remain available with the familiar display label");
+  assert(html.includes("['طارئة','طارئة']")&&html.includes("['دورة تدريبية','دورة تدريبية']"), "The requested reasons and training option remain available");
 });
 
 
