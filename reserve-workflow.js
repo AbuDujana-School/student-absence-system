@@ -482,7 +482,7 @@
     let defaultDateInitialized=false;
     const date=$("timetableSubstitutionDate");
     if(date){
-      if(appAuthSession?.principal?.type==="custom"||appAuthSession?.principal?.permissions?.reserve===true)date.min=reserveCurrentMuscatDate();
+      if(typeof appAuthSession!=="undefined"&&(appAuthSession?.principal?.type==="custom"||appAuthSession?.principal?.permissions?.reserve===true))date.min=reserveCurrentMuscatDate();
       else date.removeAttribute("min");
       const dateWrap=date.closest("label")||date.parentElement;
       if(dateWrap&&!dateWrap.closest("#ttPremiumDateCard")){
