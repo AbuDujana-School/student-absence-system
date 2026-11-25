@@ -276,6 +276,8 @@ Deno.test("reserve date navigation includes yesterday and permits historical dat
   assert(html.includes('data-subx-date-shift="-1">أمس</button>'),"The reserve date shortcuts must include yesterday");
   assert(html.includes('data-subx-date-shift="0">اليوم</button>'),"The reserve date shortcuts must include today");
   assert(html.includes('data-subx-date-shift="1">غداً</button>'),"The reserve date shortcuts must include tomorrow");
+  assert(html.includes("base=today,parsed=new Date(base+'T12:00:00+04:00')"),"Yesterday and tomorrow shortcuts must always be relative to Muscat today, not the currently selected date");
+  assert(!html.includes("base=shift===0?today:(date.value||today)"),"A previously selected date must not shift the yesterday/tomorrow shortcuts");
   assert(!source.includes("date.min=today"),"Historical reserve dates must not be blocked by a minimum date");
   assert(source.includes("if(!date.value)date.value=today;"),"The reserve date should default to Muscat today only when empty");
 });
