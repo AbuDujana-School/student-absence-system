@@ -1603,8 +1603,8 @@
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
       const department=await reservePrintActorSubject();
       let message="*توزيع حصص الاحتياط*\n";
-      if(department)message+="\n`"+department+"`\n";
-      message+="\n*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
+      if(department)message+="`"+department+"`\n\n";
+      message+="*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
       groups.forEach((group,index)=>{
         message+="*"+(index+1)+"-* *المعلم الغائب* : `"+group.absentName+"`\n\n";
         if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n\n";
