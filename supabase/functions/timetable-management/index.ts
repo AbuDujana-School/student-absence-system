@@ -500,6 +500,8 @@ async function handle(req: Request) {
       return reply(403,{error:"أرشيف المدرسة الشامل متاح لمدير النظام العام فقط."});
     const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&canViewSchoolwide);
     const actorDepartmentId=String(actor?.departmentId||"").trim();
+    // A non-admin's department scope is always derived from the authenticated
+    // principal; a caller-supplied departmentId can never pivot the archive.
     const targetDepartmentId=requestedArchiveScope==="department"?(canViewSchoolwide?requestedDepartmentId:actorDepartmentId):"";
     if(requestedArchiveScope==="department"&&!targetDepartmentId)
       return reply(403,{error:"لا يتوفر قسم مرتبط بهذا الحساب لعرض أرشيف المادة."});
