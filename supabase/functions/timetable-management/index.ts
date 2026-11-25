@@ -508,7 +508,7 @@ async function handle(req: Request) {
           ["assigned","confirmed"].includes(String(row.status||""))&&
           (principal.type==="admin"
             ? String(row.assignment_date||"")===todayInMuscat
-            : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
+            : hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat))),
         canDelete:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           (principal.type==="admin"
             ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))
@@ -1586,7 +1586,7 @@ async function handle(req: Request) {
             id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
             canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat:
-                hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+                hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
             canDelete:String(row.version_id)===String(activeVersion.id)&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")):
                 hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
@@ -1765,7 +1765,7 @@ async function handle(req: Request) {
           canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
             (principal.type==="admin"
               ? String(row.assignment_date||"")===todayInMuscat
-              : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+              : hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)),
           canDelete:String(row.version_id)===String(activeVersion.id)&&
             (principal.type==="admin"
               ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
