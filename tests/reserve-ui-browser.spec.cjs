@@ -323,3 +323,52 @@ test("absence reason picker uses the four requested categories and keeps legacy 
   await page.locator('[data-absence-reason-confirm]').click();
   expect(await page.evaluate(() => window.__reasonResult)).toBe("أخرى");
 });
+
+
+test("official reserve archive printing orders days newest first and creates one A4 sheet per day", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const printRange = extractFunction(source, "window.timetableDailyPrintArchiveRange = function (sourceRecords) {");
+  const calls = [];
+  const printed = [];
+  const run = new Function("window", "status", "reserveArchive", "reserveOfficialPrintPages", "printOfficialReservePages",
+    printRange + "; return window.timetableDailyPrintArchiveRange;");
+  const print = run({}, () => {}, [], (groups, date, weekday, subject, options) => {
+    calls.push({ date, weekday, groups, options });
+    return ["A4:" + date];
+  }, pages => printed.push(...pages));
+  print([
+    { id: "older-a", assignmentDate: "2026-11-23", absentTeacherName: "أحمد", substituteTeacherName: "سالم", period: 2, status: "completed" },
+    { id: "newer-a", assignmentDate: "2026-11-24", absentTeacherName: "محمد", substituteTeacherName: "علي", period: 1, status: "assigned" },
+    { id: "newer-b", assignmentDate: "2026-11-24", absentTeacherName: "محمد", substituteTeacherName: "ناصر", period: 3, status: "confirmed" },
+    { id: "cancelled", assignmentDate: "2026-11-25", absentTeacherName: "ملغى", period: 1, status: "cancelled" },
+    { id: "undated", absentTeacherName: "بلا تاريخ", period: 1, status: "completed" }
+  ]);
+  expect(calls.map(call => call.date)).toEqual(["2026-11-24", "2026-11-23"]);
+  expect(calls.map(call => call.options.singlePage)).toEqual([true, true]);
+  expect(calls[0].groups).toHaveLength(1);
+  expect(calls[0].groups[0].absentName).toBe("محمد");
+  expect(calls[0].groups[0].rows).toHaveLength(2);
+  expect(printed).toEqual(["A4:2026-11-24", "A4:2026-11-23"]);
+});
+
+test("single-day A4 archive sheets apply compact row typography instead of clipping long days", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const pages = extractFunction(source, "function reserveOfficialPrintPages(");
+  const markup = extractFunction(source, "function reserveOfficialPrintMarkup(");
+  const period = extractFunction(source, "function formatReservePrintPeriod(");
+  const fullDate = extractFunction(source, "function formatReservePrintFullDate(");
+  const formatDate = extractFunction(source, "function formatReserveDateArabic(");
+  const build = new Function("esc", "formatReserveDateArabic",
+    formatDate + ";" + period + ";" + fullDate + ";" + markup + ";" + pages +
+    "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ");
+  const rows = Array.from({ length: 40 }, (_, index) => ({
+    period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
+  }));
+  const html = build([{ absentName: "معلم غائب", absenceReason: "مرضية", rows }], "2026-11-24", "", "", { singlePage: true })[0];
+  await page.setContent(html);
+  await expect(page.locator(".tt-official-page[data-single-page='1']")).toHaveCount(1);
+  await expect(page.locator(".tt-official-table.tt-official-single-page tbody tr")).toHaveCount(40);
+  await expect(page.locator(".tt-official-table")).toHaveAttribute("style", "font-size:7.4pt");
+  expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
+});
