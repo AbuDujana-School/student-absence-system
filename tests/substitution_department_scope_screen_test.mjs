@@ -72,6 +72,6 @@ test('department sharing remains protected by the existing coordinator permissio
   const adapter=html.match(/<script id="substitution-single-screen-adapter">([\s\S]*?)<\/script>/)?.[1]||'';
   assert.match(adapter,/const allowed=canManageReserveWorkspace\(activeUser\)/);
   assert.match(adapter,/if\(!canManageReserveWorkspace\(activeUser\)\)/);
-  assert.match(backend,/actor\?\.canManageSubstitutions!==true/);
+  assert.match(backend,/actor\?\.canManageSubstitutions\s*!==\s*true/);
   assert.match(backend,/canIncludeOtherDepartments\(principal\.type,body\.includeOtherDepartments,actorDirectoryEntry\?\.canManageSubstitutions===true\)/);
 });
