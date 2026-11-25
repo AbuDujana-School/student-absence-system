@@ -5,7 +5,7 @@
 create or replace function public.admin_delete_all_timetable_substitution_records(p_actor_name text)
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path = public, pg_temp
 as $function$
 declare
