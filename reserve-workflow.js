@@ -235,7 +235,6 @@
         const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
         if(!absentName)return original.apply(this,args);
-        if(document.getElementById("timetableDailyAbsenceReasonModal"))return;
         const selectedDate=timetableSubstitutionGetDate().date;
         const existing=[...(reserveArchive||[]),...(reserveCumulativeArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
@@ -665,9 +664,6 @@
       "#timetableSubstitutionPanel .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
       "#timetableSubstitutionPanel .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked){border-color:#10b981;background:linear-gradient(120deg,#ecfdf5,#fff);box-shadow:0 7px 18px rgba(16,185,129,.12)}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked)>span:first-of-type{background:#d1fae5;color:#047857}",
-      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:focus-within{outline:3px solid rgba(16,185,129,.2);outline-offset:2px}",
       "#timetableSubstitutionPanel .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
       "#timetableSubstitutionPanel .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
       "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
@@ -697,7 +693,6 @@
       ".dark .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
       ".dark .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
       ".dark .tt-premium-date-nav .tt-date-nav-hint{color:#94a3b8}",
-      "@media(prefers-reduced-motion:reduce){#timetableSubstitutionPanel *,#timetableDailyAbsenceReasonModal *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}",
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
