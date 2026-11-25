@@ -2157,6 +2157,7 @@
         const nav=document.createElement("div");
         nav.id="subxCanonicalDateQuickNav";
         nav.className="tt-premium-date-nav";
+        nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
         nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
         dateCard.appendChild(nav);
         nav.addEventListener("click",event=>{
