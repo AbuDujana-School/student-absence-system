@@ -2543,63 +2543,27 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   </div>
   <div id="saLogin" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/20"><p id="saLoginError" class="text-sm font-bold text-amber-800 dark:text-amber-200">جارٍ التحقق من جلسة دخولك...</p></div>
   <div id="saContent" class="hidden space-y-5">
-    <section id="saSupervisionPanel" class="hidden space-y-4 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-blue-900 dark:bg-slate-900 sm:p-5">
-      <div class="flex flex-wrap items-start justify-between gap-3"><div><h3 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-area text-teal-700"></i> الاتجاه الزمني لحالات الغياب والانضباط</h3><p id="saSupervisionSubtitle" class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">متابعة حالات الغياب والتأخر والتسرب والخروج خلال الفترة المحددة.</p></div>
-        <div class="flex flex-wrap items-center gap-2"><button id="saSupervisionOwnBtn" type="button" onclick="saLoadSupervisionTrend('own')" class="rounded-xl bg-blue-700 px-3 py-2 text-[11px] font-black text-white">صفوفي</button><button id="saSupervisionTeamBtn" type="button" onclick="saLoadSupervisionTrend('team')" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">صفوف الفريق</button>
-          <label id="saSupervisionTeacherWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600 dark:text-slate-300">عرض بيانات المعلم
-            <select id="saSupervisionTeacherSelect" onchange="saSelectSupervisionTeacher(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold dark:border-slate-700 dark:bg-slate-950"><option value="">اختر المعلم</option></select>
-          </label></div>
-      </div>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
-      <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="الاتجاه الزمني لحالات الغياب والتأخر والتسرب والخروج"></canvas></div>
-      <div class="flex flex-nowrap items-center justify-between gap-x-1 overflow-hidden whitespace-nowrap border-t border-slate-100 py-2 text-[8px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-slate-800 dark:text-slate-100"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-amber-800 dark:text-amber-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-red-800 dark:text-red-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-violet-800 dark:text-violet-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
-      <div class="border-t border-slate-100 pt-4 dark:border-slate-700">
-        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> الاتجاه الزمني للسلوكيات</h4><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">عدد حالات كل سلوك مسجلة يومياً خلال الفترة المحددة.</p></div>
-        <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
-        <div class="mt-2 flex flex-nowrap items-center justify-between gap-x-0.5 overflow-hidden whitespace-nowrap border-t border-slate-100 pt-2 text-[8px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-teal-800 dark:text-teal-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0f766e"></i>الأكل</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-rose-800 dark:text-rose-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#be123c"></i>الكلام</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-violet-800 dark:text-violet-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#6d28d9"></i>الأدوات</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-amber-800 dark:text-amber-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#a16207"></i>الفوضى</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-blue-800 dark:text-blue-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#1d4ed8"></i>النوم</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-green-800 dark:text-green-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#15803d"></i>الواجب</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#475569"></i>أخرى</span>
-        </div>
-      </div>
-    </section>
-    <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
-      <div class="border-b border-slate-100 bg-white px-4 py-5 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
-        <div class="mx-auto flex max-w-xl items-center justify-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-teal-50 px-5 py-4 text-center shadow-sm dark:border-amber-900/60 dark:from-slate-800 dark:via-slate-900 dark:to-teal-950/30">
-          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-xl text-white shadow-md"><i class="fa-solid fa-trophy"></i></span>
-          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">50% تحسن الغياب + 50% تحسن السلوك، مع مكافأة المحافظة على المستوى الجيد</p></div>
-        </div>
-        <div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">النتيجة المعروضة</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">آخر نتيجة أسبوعية معتمدة</div></div>
-      </div>
-      <div class="space-y-5 p-4 sm:p-6">
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="saCompetitionWeeklyBtn" type="button" onclick="saSetCompetitionPeriod('weekly')" class="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm">النتيجة الأسبوعية</button>
-          <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
-          <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">من بداية الفصل حتى الآن</button>
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
-          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[190px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
-          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تعتمد النتائج الأسبوعية بعد إقفال الخميس الساعة 1:51 ظهراً بتوقيت عُمان، ولا توجد تواريخ يدوية للاختيار.</p>
-          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
-        </div>
-        <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
+    <nav id="saMainNav" class="sa-main-nav" aria-label="أقسام شؤون الطلبة">
+      <button type="button" class="sa-nav-card is-active" data-sec="1" aria-controls="saSec1" aria-selected="true" onclick="saSwitchMainSection(1)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+        <span>متابعة الغياب والسلوكيات</span>
+      </button>
+      <button type="button" class="sa-nav-card" data-sec="2" aria-controls="saSec2" aria-selected="false" onclick="saSwitchMainSection(2)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
+        <span>مؤشرات الغياب والسلوكيات</span>
+      </button>
+      <button type="button" class="sa-nav-card" data-sec="3" aria-controls="saSec3" aria-selected="false" onclick="saSwitchMainSection(3)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-print" aria-hidden="true"></i></span>
+        <span>طباعة التنبيهات</span>
+      </button>
+      <button type="button" class="sa-nav-card" data-sec="4" aria-controls="saSec4" aria-selected="false" onclick="saSwitchMainSection(4)">
+        <span class="sa-nav-icon"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i></span>
+        <span>السجل التفصيلي للطالب</span>
+      </button>
+    </nav>
 
-        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب قلة الملاحظات على صفوفهم</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
-        <section id="saCompetitionOtherRanksSection" class="hidden mt-4">
-          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h5 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h5>
-            <span id="saCompetitionOtherRanksCount" class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300"></span>
-          </div>
-          <div id="saCompetitionOtherRanksList" class="space-y-2" aria-live="polite"></div>
-        </section>
-<p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
-      </div>
-    </section>
-    <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
+    <section id="saSec1" class="sa-main-pane space-y-5">
+<div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="sa-report-header flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="sa-report-tabs flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-label="نوع المتابعة"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span><span class="sa-report-tab-label">الغياب</span></button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span><span class="sa-report-tab-label">السلوكيات</span></button></div></div>
       <div id="saReportPeriodControls" class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40">
         <div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div>
@@ -2631,8 +2595,68 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="saViewButton" onclick="saLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 sm:flex-none"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض السجلات</button><button id="saAnalyticsButton" onclick="saLoadAnalytics()" class="hidden flex-1 rounded-xl bg-teal-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-800 sm:flex-none"><i class="fa-solid fa-chart-column ml-1"></i> التحليلات</button><button id="saPrintButton" onclick="saPrint()" class="hidden flex-1 rounded-xl bg-slate-800 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-slate-900 sm:flex-none"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة / حفظ PDF</button></div>
       <div id="saSummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div><div id="saResults" class="space-y-4"></div>
     </div>
+    </section>
+    <section id="saSec2" class="sa-main-pane hidden space-y-5">
+<section id="saSupervisionPanel" class="hidden space-y-4 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-blue-900 dark:bg-slate-900 sm:p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3"><div><h3 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-area text-teal-700"></i> الاتجاه الزمني لحالات الغياب والانضباط</h3><p id="saSupervisionSubtitle" class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">متابعة حالات الغياب والتأخر والتسرب والخروج خلال الفترة المحددة.</p></div>
+        <div class="flex flex-wrap items-center gap-2"><button id="saSupervisionOwnBtn" type="button" onclick="saLoadSupervisionTrend('own')" class="rounded-xl bg-blue-700 px-3 py-2 text-[11px] font-black text-white">صفوفي</button><button id="saSupervisionTeamBtn" type="button" onclick="saLoadSupervisionTrend('team')" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">صفوف الفريق</button>
+          <label id="saSupervisionTeacherWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600 dark:text-slate-300">عرض بيانات المعلم
+            <select id="saSupervisionTeacherSelect" onchange="saSelectSupervisionTeacher(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold dark:border-slate-700 dark:bg-slate-950"><option value="">اختر المعلم</option></select>
+          </label></div>
+      </div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
+      <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="الاتجاه الزمني لحالات الغياب والتأخر والتسرب والخروج"></canvas></div>
+      <div class="flex flex-nowrap items-center justify-between gap-x-1 overflow-hidden whitespace-nowrap border-t border-slate-100 py-2 text-[8px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-slate-800 dark:text-slate-100"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-amber-800 dark:text-amber-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-red-800 dark:text-red-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-violet-800 dark:text-violet-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
+      <div class="border-t border-slate-100 pt-4 dark:border-slate-700">
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> الاتجاه الزمني للسلوكيات</h4><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">عدد حالات كل سلوك مسجلة يومياً خلال الفترة المحددة.</p></div>
+        <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
+        <div class="mt-2 flex flex-nowrap items-center justify-between gap-x-0.5 overflow-hidden whitespace-nowrap border-t border-slate-100 pt-2 text-[8px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-teal-800 dark:text-teal-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0f766e"></i>الأكل</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-rose-800 dark:text-rose-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#be123c"></i>الكلام</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-violet-800 dark:text-violet-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#6d28d9"></i>الأدوات</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-amber-800 dark:text-amber-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#a16207"></i>الفوضى</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-blue-800 dark:text-blue-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#1d4ed8"></i>النوم</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-green-800 dark:text-green-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#15803d"></i>الواجب</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#475569"></i>أخرى</span>
+        </div>
+      </div>
+    </section>
+<section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
+      <div class="border-b border-slate-100 bg-white px-4 py-5 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <div class="mx-auto flex max-w-xl items-center justify-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-teal-50 px-5 py-4 text-center shadow-sm dark:border-amber-900/60 dark:from-slate-800 dark:via-slate-900 dark:to-teal-950/30">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-xl text-white shadow-md"><i class="fa-solid fa-trophy"></i></span>
+          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">50% تحسن الغياب + 50% تحسن السلوك، مع مكافأة المحافظة على المستوى الجيد</p></div>
+        </div>
+        <div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">النتيجة المعروضة</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">آخر نتيجة أسبوعية معتمدة</div></div>
+      </div>
+      <div class="space-y-5 p-4 sm:p-6">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="saCompetitionWeeklyBtn" type="button" onclick="saSetCompetitionPeriod('weekly')" class="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm">النتيجة الأسبوعية</button>
+          <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
+          <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">من بداية الفصل حتى الآن</button>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[190px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
+          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تعتمد النتائج الأسبوعية بعد إقفال الخميس الساعة 1:51 ظهراً بتوقيت عُمان، ولا توجد تواريخ يدوية للاختيار.</p>
+          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+        </div>
+        <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
 
-    <section id="saAutomaticNotices" class="rounded-3xl border border-amber-200 bg-gradient-to-br from-white via-amber-50/50 to-slate-50 p-4 shadow-sm dark:border-amber-900/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 sm:p-5" dir="rtl">
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب قلة الملاحظات على صفوفهم</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
+        <section id="saCompetitionOtherRanksSection" class="hidden mt-4">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h5 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h5>
+            <span id="saCompetitionOtherRanksCount" class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300"></span>
+          </div>
+          <div id="saCompetitionOtherRanksList" class="space-y-2" aria-live="polite"></div>
+        </section>
+<p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
+      </div>
+    </section>
+      <div class="sa-empty-state rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">لا توجد مؤشرات متاحة ضمن صلاحيات حسابك الحالية.</div>
+    </section>
+    <section id="saSec3" class="sa-main-pane hidden space-y-5">
+<section id="saAutomaticNotices" class="rounded-3xl border border-amber-200 bg-gradient-to-br from-white via-amber-50/50 to-slate-50 p-4 shadow-sm dark:border-amber-900/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 sm:p-5" dir="rtl">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"><i class="fa-solid fa-file-circle-exclamation text-xl"></i></span>
@@ -2641,6 +2665,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <button type="button" onclick="saOpenNoticeModal()" class="rounded-2xl bg-gradient-to-l from-amber-600 to-amber-700 px-5 py-3 text-xs font-black text-white shadow-md transition hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-200 dark:focus:ring-amber-900"><i class="fa-solid fa-print ml-2"></i> 🖨️ طباعة إشعارات التنبيه التلقائية</button>
       </div>
       <p class="mt-3 text-[11px] leading-6 text-slate-500 dark:text-slate-400">يُحتسب الغياب مرة واحدة في اليوم لكل طالب، بينما تُحتسب المخالفات الأخرى بحسب الحصة. لا تُعتمد التنبيهات إلا عند اختيار الإصدار الرسمي وتأكيد العملية.</p>
+      
+    </section>
+    </section>
+    <section id="saSec4" class="sa-main-pane hidden space-y-5">
       <div class="mt-5 rounded-3xl border border-slate-200 bg-white/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-magnifying-glass ml-2 text-teal-700"></i>السجل التفصيلي للطالب</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">اعرض جميع مخالفات الطالب وغيابه وتأخره وتنبيهاته السابقة بالتواريخ والحصص.</p></div>
@@ -2663,7 +2691,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="saStudentProfilePrintRoot" class="hidden"></div>
       </div>
     </section>
-  </div>
+</div>
 
   <dialog id="saNoticeModal" class="fixed inset-0 z-[100000] m-0 hidden overflow-hidden border-0 bg-transparent p-0" aria-labelledby="saNoticeModalTitle" dir="rtl">
     <div class="sa-notice-dialog mx-auto w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
@@ -3928,6 +3956,35 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
   </div>
 </div>
+
+
+<script id="sa-four-section-navigation-controller">
+function saSwitchMainSection(secNumber){
+  const selected=String(secNumber);
+  if(!["1","2","3","4"].includes(selected))return;
+  document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
+    pane.classList.toggle("hidden",pane.id!=="saSec"+selected);
+  });
+  document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
+    const active=button.getAttribute("data-sec")===selected;
+    button.classList.toggle("is-active",active);
+    button.setAttribute("aria-selected",active?"true":"false");
+  });
+  // Resize existing charts only after the analytics pane becomes visible.
+  // This does not reload records, change field values, or touch permissions.
+  if(selected==="2"){
+    const resizeCharts=()=>{
+      ["saSupervisionTrendChart","saSupervisionBehaviorChart"].forEach(id=>{
+        const canvas=document.getElementById(id);
+        const chart=window.Chart?.getChart?.(canvas);
+        chart?.resize();
+      });
+    };
+    if(typeof requestAnimationFrame==="function")requestAnimationFrame(resizeCharts);
+    else resizeCharts();
+  }
+}
+</script>
 
 <script>
 /* ============ Supabase & Crypto config ============ */
@@ -12220,6 +12277,80 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 </style>
 
 
+
+
+<style id="sa-four-section-navigation-ui">
+@media screen {
+  #studentAffairsView .sa-main-nav{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+    padding:8px;border:1px solid rgba(22,140,133,.2);border-radius:22px;
+    background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(239,247,249,.92));
+    box-shadow:0 14px 32px -23px rgba(24,54,83,.45);
+    backdrop-filter:blur(14px)
+  }
+  .dark #studentAffairsView .sa-main-nav{
+    background:linear-gradient(145deg,rgba(15,26,43,.96),rgba(18,39,56,.94));
+    border-color:rgba(56,189,180,.24)
+  }
+  #studentAffairsView .sa-nav-card{
+    min-width:0;min-height:82px;display:flex;flex-direction:row;align-items:center;
+    justify-content:center;gap:10px;padding:12px 14px;border:1px solid #dce6ee;
+    border-radius:16px;background:#fff;color:#183653;font-size:13px;font-weight:900;
+    line-height:1.55;text-align:right;cursor:pointer;
+    box-shadow:0 5px 14px -10px rgba(24,54,83,.45);
+    transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease
+  }
+  .dark #studentAffairsView .sa-nav-card{background:#14283a;border-color:#31475a;color:#e5eef5}
+  #studentAffairsView .sa-nav-icon{
+    width:42px;height:42px;flex:0 0 42px;border-radius:13px;display:grid;
+    place-items:center;color:#fff;font-size:17px;background:linear-gradient(135deg,#168c85,#0f6e69);
+    box-shadow:0 8px 16px -10px rgba(15,110,105,.9)
+  }
+  #studentAffairsView .sa-nav-card[data-sec="2"] .sa-nav-icon{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+  #studentAffairsView .sa-nav-card[data-sec="3"] .sa-nav-icon{background:linear-gradient(135deg,#f59e0b,#b45309)}
+  #studentAffairsView .sa-nav-card[data-sec="4"] .sa-nav-icon{background:linear-gradient(135deg,#8b5cf6,#5b21b6)}
+  #studentAffairsView .sa-nav-card:hover{transform:translateY(-2px);border-color:#168c85;box-shadow:0 12px 22px -14px rgba(15,110,105,.65)}
+  #studentAffairsView .sa-nav-card.is-active{
+    color:#fff!important;border-color:rgba(213,166,74,.8)!important;
+    background:linear-gradient(125deg,#183653,#0f6e69)!important;
+    box-shadow:0 12px 26px -14px rgba(15,110,105,.7),inset 0 1px 0 rgba(255,255,255,.18)
+  }
+  #studentAffairsView .sa-nav-card.is-active .sa-nav-icon{
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);box-shadow:none
+  }
+  #studentAffairsView .sa-nav-card:focus-visible{outline:3px solid rgba(22,140,133,.35);outline-offset:3px}
+  #studentAffairsView .sa-main-pane{min-width:0;width:100%}
+  #saSec2{display:flex;flex-direction:column;gap:18px}
+  #saSec2 .sa-empty-state{display:block}
+  #saSec2:has(#saSupervisionPanel:not(.hidden),#saCompetitionPanel:not(.hidden)) .sa-empty-state{display:none}
+  #studentAffairsView>div:first-child p{display:none!important}
+  #saSec1 .sa-report-header>div:first-child p,
+  #saSec1 #saReportClassPicker>div:first-child p,
+  #saSec2 #saCompetitionPanel p,
+  #saSec3 #saAutomaticNotices>div:first-child>div p,
+  #saSec3 #saAutomaticNotices>p,
+  #saSec4>div>div:first-child p{display:none!important}
+  #saSec3 #saAutomaticNotices{width:100%;border-radius:24px}
+  #saSec4>div{
+    width:100%;border:1px solid var(--sa-line,#dce6ee);
+    box-shadow:0 14px 34px -24px rgba(24,54,83,.35)
+  }
+  .dark #saSec4>div{border-color:#2b4054;background:#0d1b2b}
+  #saSec1 .sa-report-tabs{flex-shrink:0}
+  #saSec1 #saReportClassPicker,#saSec1 #saReportPeriodControls{border-radius:18px}
+  @media (max-width:900px){
+    #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    #studentAffairsView .sa-nav-card{min-height:72px;padding:10px 12px;font-size:12px}
+  }
+  @media (max-width:480px){
+    #studentAffairsView .sa-main-nav{gap:7px;padding:6px;border-radius:18px}
+    #studentAffairsView .sa-nav-card{min-height:76px;flex-direction:column;gap:6px;padding:9px 6px;font-size:10.5px;text-align:center}
+    #studentAffairsView .sa-nav-icon{width:34px;height:34px;flex-basis:34px;border-radius:11px;font-size:15px}
+    #saSec1 .sa-report-header{align-items:stretch}
+    #saSec1 .sa-report-tabs{width:100%}
+  }
+}
+</style>
 
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
