@@ -48,35 +48,24 @@ function parseSubstitutionClockMinutes(value: unknown): number | null {
   const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(value ?? "").trim());
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
-function substitutionPeriodDeadlineMs(assignmentDate: unknown, period: unknown, timings: Record<string, unknown>): number | null {
+function substitutionPeriodDeadlineMs(assignmentDate: unknown, period: unknown, _timings: Record<string, unknown>): number | null {
   const date = String(assignmentDate ?? "").trim();
   const periodNumber = Number(period);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(periodNumber) || periodNumber < 1 || periodNumber > 8) return null;
-  const item = timings?.[String(periodNumber)];
-  const objectItem = item && typeof item === "object" ? item as Record<string, unknown> : null;
-  const startMinutes = parseSubstitutionClockMinutes(typeof item === "string" ? item : objectItem?.start);
-  if (startMinutes === null) return null;
-  let duration = 0;
-  const explicitEnd = parseSubstitutionClockMinutes(objectItem?.end);
-  const explicitDuration = Number(objectItem?.durationMinutes ?? objectItem?.duration_minutes);
-  if (explicitEnd !== null) duration = explicitEnd - startMinutes;
-  else if (Number.isFinite(explicitDuration) && explicitDuration > 0) duration = explicitDuration;
-  else {
-    const starts = Object.entries(timings || {}).map(([key, value]) => {
-      const entry = value && typeof value === "object" ? value as Record<string, unknown> : null;
-      return { period: Number(key), minutes: parseSubstitutionClockMinutes(typeof value === "string" ? value : entry?.start) };
-    }).filter((entry) => Number.isInteger(entry.period) && entry.period >= 1 && entry.period <= 8 && entry.minutes !== null)
-      .sort((a, b) => a.period - b.period);
-    const gaps = starts.slice(1).map((entry, index) => Number(entry.minutes) - Number(starts[index].minutes)).filter(gap => gap > 0);
-    duration = gaps.length ? Math.min(...gaps) : 0;
-  }
-  if (!Number.isFinite(duration) || duration <= 0 || duration > 180) return null;
   const [year, month, day] = date.split("-").map(Number);
-  return Date.UTC(year, month - 1, day, 0, startMinutes + duration) - 4 * 60 * 60 * 1000;
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
+  // One shared deadline for every lesson on the assignment date: midnight
+  // immediately after that date in Asia/Muscat, including future assignments.
+  return Date.UTC(year, month - 1, day + 1, 0) - 4 * 60 * 60 * 1000;
 }
 function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timings: Record<string, unknown>, now = Date.now()): boolean {
-  const deadline = substitutionPeriodDeadlineMs(assignmentDate, period, timings);
-  return deadline !== null && now < deadline;
+  const date = String(assignmentDate ?? "").trim();
+  const deadline = substitutionPeriodDeadlineMs(date, period, timings);
+  const todayInMuscat = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(now));
+  return deadline !== null && date >= todayInMuscat && now < deadline;
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
