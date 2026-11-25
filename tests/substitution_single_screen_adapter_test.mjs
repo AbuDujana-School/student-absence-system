@@ -48,3 +48,6 @@ test('navigation toggles the hub as well as each sub-screen so only one screen i
 test('archive mutations compute the backend weekday independently of the private distribution scope',()=>{assert.match(adapter,/function subxWeekdayFor\(date\)/);assert.match(adapter,/weekday:subxWeekdayFor\(b\.dataset\.date\)/);});
 
 test('archive edit and delete refresh the active mount rather than a hidden archive panel',()=>{assert.equal((adapter.match(/await loadArchive\(hostId\)/g)||[]).length,2);});
+test('absentee selection card is made visible after moving it into its dedicated screen',()=>{
+ assert.match(adapter,/if\(absentee\)\{screens\.absentees\.append\(absentee\);absentee\.classList\.remove\('hidden'\);\}/);
+});
