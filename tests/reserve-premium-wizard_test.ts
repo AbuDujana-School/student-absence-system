@@ -1,4 +1,5 @@
 const reserveWorkflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
+const indexHtml = await Deno.readTextFile(new URL("../index.html", import.meta.url));
 const timetableEndpoint = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
 
 function assert(condition: boolean, message: string) {
@@ -79,7 +80,7 @@ Deno.test("supporting departments and their teachers are selectable through visi
   assert(reserveWorkflow.includes('data-canonical-teacher-department'), "Selected departments must render separate teacher groups");
   assert(reserveWorkflow.includes('data-teacher-group-action="all"'), "Each teacher group must allow selecting all its teachers");
   assert(reserveWorkflow.includes('data-teacher-group-action="clear"'), "Each teacher group must allow clearing its teacher selection");
-  assert(reserveWorkflow.includes('getSubstitutionSelectedOtherTeacherNames'), "The existing canonical distribution request must keep using the selected supporting teachers");
+  assert(indexHtml.includes("getSubstitutionSelectedOtherTeacherNames()"), "The canonical distribution and save handlers must consume the selected supporting teachers");
 });
 
 Deno.test("the custom absence reason may be left empty", () => {
