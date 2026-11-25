@@ -482,6 +482,8 @@
     let defaultDateInitialized=false;
     const date=$("timetableSubstitutionDate");
     if(date){
+      if(typeof appAuthSession!=="undefined"&&(appAuthSession?.principal?.type==="custom"||appAuthSession?.principal?.permissions?.reserve===true))date.min=reserveCurrentMuscatDate();
+      else date.removeAttribute("min");
       const dateWrap=date.closest("label")||date.parentElement;
       if(dateWrap&&!dateWrap.closest("#ttPremiumDateCard")){
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
@@ -717,6 +719,10 @@
       "#timetableSubstitutionPanel .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
       "#timetableSubstitutionPanel .tt-premium-card-heading>div{min-width:0;flex:1}",
       "#timetableSubstitutionPanel .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge{display:flex;align-items:center;justify-content:center;gap:.4rem;width:max-content;min-width:5.2rem;min-height:3.35rem;margin-bottom:.55rem;padding:.4rem .75rem;border:1px solid rgba(139,92,246,.35);border-radius:1rem;background:linear-gradient(145deg,#f5f3ff,#ede9fe);color:#5b21b6;box-shadow:0 8px 18px rgba(109,40,217,.13),inset 0 1px 0 rgba(255,255,255,.9)}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge span{font-size:.68rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-lesson-period-badge strong{font-size:1.55rem;line-height:1;font-weight:1000;font-variant-numeric:tabular-nums}",
+      ".dark #timetableSubstitutionPanel .tt-lesson-period-badge{border-color:rgba(167,139,250,.45);background:linear-gradient(145deg,rgba(76,29,149,.42),rgba(91,33,182,.28));color:#ddd6fe;box-shadow:0 8px 18px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08)}",
       "#timetableSubstitutionPanel .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
       "#timetableSubstitutionPanel .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
       "#timetableSubstitutionPanel .tt-icon-date{background:#e0f2fe;color:#0369a1}",
@@ -918,7 +924,7 @@
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الغياب: '+esc(item.absenceReason||"-")+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
           const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
           const deleteButton=item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button>':"";
-          action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهت مهلة الحصة · للقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
+          action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهى يوم التوزيع · للأرشيف والقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
           const candidates=item.candidateOptions||[];
           const options=candidates.map(candidate=>{const occupied=(Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b);const periodText=occupied.length?occupied.map(period=>new Intl.NumberFormat("ar").format(period)).join("، "):"—";return '<option value="'+esc(candidate.teacherName)+'" '+(draft?.substituteTeacherName===candidate.teacherName?"selected":"")+'>'+esc(candidate.teacherName)+' · الحصص '+periodText+'</option>';}).join("");
@@ -926,7 +932,7 @@
           if(draft?.createsThreeConsecutive||item.createsThreeConsecutive)choice+='<div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] font-bold text-amber-800">تنبيه: هذا الاختيار يكوّن ثلاث حصص متتالية أو أكثر.</div>';
           action='<span class="text-[10px] text-slate-500">'+(draft?"مقترح قابل للتعديل":"لا يوجد اقتراح")+"</span>";
         }
-        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
+        return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="tt-lesson-period-badge" aria-label="الحصة '+Number(item.period)+'"><span>الحصة</span><strong>'+new Intl.NumberFormat("ar").format(Number(item.period))+'</strong></div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+(item.kind!=="saved"?reserveDutyReasonMarkup(absentName,item.period,dutyReason):"")+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
@@ -2084,7 +2090,7 @@
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
             const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)?'<button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-archive-edit="'+esc(item.id)+'">تعديل</button>':"";
             const deleteButton=item.canDelete===true?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-archive-delete="'+esc(item.id)+'">حذف</button>':"";
-            const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهت مهلة الحصة · للقراءة فقط":state)+'</span>';
+            const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهى يوم التوزيع · للأرشيف والقراءة فقط":state)+'</span>';
             return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3"><div><strong class="block text-xs text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</strong><span class="block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span><span class="block text-[10px] text-slate-500">'+state+'</span></div>'+actions+'</div>';
           }).join("");
           return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+deleteAll+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
@@ -2617,32 +2623,6 @@
     }
     const distributionDate=$("substitutionDate");
     if(distributionDate){
-      const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
-      if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
-        const nav=document.createElement("div");
-        nav.id="subxCanonicalDateQuickNav";
-        nav.className="tt-premium-date-nav";
-        nav.setAttribute("role","group");
-        nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
-        nav.setAttribute("aria-controls","substitutionDate");
-        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
-        dateCard.appendChild(nav);
-        nav.addEventListener("click",event=>{
-          const button=event.target.closest("[data-date-offset]");
-          if(!button)return;
-          const base=typeof getOmanLocalDate==="function"
-            ?String(getOmanLocalDate())
-            :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-          const parts=base.split("-").map(Number);
-          if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return;
-          const offset=Number(button.dataset.dateOffset);
-          const selected=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+offset,12));
-          distributionDate.value=selected.toISOString().slice(0,10);
-          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
-          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
-          nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
-        });
-      }
       if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
         distributionDate.dataset.canonicalLegacyDateSync="1";
         distributionDate.addEventListener("change",()=>{

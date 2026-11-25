@@ -10,6 +10,7 @@ import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";
+import { isSubstitutionDayOpen } from "./reserve_edit_window.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -465,7 +466,7 @@ async function handle(req: Request) {
       return reply(400,{error:"حدد فترة زمنية صحيحة لأرشيف الاحتياط."});
     }
     const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
-    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&!hasReservePermission&&toMs-fromMs>366*86400000)) {
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&!hasReservePermission&&!(principal.type==="custom"&&body.editableOnly===true)&&toMs-fromMs>366*86400000)) {
       return reply(400,{error:principal.type==="admin"?"نطاق التاريخ غير صحيح.":"الفترة القصوى لطباعة أرشيف الاحتياط هي 366 يوماً."});
     }
     const [directory,activeVersion,periodTimings]=await Promise.all([
@@ -504,17 +505,20 @@ async function handle(req: Request) {
           ["assigned","confirmed"].includes(String(row.status||""))&&
           (principal.type==="admin"
             ? String(row.assignment_date||"")===todayInMuscat
-            : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
+            : (hasReservePermission||principal.type==="custom")&&isSubstitutionDayOpen(row.assignment_date))),
         canDelete:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           (principal.type==="admin"
             ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))
-            : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings))),
+            : (hasReservePermission||principal.type==="custom")&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionDayOpen(row.assignment_date))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
-    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
+    const visibleArchive=body.editableOnly===true&&principal.type==="custom"
+      ?archive.filter((item:any)=>item.canEdit===true||item.canDelete===true)
+      :archive;
+    return reply(200,{ok:true,archive:visibleArchive,dateFrom,dateTo,schoolwide});
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
@@ -1428,6 +1432,11 @@ async function handle(req: Request) {
       const todayInMuscat=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
       const weekday = String(body.weekday || "");
       const weekdayOptionalActions=new Set(["timetable_substitution_update","timetable_substitution_update_batch"]);
+      const dateScopedCreateActions=new Set(["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_batch_preview","timetable_substitution_batch_save"]);
+      const requestedAssignmentDate=String(body.assignmentDate||"").trim();
+      if((principal.type==="custom"||hasReservePermission)&&dateScopedCreateActions.has(actionName)&&isValidSubstitutionDate(requestedAssignmentDate)&&requestedAssignmentDate<todayInMuscat){
+        return reply(403,{error:"لا يمكن لمنسق المادة إنشاء أو معاينة توزيع بتاريخ مضى. اختر اليوم أو تاريخاً مستقبلياً."});
+      }
       if (!DAYS.includes(weekday) && !weekdayOptionalActions.has(actionName)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status,period_count").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
@@ -1496,8 +1505,8 @@ async function handle(req: Request) {
         const activeStatus=["assigned","confirmed"].includes(String(assignment.status||""));
         const withinWindow=principal.type==="admin"
           ? cancellationDate===todayInMuscat
-          : isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings);
-        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية وقت الحصة المحدد في الجدول."});
+          : isSubstitutionDayOpen(cancellationDate);
+        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type,force_points_reversal:true}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
@@ -1525,7 +1534,7 @@ async function handle(req: Request) {
             : ["assigned","confirmed"].includes(status);
           const withinWindow=principal.type==="admin"
             ? assignmentDate===todayInMuscat
-            : isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings);
+            : isSubstitutionDayOpen(assignmentDate);
           return row.absent_teacher_name!==absentName||row.assignment_date!==assignmentDate||
             row.weekday!==weekday||!statusAllowed||!withinWindow;
         })) {
@@ -1582,10 +1591,10 @@ async function handle(req: Request) {
             id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
             canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat:
-                hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+                (hasReservePermission||principal.type==="custom")&&isSubstitutionDayOpen(row.assignment_date)),
             canDelete:String(row.version_id)===String(activeVersion.id)&&
               (principal.type==="admin"?String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")):
-                hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+                (hasReservePermission||principal.type==="custom")&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionDayOpen(row.assignment_date)),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
             subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
@@ -1629,8 +1638,7 @@ async function handle(req: Request) {
           if(!row||!["assigned","confirmed"].includes(String(row.status||"")))return true;
           return principal.type==="admin"
             ? String(row.assignment_date||"")!==todayInMuscat
-            : !isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)||
-              !isSubstitutionPeriodOpen(row.assignment_date,item.period??row.period,periodTimings);
+            : !isSubstitutionDayOpen(row.assignment_date);
         }))return reply(409,{error:"لا يمكن تعديل مجموعة التوزيع؛ انتهت مهلة حصة واحدة على الأقل أو لم تعد نشطة."});
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
@@ -1666,9 +1674,8 @@ async function handle(req: Request) {
         }
         const withinWindow=principal.type==="admin"
           ? String(editableAssignment.assignment_date||"")===todayInMuscat
-          : isSubstitutionPeriodOpen(editableAssignment.assignment_date,editableAssignment.period,periodTimings)&&
-            isSubstitutionPeriodOpen(editableAssignment.assignment_date,requestedPeriod,periodTimings);
-        if(!withinWindow)return reply(409,{error:"انتهت مهلة تعديل هذه الحصة أو الحصة البديلة؛ يجب إجراء التعديل قبل نهاية وقت الحصة."});
+          : isSubstitutionDayOpen(editableAssignment.assignment_date);
+        if(!withinWindow)return reply(409,{error:"انتهت مهلة تعديل هذا التوزيع؛ يسمح بالتعديل حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
         const {data,error}=await db.rpc(rpcName,{p_payload:{
           assignment_id:assignmentId,absent_teacher_name:absentTeacherName,period:requestedPeriod,
@@ -1763,11 +1770,11 @@ async function handle(req: Request) {
           canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
             (principal.type==="admin"
               ? String(row.assignment_date||"")===todayInMuscat
-              : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+              : (hasReservePermission||principal.type==="custom")&&isSubstitutionDayOpen(row.assignment_date)),
           canDelete:String(row.version_id)===String(activeVersion.id)&&
             (principal.type==="admin"
               ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
-              : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
+              : (hasReservePermission||principal.type==="custom")&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionDayOpen(row.assignment_date)),
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
