@@ -170,8 +170,8 @@ test('canonical reserve panel mounts into the host IDs created by the single-scr
  assert.ok(start>=0&&end>start);
  const mount=workflow.slice(start,end);
  assert.match(mount,/const editHost=\$\("subxEditMountArea"\),archiveHost=\$\("subxArchiveMountArea"\)/);
- assert.match(adapter,/id='subxEditMountArea'/);
- assert.match(adapter,/id='subxArchiveMountArea'/);
+ assert.match(adapter,/id=\"subxEditMountArea\"/);
+ assert.match(adapter,/id=\"subxArchiveMountArea\"/);
  assert.doesNotMatch(mount,/subxEditContent|subxArchiveContent/);
 });
 
