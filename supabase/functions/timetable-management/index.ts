@@ -392,7 +392,7 @@ async function handle(req: Request) {
     && !hasDutyReportPermission
     && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)
     && !hasTeacherActivityPermission) {
-    return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
+    return reply(403, { error: "تحتاج هذه العملية إلى صلاحية توزيع الاحتياط أو حساب منسق غياب مخوّل." });
   }
 
   if (action === "timetable_duty_report_context") {
@@ -464,11 +464,12 @@ async function handle(req: Request) {
     directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId)
       .forEach((teacher:any)=>departmentMap.set(String(teacher.departmentId),String(teacher.departmentName||teacher.department||teacher.departmentId)));
     const departments=[...departmentMap.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,"ar"));
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type);
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasArchivePermission);
+    const canSelectAnyDepartment=principal.type==="admin";
     const canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId);
-    return reply(200,{ok:true,canView:true,canViewDepartmentArchive,canViewSchoolwide,
+    return reply(200,{ok:true,canView:true,canViewDepartmentArchive,canViewSchoolwide,canSelectAnyDepartment,
       departmentId:String(actor?.departmentId||""),departmentName:String(actor?.departmentName||actor?.department||""),
-      departments:canViewSchoolwide?departments:[]});
+      departments:canSelectAnyDepartment?departments:(actor?.departmentId?departments.filter(item=>item.id===String(actor.departmentId)):[])});
   }
 
   // Archive is independent of the currently active timetable version: historical
@@ -495,21 +496,21 @@ async function handle(req: Request) {
     if(requestedArchiveScope&&!["department","school"].includes(requestedArchiveScope))
       return reply(400,{error:"نوع نطاق الأرشيف غير صحيح."});
     const requestedDepartmentId=String(body.departmentId||"").trim();
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type);
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasArchivePermission);
     if(requestedArchiveScope==="school"&&!canViewSchoolwide)
-      return reply(403,{error:"أرشيف المدرسة الشامل متاح لمدير النظام العام فقط."});
-    const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&canViewSchoolwide);
+      return reply(403,{error:"أرشيف المدرسة الشامل يتطلب صلاحية توزيع الاحتياط أو حساب منسق غياب مخوّلاً."});
+    const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&principal.type==="admin");
     const actorDepartmentId=String(actor?.departmentId||"").trim();
     // A non-admin's department scope is always derived from the authenticated
     // principal; a caller-supplied departmentId can never pivot the archive.
-    const targetDepartmentId=requestedArchiveScope==="department"?(canViewSchoolwide?requestedDepartmentId:actorDepartmentId):"";
+    const targetDepartmentId=requestedArchiveScope==="department"?(principal.type==="admin"?requestedDepartmentId:actorDepartmentId):"";
     if(requestedArchiveScope==="department"&&!targetDepartmentId)
       return reply(403,{error:"لا يتوفر قسم مرتبط بهذا الحساب لعرض أرشيف المادة."});
-    if(canViewSchoolwide&&requestedArchiveScope==="department"&&
+    if(principal.type==="admin"&&requestedArchiveScope==="department"&&
       !directory.some((teacher:any)=>teacher.role==="teacher"&&String(teacher.departmentId||"")===targetDepartmentId))
       return reply(400,{error:"القسم المحدد غير موجود في دليل المعلمين."});
     const visibleTeachers=directory.filter((teacher:any)=>teacher.role==="teacher"&&
-      (schoolwide||(requestedArchiveScope===""&&canViewSchoolwide)||
+      (schoolwide||(requestedArchiveScope===""&&principal.type==="admin")||
         Boolean(targetDepartmentId&&String(teacher.departmentId||"")===targetDepartmentId)||
         (requestedArchiveScope===""&&!canViewSchoolwide&&Boolean(actorDepartmentId&&String(teacher.departmentId||"")===actorDepartmentId))));
     const visibleNames=new Set(visibleTeachers.map((teacher:any)=>teacher.name));
@@ -1613,7 +1614,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
         const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-          (canViewSchoolwideReserveArchive(principal.type)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
+          (canViewSchoolwideReserveArchive(principal.type,hasArchivePermission)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
         const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
           visibleNames.has(String(row.absent_teacher_name||""))&&
           (!requestedDate||String(row.assignment_date||"")===requestedDate))
