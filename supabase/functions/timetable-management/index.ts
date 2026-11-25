@@ -1702,6 +1702,7 @@ async function handle(req: Request) {
         if(!isValidSubstitutionDate(assignmentDate)||!selectedNames.length||!proposed.length||proposed.length>500){
           return reply(400,{error:"حدد تاريخ الغياب والمعلمين الغائبين وتوزيع الحصص قبل الحفظ."});
         }
+        if(principal.type!=="admin"&&assignmentDate<todayInMuscat)return reply(409,{error:"لا يمكن لمنسق الاحتياط اعتماد توزيع بتاريخ سابق؛ اختر اليوم أو تاريخاً مستقبلياً."});
         if(selectedNames.some((name:string)=>!absentTeachers.includes(name))){
           return reply(403,{error:"تتضمن القائمة معلماً خارج نطاق صلاحيتك أو لا توجد له حصة تدريس في هذا اليوم."});
         }
