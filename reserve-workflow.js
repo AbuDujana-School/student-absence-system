@@ -2579,6 +2579,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       dashboardCard.removeAttribute("onkeydown");
       dashboardCard.addEventListener("click",event=>{
         event.preventDefault();
+        // Reserve reads begin only after an explicit user action on this card.
+        window.__reserveUserInitiatedOpen=true;
         const opener=window.openSubstitutionView;
         if(typeof opener!=="function"){
           showToast("تعذر تشغيل شاشة توزيع الاحتياط. حدّث الصفحة ثم حاول مجدداً.","error");
@@ -2669,20 +2671,14 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           }
         }finally{
           window.__canonicalReserveOpening=false;
+          window.__reserveUserInitiatedOpen=false;
         }
       };
       window.openSubstitutionView.__canonicalReserveWrapped=true;
     }
-    // If this installer ran only after the original entry point had already
-    // revealed the view, replay the newly wrapped entry point once so the
-    // canonical panel is mounted on that very first visible opening.
-    if(!window.__canonicalReserveOpening&&!root.classList.contains("hidden")&&$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
-      window.__canonicalReserveInitialOpenAttempted=true;
-      Promise.resolve().then(()=>{
-        if(root.isConnected&&!root.classList.contains("hidden")&&typeof window.openSubstitutionView==="function")
-          return window.openSubstitutionView();
-      }).catch(error=>status(error?.message||"تعذر تهيئة مساحة توزيع الاحتياط عند الفتح الأول.","error"));
-    }
+    // Visibility alone is not a request to open the reserve workspace.
+    // This installer also runs during unrelated view changes and page boot;
+    // all reserve reads must wait for an explicit dashboard-card click.
     if(typeof window.closeSubstitutionView==="function"&&!window.closeSubstitutionView.__canonicalReserveWrapped){
       window.closeSubstitutionView=function(){
         restoreCanonicalPanel();
