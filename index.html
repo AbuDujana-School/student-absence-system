@@ -2751,6 +2751,16 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <span class="sa-nav-title">السجل التفصيلي للطالب</span>
       </button>
     </nav>
+    <div id="saSectionBackbar" class="hidden mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900" aria-live="polite">
+      <div class="min-w-0">
+        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400">شؤون الطلبة</p>
+        <h2 id="saSectionBackbarTitle" class="mt-1 truncate text-base font-black text-slate-800 dark:text-white">القسم</h2>
+      </div>
+      <button type="button" onclick="saReturnToMainNavigation()" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#183653] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-[#0f6e69] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600">
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        العودة إلى الأقسام
+      </button>
+    </div>
 
     <section id="saSec1" class="sa-main-pane hidden space-y-5">
 <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
@@ -4153,15 +4163,31 @@ function saResetMainSectionView(){
   document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
     pane.classList.add("hidden");
   });
+  const nav=document.getElementById("saMainNav");
+  const backbar=document.getElementById("saSectionBackbar");
+  nav?.classList.remove("hidden");
+  backbar?.classList.add("hidden");
   document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
     button.classList.remove("is-active");
     button.setAttribute("aria-selected","false");
     button.setAttribute("aria-pressed","false");
   });
 }
+function saReturnToMainNavigation(){
+  saResetMainSectionView();
+  document.getElementById("saMainNav")?.scrollIntoView?.({behavior:"smooth",block:"start"});
+}
 function saSwitchMainSection(secNumber){
   const selected=String(secNumber);
   if(!["1","2","3","4"].includes(selected))return;
+  const nav=document.getElementById("saMainNav");
+  const backbar=document.getElementById("saSectionBackbar");
+  const activeButton=document.querySelector('#saMainNav .sa-nav-card[data-sec="'+selected+'"]');
+  const title=document.getElementById("saSectionBackbarTitle");
+  if(!nav||!backbar||!activeButton)return;
+  nav.classList.add("hidden");
+  backbar.classList.remove("hidden");
+  if(title)title.textContent=activeButton.querySelector(".sa-nav-title")?.textContent?.trim()||"شؤون الطلبة";
   document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
     pane.classList.toggle("hidden",pane.id!=="saSec"+selected);
   });
