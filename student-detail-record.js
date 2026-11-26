@@ -223,8 +223,15 @@
     const select = document.getElementById('saStudentProfileClass');
     if (!select) return;
     const classes = allowed();
+    const allowedSet = new Set(classes);
+    for (const [key, item] of selected) {
+      if (!allowedSet.has(item.className)) selected.delete(key);
+    }
+    renderSelected();
     const prior = select.value;
     if (!classes.length) {
+      selected.clear();
+      renderSelected();
       select.innerHTML = '<option value="">لا توجد صفوف مصرح بها</option>';
       saStudentProfileStatus('لا توجد صلاحية لعرض سجلات الطلاب.', true);
       return;
