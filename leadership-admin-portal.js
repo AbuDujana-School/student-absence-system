@@ -545,21 +545,27 @@
     if (canLate || canReserve) {
       const dailyCards = document.createElement('div');
       dailyCards.className = 'admin-portal-daily-metrics-grid';
-      const lateCount = canLate ? appendDailyMetric(dailyCards, 'التأخر عن الطابور الصباحي', 'كشف الطلاب المتأخرين اليوم', 'fa-solid fa-clock', () => { void showMorningAssemblyDetails(); }) : null;
-      const reserveCount = canReserve ? appendDailyMetric(dailyCards, 'المعلمون الغائبون الموزعون احتياط', 'كل معلم يُحتسب مرة واحدة فقط', 'fa-solid fa-chalkboard-user', () => { void showReserveDetails(); }) : null;
-      host.appendChild(dailyCards);
+      const lateCount = canLate && !canStats ? appendDailyMetric(dailyCards, 'التأخر عن الطابور الصباحي', 'كشف الطلاب المتأخرين اليوم', 'fa-solid fa-clock', () => { void showMorningAssemblyDetails(); }) : null;
+      const reserveCount = canReserve && !canStats ? appendDailyMetric(dailyCards, 'المعلمون الغائبون الموزعون احتياط', 'كل معلم يُحتسب مرة واحدة فقط', 'fa-solid fa-chalkboard-user', () => { void showReserveDetails(); }) : null;
+      if (dailyCards.childElementCount) host.appendChild(dailyCards);
       void refreshAuthorizedDailyMetrics().then(cache => {
-        if (lateCount && cache.morningAssemblyLoaded) {
+        if (canLate && cache.morningAssemblyLoaded) {
           const seen = new Set((cache.morningAssemblyRows || []).map(row =>
             typeof window.morningAssemblyStudentKey === 'function'
               ? window.morningAssemblyStudentKey(row?.class_name_snapshot, row?.student_name_snapshot)
               : String(row?.class_name_snapshot || '').trim() + '|' + String(row?.student_name_snapshot || '').trim()
           ));
-          lateCount.textContent = seen.size.toLocaleString('en-US') + ' طالب';
+          const label = seen.size.toLocaleString('en-US') + ' طالب';
+          if (lateCount) lateCount.textContent = label;
+          const existing = document.getElementById('dashMorningAssemblyLateCount');
+          if (canStats && existing) existing.textContent = label;
         }
-        if (reserveCount && cache.reserveArchiveLoaded) {
+        if (canReserve && cache.reserveArchiveLoaded) {
           const unique = new Set((cache.reserveArchive || []).filter(row => String(row?.status || 'assigned') !== 'cancelled').map(row => String(row?.absentTeacherName || '').trim()).filter(Boolean));
-          reserveCount.textContent = unique.size.toLocaleString('en-US') + ' معلم';
+          const label = unique.size.toLocaleString('en-US') + ' معلم';
+          if (reserveCount) reserveCount.textContent = label;
+          const existing = document.getElementById('dashReserveTeachersCount');
+          if (canStats && existing) existing.textContent = label;
         }
       });
     }
