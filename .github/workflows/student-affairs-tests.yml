@@ -1044,6 +1044,8 @@ jobs:
 
       - name: Run isolated browser integration tests
         run: npx playwright test tests/student-affairs-readers-isolated.spec.cjs --reporter=line
+      - name: Verify leadership portal access boundaries in Chromium
+        run: npx playwright test tests/leadership-admin-portal.browser.spec.cjs --reporter=line
       - name: Inspect combined report PDF layout in Chromium
         run: npx playwright test tests/combined-report-print-layout.browser.spec.cjs --reporter=line
 
