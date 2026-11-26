@@ -2866,6 +2866,26 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       window.saveTeacherPermissions=wrappedSave;
     }
   })();
+
+  // The schoolwide daily count is shown only to principals who can actually
+  // read the consolidated archive; the ordinary dashboard cards stay intact.
+  if(typeof window.refreshDashboardDailyMetrics==="function"&&!window.refreshDashboardDailyMetrics.__schoolwideArchiveVisibilityWrapped){
+    const originalRefresh=window.refreshDashboardDailyMetrics;
+    const wrappedRefresh=function(...args){
+      const allowed=typeof activeUser!=="undefined"&&(
+        activeUser?.type==="admin"||
+        activeUser?.permissions?.admin===true||
+        activeUser?.permissions?.reserve===true||
+        activeUser?.permissions?.schoolwideReserveArchive===true
+      );
+      const metricCard=document.getElementById("dashReserveTeachersCount")?.closest(".p-4");
+      if(metricCard)metricCard.classList.toggle("hidden",!allowed);
+      return originalRefresh.apply(this,args);
+    };
+    wrappedRefresh.__schoolwideArchiveVisibilityWrapped=true;
+    wrappedRefresh.__original=originalRefresh;
+    window.refreshDashboardDailyMetrics=wrappedRefresh;
+  }
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"){
     const substitutionView=$("substitutionView");

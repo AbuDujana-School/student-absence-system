@@ -40,8 +40,12 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
     "Department results must be filtered against the server-resolved department id",
   );
   assert(
-    backend.includes("const hasArchivePermission = principal.type === \"admin\" || hasReservePermission || hasTimetableGrant;"),
-    "Schoolwide archive visibility must use an already-validated reserve or absence-coordinator archive grant",
+    backend.includes('const hasExplicitSchoolwideArchivePermission = principal.type === "teacher" &&'),
+    "A teacher must receive schoolwide archive access only through the explicit teacher permission",
+  );
+  assert(
+    backend.includes("hasTimetableGrant || hasExplicitSchoolwideArchivePermission"),
+    "The explicit teacher permission must authorize archive reads without granting reserve management",
   );
 });
 
