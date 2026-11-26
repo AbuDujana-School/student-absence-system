@@ -383,20 +383,17 @@
       }
       // Read official notice history once per selected class, scoped server-side
       // to the selected student names. No other students' notices are returned.
-      const namesByClass = new Map();
+      // Use the currently deployed, server-supported single-student filter.
+      // The batch student_names endpoint is present in source but must not be
+      // assumed live until the Edge Function is explicitly deployed.
+      const noticeHistoryByStudent = new Map();
       for (const item of items) {
-        const names = namesByClass.get(item.className) || [];
-        if (!names.includes(item.name)) names.push(item.name);
-        namesByClass.set(item.className, names);
-      }
-      const noticeHistoryByClass = new Map();
-      for (const className of classNames) {
         const history = await saRequest({
           action: 'reports', report_mode: 'notice_history',
-          notice_classes: [className], student_names: namesByClass.get(className) || [], to: today
+          notice_classes: [item.className], student_name: item.name, to: today
         });
-        noticeHistoryByClass.set(
-          className,
+        noticeHistoryByStudent.set(
+          keyOf(item),
           Array.isArray(history?.notices) ? history.notices : []
         );
       }
@@ -413,7 +410,7 @@
         const b = scope.behavior ? behaviors.filter(row => String(row.class_name || '') === item.className) : [];
         saNoticeProfileSelectedName = item.name;
         const rows = saBuildStudentProfileRows(a, b);
-        const notices = (noticeHistoryByClass.get(item.className) || []).filter(row =>
+        const notices = (noticeHistoryByStudent.get(keyOf(item)) || []).filter(row =>
           String(row.student_name || '').trim() === item.name &&
           String(row.class_name || item.className) === item.className);
         cards.push(profileCard(item, rows, notices));
