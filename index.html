@@ -9038,6 +9038,8 @@ async function recordMorningAssemblyLateness(className,studentName,button) {
       morningAssemblyLatenessToday.add(key);
       showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
     }
+    const dashboardLateCount = document.getElementById('dashMorningAssemblyLateCount');
+    if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
     renderMorningAssemblyStudents();
     renderMorningAssemblySearch();
   } catch (error) {
@@ -10120,9 +10122,9 @@ function refreshUrgentCategoryCounts() {
 // Dashboard-only daily metrics. Fetch once per Oman school day; never poll.
 let dashboardDailyMetricsDate = '';
 let dashboardDailyMetricsPromise = null;
-async function refreshDashboardDailyMetrics() {
+async function refreshDashboardDailyMetrics(force = false) {
   const today = getOmanLocalDate();
-  if (dashboardDailyMetricsDate === today) return;
+  if (!force && dashboardDailyMetricsDate === today) return;
   if (dashboardDailyMetricsPromise) return dashboardDailyMetricsPromise;
   const lateNode = document.getElementById('dashMorningAssemblyLateCount');
   const reserveNode = document.getElementById('dashReserveTeachersCount');

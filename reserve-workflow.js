@@ -2082,6 +2082,9 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       // Do not warm archive/preview/statistics reads as a side effect of a permission check.
       // The edit/archive screen loads its own data when the user opens it.
       if(reserveMutation)refreshDailyArchiveInBackground();
+      if(reserveMutation&&typeof window.refreshDashboardDailyMetrics==="function"){
+        refreshInBackground("Dashboard reserve metric refresh failed.",()=>window.refreshDashboardDailyMetrics(true));
+      }
       if(reserveMutation&&$("substitutionTodayAssignmentsResults")){
         refreshInBackground("Reserve home-today refresh failed.",window.substitutionLoadHomeTodayAssignments);
       }
