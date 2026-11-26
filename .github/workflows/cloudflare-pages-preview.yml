@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
-      - feature/student-detail-multiselect-20261126
       - fix/revision-sync-optimization-20261119
       - fix/integrated-school-sync-hardening-final-20261120
     paths:
       - "index.html"
       - "manifest.webmanifest"
       - "sw.js"
-      - "student-detail-record.js"
       - "icons/**"
       - ".github/workflows/cloudflare-pages-preview.yml"
   workflow_dispatch:
@@ -61,12 +59,11 @@ jobs:
           set -euo pipefail
           rm -rf .cloudflare-pages-dist
           mkdir -p .cloudflare-pages-dist/icons
-          cp index.html manifest.webmanifest sw.js student-detail-record.js .cloudflare-pages-dist/
+          cp index.html manifest.webmanifest sw.js .cloudflare-pages-dist/
           cp icons/icon-192.png icons/icon-512.png icons/icon-512-maskable.png .cloudflare-pages-dist/icons/
           test -s .cloudflare-pages-dist/index.html
           test -s .cloudflare-pages-dist/manifest.webmanifest
           test -s .cloudflare-pages-dist/sw.js
-          test -s .cloudflare-pages-dist/student-detail-record.js
           test -s .cloudflare-pages-dist/icons/icon-192.png
           test -s .cloudflare-pages-dist/icons/icon-512.png
           test -s .cloudflare-pages-dist/icons/icon-512-maskable.png
