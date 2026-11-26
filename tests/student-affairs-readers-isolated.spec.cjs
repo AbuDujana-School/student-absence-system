@@ -653,7 +653,7 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
 });
 
 
-test("student detailed record supports Arabic partial multi-select with scoped notice history and logout reset", async ({ page }) => {
+test("student detailed record finds names when the standalone ibn token is omitted and preserves multi-select", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
   await page.waitForFunction(
     () => typeof window.saLoadStudentProfileDirectory === "function" &&
@@ -684,7 +684,7 @@ test("student detailed record supports Arabic partial multi-select with scoped n
       allowed_behavior_classes: [],
     };
     db.students = {
-      QA_ONLY_CLASS: ["أحمد سالم", "مريم علي", "خالد سعيد"],
+      QA_ONLY_CLASS: ["الحيثم بن هلال", "مريم بن علي", "خالد سعيد"],
     };
     saLoadStudentProfileDirectory();
   });
@@ -692,16 +692,16 @@ test("student detailed record supports Arabic partial multi-select with scoped n
   await expect(page.locator("#saStudentProfileClass option").first()).toHaveAttribute("value", "__all__");
   await expect(page.locator("#saStudentProfileClass option").first()).toHaveText("جميع صفوف المدرسة");
 
-  await page.locator("#saStudentProfileName").fill("احمد");
+  await page.locator("#saStudentProfileName").fill("الحيثم هلال");
   await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
-    .filter({ hasText: "أحمد سالم" }).click();
-  await page.locator("#saStudentProfileName").fill("مريم");
+    .filter({ hasText: "الحيثم بن هلال" }).click();
+  await page.locator("#saStudentProfileName").fill("مريم علي");
   await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
-    .filter({ hasText: "مريم علي" }).click();
+    .filter({ hasText: "مريم بن علي" }).click();
 
   await expect(page.locator("#saStudentDetailCount")).toHaveText("2");
-  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("أحمد سالم");
-  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("مريم علي");
+  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("الحيثم بن هلال");
+  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("مريم بن علي");
 
   await page.evaluate(async () => { await saLoadStudentNoticeProfile(); });
   await expect(page.locator("#saStudentProfileResult")).toContainText("تم تجهيز 2 ملفات طلابية");
@@ -716,7 +716,7 @@ test("student detailed record supports Arabic partial multi-select with scoped n
   expect(requestSummary.selectionCount).toBe("2");
   expect(viewCalls.length).toBeGreaterThan(0);
   expect(historyCalls).toHaveLength(2);
-  expect(historyCalls.map(item => item.student_name).sort()).toEqual(["أحمد سالم", "مريم علي"]);
+  expect(historyCalls.map(item => item.student_name).sort()).toEqual(["الحيثم بن هلال", "مريم بن علي"]);
   expect(historyCalls.every(item => item.notice_classes?.[0] === "QA_ONLY_CLASS")).toBe(true);
   expect(historyCalls.every(item => !Object.prototype.hasOwnProperty.call(item, "student_names"))).toBe(true);
   expect(traffic.blockedWrites).toEqual([]);

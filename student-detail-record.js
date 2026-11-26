@@ -9,10 +9,22 @@
   let matches = [];
   let loading = false;
   let selectionOwner = '';
-  const normalize = value => String(value || '').normalize('NFC')
-    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
-    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
-    .replace(/\s+/g, ' ').trim().toLocaleLowerCase('ar');
+  // Keep name matching identical to morningAssemblyMatchScore in index.html.
+  // Ignore the standalone "بن" token so users can search by distinctive name words.
+  function normalizeStudentDetailSearchName(value) {
+    return String(value || '').normalize('NFKC').replace(/[\u064b-\u065f\u0670\u0640]/g, '')
+      .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و')
+      .replace(/ئ/g, 'ي').toLowerCase().split(/\s+/).filter(Boolean).filter(token => token !== 'بن');
+  }
+  function studentDetailMatchScore(name, query) {
+    const q = normalizeStudentDetailSearchName(query), n = normalizeStudentDetailSearchName(name);
+    if (!q.length) return 0;
+    const missing = q.filter(token => !n.some(part => part.includes(token)));
+    if (missing.length) return 0;
+    const exactTokens = q.filter(token => n.includes(token)).length;
+    const full = n.join(' '), queryText = q.join(' ');
+    return (exactTokens * 10) + (full.includes(queryText) ? 30 : 0) - Math.max(0, n.length - q.length);
+  }
   const keyOf = item => item.className + '\u001f' + item.name;
   const allowed = () => saStudentProfileAllowedClasses();
 
@@ -84,7 +96,7 @@
     if (!select || !input) return false;
     if (document.getElementById('saStudentDetailMultiPanel')) return true;
     input.removeAttribute('list');
-    input.placeholder = 'اكتب جزءاً من اسم الطالب للبحث الفوري...';
+    input.placeholder = 'اكتب كلمتين من الاسم؛ لا يلزم كتابة (بن)...';
     input.setAttribute('aria-label', 'ابحث عن طالب بجزء من اسمه');
     const datalist = document.getElementById('saStudentProfileNames');
     if (datalist) datalist.remove();
@@ -182,10 +194,10 @@
     const host = document.getElementById('saStudentDetailSearchResults');
     const select = document.getElementById('saStudentProfileClass');
     if (!input || !host || !select) return;
-    const query = normalize(input.value);
-    if (!query) {
+    const query = input.value || '';
+    if (query.trim().length < 2) {
       matches = [];
-      host.innerHTML = '<div class="sa-sdm-empty">ابدأ بكتابة جزء من اسم الطالب، ثم اختره بعلامة الصح</div>';
+      host.innerHTML = '<div class="sa-sdm-empty">اكتب كلمتين من اسم الطالب على الأقل؛ لا تحتاج إلى كتابة كلمة (بن)</div>';
       return;
     }
     const classes = allowed();
@@ -195,14 +207,14 @@
       const roster = Array.isArray(db?.students?.[className]) ? db.students[className] : [];
       roster.forEach(function (rawName) {
         const name = String(rawName || '').trim();
-        const rank = normalize(name).indexOf(query);
-        if (name && rank >= 0) candidates.push({ className: className, name: name, rank: rank });
+        const score = studentDetailMatchScore(name, query);
+        if (name && score > 0) candidates.push({ className: className, name: name, score: score });
       });
     });
-    candidates.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, 'ar') || a.className.localeCompare(b.className, 'ar'));
+    candidates.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, 'ar') || a.className.localeCompare(b.className, 'ar'));
     matches = candidates.slice(0, 60);
     if (!candidates.length) {
-      host.innerHTML = '<div class="sa-sdm-empty"><i class="fa-solid fa-magnifying-glass mb-2 block text-lg"></i>لا توجد أسماء مطابقة. جرّب جزءاً آخر من الاسم.</div>';
+      host.innerHTML = '<div class="sa-sdm-empty"><i class="fa-solid fa-magnifying-glass mb-2 block text-lg"></i>لا توجد أسماء مطابقة. جرّب كلمة أخرى من الاسم.</div>';
       return;
     }
     host.innerHTML = matches.map(function (item, index) {
@@ -215,7 +227,7 @@
         '<span class="text-[11px] font-black ' + (checked ? 'text-teal-700' : 'text-indigo-600') + '">' +
         (checked ? 'تم الاختيار' : 'اضغط للتحديد') + '</span></label>';
     }).join('') + (candidates.length > matches.length
-      ? '<div class="sa-sdm-hint text-center">تظهر أول ' + matches.length + ' نتيجة من أصل ' + candidates.length + '؛ أضف حروفاً أخرى لتضييق البحث.</div>' : '');
+      ? '<div class="sa-sdm-hint text-center">تظهر أول ' + matches.length + ' نتيجة من أصل ' + candidates.length + '؛ أضف كلمة أخرى لتضييق البحث.</div>' : '');
   }
 
   window.saLoadStudentProfileDirectory = function () {
@@ -243,7 +255,7 @@
     if (input) input.value = '';
     renderSelected();
     renderMatches();
-    saStudentProfileStatus('تم تجهيز البحث في ' + classes.length + ' صفاً ضمن نطاق صلاحياتك. اكتب جزءاً من اسم الطالب.');
+    saStudentProfileStatus('تم تجهيز البحث في ' + classes.length + ' صفاً ضمن نطاق صلاحياتك. اكتب الاسم أو كلماته المميزة دون الحاجة إلى (بن).');
   };
 
   function profileCard(item, rows, notices) {
