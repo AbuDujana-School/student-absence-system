@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v56';
+const CACHE_NAME = 'abudujana-app-v57';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v63';
+const RUNTIME_CACHE = 'abudujana-static-v64';
 function fetchWithTimeout(request, timeoutMs = 7000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
