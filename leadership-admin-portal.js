@@ -207,7 +207,8 @@
     document.getElementById('adminPortalHomeButton')?.addEventListener('click', closeAdminSection);
     document.getElementById('adminPortalLogoutButton')?.addEventListener('click', function () {
       closeAdminSection();
-      if (typeof window.logoutUser === 'function') window.logoutUser();
+      if (typeof window._performLogout === 'function') window._performLogout();
+      else if (typeof window.logoutUser === 'function') window.logoutUser();
     });
     view.querySelectorAll('[data-admin-portal-open]').forEach(button => {
       button.addEventListener('click', () => openAdminSubModal(button.getAttribute('data-admin-portal-open')));
@@ -644,8 +645,9 @@
       wrappedOpen.__original = originalOpen;
       window.openAdminModal = wrappedOpen;
     }
-    if (typeof window.logoutUser === 'function' && !window.logoutUser.__adminPortalWrapped) {
-      const originalLogout = window.logoutUser;
+    ['_performLogout', 'logoutUser'].forEach(name => {
+      const originalLogout = window[name];
+      if (typeof originalLogout !== 'function' || originalLogout.__adminPortalWrapped) return;
       const wrappedLogout = function (...args) {
         closeAdminSection();
         restoreMovedModules();
@@ -653,8 +655,8 @@
       };
       wrappedLogout.__adminPortalWrapped = true;
       wrappedLogout.__original = originalLogout;
-      window.logoutUser = wrappedLogout;
-    }
+      window[name] = wrappedLogout;
+    });
   }
 
   function installKeyboardAndFocusHandling() {
