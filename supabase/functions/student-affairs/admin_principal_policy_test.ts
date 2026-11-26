@@ -42,3 +42,22 @@ Deno.test("additional admin report and reserve capabilities are opt-in and indep
     throw new Error("Explicit additional-admin capability overrides were ignored");
   }
 });
+
+
+Deno.test("additional admins receive the leadership portal only when its teacher permission is explicitly granted", async () => {
+  const { buildAdditionalAdminPermissions } = await import("./admin_principal_policy.ts");
+  const denied = buildAdditionalAdminPermissions({
+    role: "teacher",
+    permissions: { additionalAdmin: true },
+  });
+  if (denied.canViewAdminRecords !== false) {
+    throw new Error("The leadership portal must remain hidden by default for additional admins");
+  }
+  const granted = buildAdditionalAdminPermissions({
+    role: "teacher",
+    permissions: { additionalAdmin: true, canViewAdminRecords: true },
+  });
+  if (granted.canViewAdminRecords !== true) {
+    throw new Error("The explicit leadership portal permission was lost during principal projection");
+  }
+});

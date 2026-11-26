@@ -28,5 +28,9 @@ export function buildAdditionalAdminPermissions(value: unknown): Record<string, 
   for (const key of Object.keys(ADDITIONAL_ADMIN_PERMISSION_DEFAULTS)) {
     if (typeof overrides[key] === "boolean") result[key] = overrides[key] as boolean;
   }
+  // The leadership portal grant is an explicit teacher permission, not an
+  // additional-admin default or a capability override. Preserve it in the
+  // projected login/session principal without granting it to every delegate.
+  result.canViewAdminRecords = permissions.canViewAdminRecords === true;
   return result;
 }

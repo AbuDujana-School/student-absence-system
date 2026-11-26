@@ -65,6 +65,19 @@
     const allowed = hasPortalPermission();
     const banner = document.getElementById('adminPortalBanner');
     if (banner) banner.classList.toggle('hidden', !allowed);
+    const adminButton = document.getElementById('adminPanelBtn');
+    if (adminButton) {
+      let showAdminPanel = false;
+      try {
+        showAdminPanel = !!(
+          (typeof window.isGeneralAdminUser === 'function' && window.isGeneralAdminUser(currentUser())) ||
+          (typeof window.isAdminAuthorized === 'function' && window.isAdminAuthorized()) ||
+          (typeof window.hasAdminPanelAccess === 'function' && window.hasAdminPanelAccess(currentUser()))
+        );
+      } catch (_) {}
+      adminButton.classList.toggle('hidden', !showAdminPanel || allowed);
+      adminButton.classList.toggle('flex', showAdminPanel && !allowed);
+    }
     if (!allowed && !document.getElementById('adminSectionView')?.classList.contains('hidden')) {
       closeAdminSection();
     }
