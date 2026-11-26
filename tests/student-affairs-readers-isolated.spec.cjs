@@ -647,16 +647,16 @@ test("student affairs cards open dedicated inner screens and return to the card 
   await openIsolatedApp(page);
 
   await page.evaluate(() => saSwitchMainSection(1));
-  await expect(page.locator("#saMainNav")).toHaveClass(/\\bhidden\\b/);
-  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/\\bhidden\\b/);
-  await expect(page.locator("#saSec1")).not.toHaveClass(/\\bhidden\\b/);
-  await expect(page.locator("#saSec2")).toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSec1")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSec2")).toHaveClass(/hidden/);
   await expect(page.locator("#saSectionCurrentTitle")).toHaveText("متابعة الغياب والسلوكيات");
 
   await page.evaluate(() => saReturnToMainNav());
-  await expect(page.locator("#saMainNav")).not.toHaveClass(/\\bhidden\\b/);
-  await expect(page.locator("#saSectionBackBar")).toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saMainNav")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).toHaveClass(/hidden/);
   for (const section of [1, 2, 3, 4]) {
-    await expect(page.locator("#saSec" + section)).toHaveClass(/\\bhidden\\b/);
+    await expect(page.locator("#saSec" + section)).toHaveClass(/hidden/);
   }
 });
