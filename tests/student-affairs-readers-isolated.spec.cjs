@@ -671,6 +671,7 @@ test("student detailed record supports Arabic partial multi-select with scoped n
     // Simulate the authenticated Student Affairs view. This is a synthetic
     // browser test, so reveal the same hidden panes that a successful login
     // and navigation to the detailed-record section would reveal.
+    document.getElementById("studentAffairsView")?.classList.remove("hidden");
     document.getElementById("saContent")?.classList.remove("hidden");
     document.getElementById("saSec4")?.classList.remove("hidden");
     saReportPermissions = {
