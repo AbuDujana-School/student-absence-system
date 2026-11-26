@@ -16333,7 +16333,7 @@ window.addEventListener('reserve:muscat-day-changed',()=>{if(current==='edit')vo
  if(document.getElementById('substitutionOtherDepartmentSelect'))document.getElementById('substitutionOtherDepartmentSelect').addEventListener('change',()=>window.subxUpdateOtherDeptsCount?.());
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})()
+})();
 /* Administrative records center: stays in the main script scope to reuse
    authenticated state and existing report functions without changing auth. */
 (function(){
