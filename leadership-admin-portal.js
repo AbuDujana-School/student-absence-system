@@ -400,9 +400,18 @@
       try { await window.refreshDashboardDailyMetrics(true); } catch (_) {}
     }
     const latest = window.__adminPortalDailyMetricsCache;
-    const rows = latest?.date === today && latest.morningAssemblyLoaded === true
+    const sourceRows = latest?.date === today && latest.morningAssemblyLoaded === true
       ? latest.morningAssemblyRows || []
       : [];
+    const seenStudents = new Set();
+    const rows = sourceRows.filter(row => {
+      const key = typeof window.morningAssemblyStudentKey === 'function'
+        ? window.morningAssemblyStudentKey(row?.class_name_snapshot, row?.student_name_snapshot)
+        : String(row?.class_name_snapshot || '').trim() + '|' + String(row?.student_name_snapshot || '').trim();
+      if (!key || seenStudents.has(key)) return false;
+      seenStudents.add(key);
+      return true;
+    });
     buildDetailList(
       'كشف المتأخرين عن الطابور الصباحي اليوم',
       rows,
