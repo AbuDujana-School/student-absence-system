@@ -98,6 +98,10 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // IMPORTANT: Keep HTML response bodies intact. index.html contains serialized
+  // print-document HTML (including </body>) inside inline JavaScript strings.
+  // Never inject scripts by regex/string replacement in the Service Worker:
+  // an injected </script> can terminate the surrounding inline script early.
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
