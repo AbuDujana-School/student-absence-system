@@ -25,9 +25,10 @@ test("Service Worker does not rewrite or inject scripts into HTML responses", ()
   assert.doesNotMatch(worker, /student-detail-record\.js/i);
 });
 
-test("multi-student notice history is fetched once per selected class and only for selected names", () => {
+test("notice history uses deployed single-student server filtering until the batch endpoint is deployed", () => {
   assert.equal((feature.match(/report_mode:\s*'notice_history'/g) || []).length, 1);
-  assert.match(feature, /notice_classes:\s*\[className\],\s*student_names:\s*namesByClass\.get\(className\)/);
+  assert.match(feature, /notice_classes:\s*\[item\.className\],\s*student_name:\s*item\.name/);
+  assert.doesNotMatch(feature, /student_names\s*:/);
   assert.match(edge, /requestedStudentNames/);
   assert.match(edge, /\.in\("student_name",\s*requestedStudentNames\)/);
   assert.match(edge, /filterNoticeHistoryRows\(data\s*\|\|\s*\[\],\s*studentName,\s*requestedStudentNames\)/);
