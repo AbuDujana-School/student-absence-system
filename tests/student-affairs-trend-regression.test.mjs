@@ -133,7 +133,16 @@ test("Student Affairs navigation is four independent square cards with responsiv
   assert.match(html,/max-width:760px\)[\s\S]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(html,/aspect-ratio:1 \/ 1/);
   assert.match(html,/flex-direction:column/);
-  assert.doesNotMatch(html,/id="studentAffairsDashboardCard"/);
+  const dashboard = getElementById(html,"dashboardSelectionView");
+  const dashboardCard = getElementById(dashboard,"studentAffairsDashboardCard");
+  assert.ok(dashboardCard.includes('onclick="openStudentAffairsView(true)"'));
+  assert.ok(dashboardCard.includes('role="button"') && dashboardCard.includes('tabindex="0"'));
+  assert.ok(dashboardCard.includes("شؤون الطلبة"));
+  assert.ok(dashboardCard.includes("class=\"hidden hero-card"));
+  assert.ok(dashboard.indexOf('id="behaviorDashboardCard"') < dashboard.indexOf('id="studentAffairsDashboardCard"'));
+  assert.ok(dashboard.indexOf('id="studentAffairsDashboardCard"') < dashboard.indexOf('id="dutyDashboardCard"'));
+  assert.match(html,/studentAffairsDashboardCard[\s\S]{0,140}classList\.toggle\(['"]hidden['"], !allowed\)/);
+  assert.match(html,/studentAffairsDashboardCard[\s\S]{0,160}classList\.toggle\(["']hidden["'], !showStudentAffairs\)/);
 });
 
 test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{

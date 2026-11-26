@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-26-student-affairs-square-tiles-1">
+<meta name="app-build" content="2026-11-26-student-affairs-dashboard-entry-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2081,6 +2081,20 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
       </div>
       
+      <div id="studentAffairsDashboardCard" role="button" tabindex="0" aria-label="فتح قسم شؤون الطلبة" onclick="openStudentAffairsView(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStudentAffairsView(true);}" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-violet-700 via-indigo-800 to-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-violet-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
+        <div class="absolute -left-8 -top-10 w-36 h-36 rounded-full bg-violet-300/20 blur-3xl pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-violet-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-user-graduate"></i></div>
+        </div>
+        <div class="relative z-10 mt-6">
+          <h4 class="text-3xl font-black text-white mb-2">شؤون الطلبة</h4>
+          <p class="text-xs text-violet-100 font-bold">متابعة الغياب والسلوكيات والمؤشرات والسجلات الطلابية</p>
+        </div>
+        <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-violet-100">
+          <span>افتح القسم</span>
+          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
+        </div>
+      </div>
       <div id="dutyDashboardCard" onclick="openDutyView()" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-amber-600 via-orange-700 to-rose-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-amber-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
         <div class="relative z-10 flex justify-between items-start">
           <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-amber-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20"><i class="fa-solid fa-user-clock"></i></div>
@@ -8035,6 +8049,8 @@ function startDistronDashboardStages() {
       button.classList.toggle('hidden', !allowed);
       button.classList.toggle('flex', allowed);
     }
+    const dashboardCard = document.getElementById('studentAffairsDashboardCard');
+    if (dashboardCard) dashboardCard.classList.toggle('hidden', !allowed);
   }, 'student-affairs');
   return true;
 }
@@ -8060,6 +8076,8 @@ function renderAuthenticatedDashboardShell() {
     studentAffairsBtn.classList.toggle("hidden", !showStudentAffairs);
     studentAffairsBtn.classList.toggle("flex", showStudentAffairs);
   }
+  const studentAffairsDashboardCard = document.getElementById("studentAffairsDashboardCard");
+  if (studentAffairsDashboardCard) studentAffairsDashboardCard.classList.toggle("hidden", !showStudentAffairs);
   const teacherTimetableBtn = document.getElementById("teacherTimetableBtn");
   if (teacherTimetableBtn) {
     teacherTimetableBtn.classList.add("hidden");
@@ -8186,6 +8204,8 @@ async function finalizeLoginState() {
     studentAffairsBtn.classList.toggle('hidden', !showStudentAffairs);
     studentAffairsBtn.classList.toggle('flex', showStudentAffairs);
   }
+  const studentAffairsDashboardCard = document.getElementById('studentAffairsDashboardCard');
+  if (studentAffairsDashboardCard) studentAffairsDashboardCard.classList.toggle('hidden', !showStudentAffairs);
   if (teacherTimetableBtn) {
     teacherTimetableBtn.classList.toggle('hidden', !teacherPortalCanAccess);
     teacherTimetableBtn.classList.toggle('flex', teacherPortalCanAccess);
@@ -8387,6 +8407,7 @@ function _performLogout() {
   const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   if (adminBtn) adminBtn.classList.add('hidden');
   if (studentAffairsBtn) studentAffairsBtn.classList.add('hidden');
+  document.getElementById('studentAffairsDashboardCard')?.classList.add('hidden');
   if (teacherTimetableBtn) teacherTimetableBtn.classList.add('hidden');
   teacherPortalCanAccess = false;
   teacherTimetableData = null;
@@ -11951,7 +11972,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261126-student-affairs-square-tiles-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261126-student-affairs-dashboard-entry-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
