@@ -2125,6 +2125,35 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="sa-four-section-standalone-view">
+@media screen {
+  #saMainNav.hidden { display:none !important; }
+  #studentAffairsView .sa-section-view-toolbar {
+    display:flex; align-items:center; justify-content:flex-start;
+    width:100%; margin:0 0 14px; padding:0 0 12px;
+    border-bottom:1px solid #dce6ee;
+  }
+  #studentAffairsView .sa-section-back {
+    display:inline-flex; align-items:center; justify-content:center; gap:9px;
+    min-height:42px; padding:10px 16px; border:1px solid #cbd9e4;
+    border-radius:14px; background:linear-gradient(145deg,#fff,#f1f7fa);
+    color:#183653; font-size:13px; font-weight:900; cursor:pointer;
+    box-shadow:0 8px 20px -16px rgba(24,54,83,.55);
+  }
+  #studentAffairsView .sa-section-back:hover { border-color:#168c85; }
+  #studentAffairsView .sa-section-back:focus-visible {
+    outline:3px solid rgba(22,140,133,.35); outline-offset:3px;
+  }
+  .dark #studentAffairsView .sa-section-view-toolbar { border-color:#31485c; }
+  .dark #studentAffairsView .sa-section-back {
+    border-color:#31485c; background:linear-gradient(145deg,#172d40,#102234);
+    color:#e6f0f7;
+  }
+}
+@media print {
+  #studentAffairsView .sa-section-view-toolbar { display:none !important; }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -4150,8 +4179,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 <script id="sa-four-section-navigation-controller">
 function saResetMainSectionView(){
+  const nav=document.getElementById("saMainNav");
+  nav?.classList.remove("hidden");
+  nav?.removeAttribute("aria-hidden");
   document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
     pane.classList.add("hidden");
+    pane.removeAttribute("aria-current");
   });
   document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
     button.classList.remove("is-active");
@@ -4159,12 +4192,32 @@ function saResetMainSectionView(){
     button.setAttribute("aria-pressed","false");
   });
 }
+function saReturnToMainSections(){
+  saResetMainSectionView();
+  document.getElementById("saMainNav")?.querySelector(".sa-nav-card")?.focus();
+}
 function saSwitchMainSection(secNumber){
   const selected=String(secNumber);
   if(!["1","2","3","4"].includes(selected))return;
-  document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
-    pane.classList.toggle("hidden",pane.id!=="saSec"+selected);
+  const nav=document.getElementById("saMainNav");
+  const pane=document.getElementById("saSec"+selected);
+  if(!nav||!pane)return;
+  // Present the selected section as its own view: the four-card launcher is
+  // hidden until the user explicitly returns. Existing section contents remain intact.
+  nav.classList.add("hidden");
+  nav.setAttribute("aria-hidden","true");
+  document.querySelectorAll("#saContent > .sa-main-pane").forEach(section=>{
+    section.classList.toggle("hidden",section!==pane);
+    if(section!==pane)section.removeAttribute("aria-current");
   });
+  pane.setAttribute("aria-current","page");
+  let toolbar=pane.querySelector(":scope > .sa-section-view-toolbar");
+  if(!toolbar){
+    toolbar=document.createElement("div");
+    toolbar.className="sa-section-view-toolbar";
+    toolbar.innerHTML='<button type="button" class="sa-section-back" onclick="saReturnToMainSections()"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><span>العودة إلى أقسام شؤون الطلبة</span></button>';
+    pane.insertBefore(toolbar,pane.firstChild);
+  }
   document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
     const active=button.getAttribute("data-sec")===selected;
     button.classList.toggle("is-active",active);
