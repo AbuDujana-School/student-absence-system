@@ -181,3 +181,24 @@
   #adminPortalBanner .admin-portal-banner-button,.admin-portal-card { transition:none!important; }
 }
 body.admin-portal-lock { overflow:hidden; }
+
+.admin-portal-daily-metrics-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem; }
+.admin-portal-daily-metric {
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;gap:.25rem .85rem;
+  width:100%;min-width:0;padding:1rem 1.1rem;border:1px solid rgba(22,140,133,.22);border-radius:19px;
+  background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(235,247,246,.88));
+  box-shadow:0 10px 28px rgba(24,54,83,.08);text-align:right;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;
+}
+.admin-portal-daily-metric:hover { transform:translateY(-3px);border-color:rgba(213,166,74,.72);box-shadow:0 17px 34px rgba(24,54,83,.13); }
+.admin-portal-daily-metric:focus-visible { outline:3px solid rgba(213,166,74,.78);outline-offset:3px; }
+.admin-portal-daily-metric-icon { grid-row:1/3;display:grid;place-items:center;width:45px;height:45px;border-radius:15px;background:linear-gradient(145deg,#183653,#168C85);color:#fff;font-size:1.05rem; }
+.admin-portal-daily-metric-copy { display:grid;gap:.22rem;min-width:0; }
+.admin-portal-daily-metric-copy strong { color:#183653;font-size:.84rem;font-weight:950;line-height:1.5; }
+.admin-portal-daily-metric-copy small { color:#64748b;font-size:.69rem;font-weight:700;line-height:1.55; }
+.admin-portal-daily-metric-count { color:#168C85;font-size:.95rem;font-weight:950;white-space:nowrap; }
+.admin-portal-daily-metric-action { grid-column:2/4;color:#a87922;font-size:.68rem;font-weight:900; }
+.dark .admin-portal-daily-metric { background:linear-gradient(135deg,rgba(15,35,55,.98),rgba(12,62,65,.88));border-color:rgba(45,170,160,.25); }
+.dark .admin-portal-daily-metric-copy strong { color:#f8fafc; }
+.dark .admin-portal-daily-metric-copy small { color:#cbd5e1; }
+.dark .admin-portal-daily-metric-count { color:#5eead4; }
+@media (max-width:620px) { .admin-portal-daily-metrics-grid { grid-template-columns:1fr; } .admin-portal-daily-metric { padding:.9rem; } }
