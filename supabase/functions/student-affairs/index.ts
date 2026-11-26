@@ -910,6 +910,69 @@ async function handle(req: Request) {
     }
   }
 
+  if (body?.action === "admin_reset_morning_assembly_lateness") {
+    try {
+      const session = await readAuthorizedAppSession(req.headers.get("authorization"));
+      if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const principal = session.principal;
+      if (!isGeneralAdminPrincipal(principal) ||
+          principal.name !== "مدير النظام العام" ||
+          !hasFullAdministrativeAccess(principal)) {
+        return reply(403, { error: "تصفير سجلات الطابور الصباحي متاح لمدير النظام العام فقط." });
+      }
+
+      const pin1 = body.pin1;
+      const pin2 = body.pin2;
+      if (!validPin(pin1) || !validPin(pin2)) {
+        return reply(400, { error: "أدخل رمز مدير النظام الصحيح في الحقلين." });
+      }
+      const rate = await rateLimit(req);
+      if (rate.blocked) return reply(429, { error: "محاولات كثيرة. حاول بعد 15 دقيقة." });
+      if (pin1 !== pin2) {
+        await failedLogin(rate.key);
+        return reply(400, { error: "الرمزان غير متطابقين." });
+      }
+
+      const [{ data: adminSetting, error: adminSettingError }, { data: adminSecure, error: adminSecureError }] =
+        await Promise.all([
+          db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
+          db.from("student_affairs_credentials")
+            .select("pin_salt,pin_hash,source_hash,source_salt")
+            .eq("principal_type", "admin")
+            .eq("principal_name", "مدير النظام العام")
+            .maybeSingle(),
+        ]);
+      if (adminSettingError || adminSecureError) throw new Error("تعذر تحميل بيانات تحقق مدير النظام.");
+      const adminRecord = adminSetting?.value;
+      let pinMatches = false;
+      if (adminRecord?.hash && adminRecord?.salt) {
+        if (adminSecure &&
+            adminSecure.source_hash === adminRecord.hash &&
+            adminSecure.source_salt === adminRecord.salt) {
+          pinMatches = await verifyNewPin(pin1, adminSecure.pin_salt, adminSecure.pin_hash, await getPepper());
+        } else {
+          pinMatches = await verifyExistingPin(pin1, adminRecord.salt, adminRecord.hash, await getLegacyPeppers());
+        }
+      }
+      if (!pinMatches) {
+        await failedLogin(rate.key);
+        return reply(401, { error: "رمز مدير النظام غير صحيح." });
+      }
+
+      const { data: result, error: resetError } = await db.rpc(
+        "admin_delete_all_morning_assembly_lateness_records",
+        { p_actor_name: principal.name }
+      );
+      if (resetError) throw resetError;
+      if (result?.ok !== true) throw new Error("لم يؤكد إجراء قاعدة البيانات اكتمال التصفير.");
+      await clearFailedLogin(rate.key);
+      return reply(200, { ok: true, result });
+    } catch (error) {
+      console.error("Admin morning-assembly-lateness reset failed:", error instanceof Error ? error.message : "unknown error");
+      return reply(500, { error: "تعذر تصفير سجلات الطابور الصباحي حالياً. لم يتم تأكيد نجاح العملية." });
+    }
+  }
+
   if (body?.action === "admin_reset_reserve_records") {
     try {
       const session = await readAuthorizedAppSession(req.headers.get("authorization"));

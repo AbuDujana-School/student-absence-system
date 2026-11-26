@@ -4104,6 +4104,20 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
 
         
+<div id="morningAssemblyResetCard" class="hidden rounded-3xl border border-rose-300 dark:border-rose-900 bg-gradient-to-br from-rose-50 via-white to-red-50 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/30 p-6 space-y-4 shadow-sm">
+  <div class="flex items-start gap-3">
+    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200 text-xl"><i class="fa-solid fa-calendar-xmark"></i></span>
+    <div>
+      <h5 class="font-extrabold text-sm text-slate-900 dark:text-white">تصفير سجلات التأخر عن الطابور الصباحي فقط</h5>
+      <p class="mt-1 text-xs leading-6 text-slate-600 dark:text-slate-300">يحذف سجل التأخر عن الطابور الصباحي وحده من جميع الأعوام الدراسية. لا يمس الحضور أو السلوك أو بيانات الطلاب أو إعدادات المناوبة أو صلاحيات المستخدمين.</p>
+    </div>
+  </div>
+  <div id="morningAssemblyResetSuccess" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs font-bold text-emerald-800 dark:text-emerald-200" role="status"></div>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">عملية نهائية لا يمكن التراجع عنها بعد اعتمادها.</p>
+    <button type="button" onclick="openMorningAssemblyResetModal()" class="rounded-2xl bg-gradient-to-l from-red-700 to-rose-600 px-6 py-3 text-xs font-black text-white shadow-lg transition hover:-translate-y-0.5"><i class="fa-solid fa-trash-can ml-1"></i> تصفير سجلات الطابور الصباحي</button>
+  </div>
+</div>
 <div id="reserveResetCard" class="hidden rounded-3xl border border-amber-300 dark:border-amber-800 bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 p-6 space-y-4 shadow-sm">
   <div class="flex items-start gap-3">
     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 text-xl"><i class="fa-solid fa-box-archive"></i></span>
@@ -4117,6 +4131,37 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">هذه العملية نهائية ولا يمكن استعادة سجلات الاحتياط بعدها.</p>
     <button type="button" onclick="openReserveResetModal()" class="rounded-2xl bg-gradient-to-l from-red-700 to-rose-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-red-900/15 transition hover:-translate-y-0.5 hover:shadow-xl"><i class="fa-solid fa-trash-can ml-1"></i> تصفير سجلات الاحتياط</button>
   </div>
+</div>
+<div id="morningAssemblyResetModal" class="hidden fixed inset-0 z-[12001] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3" role="dialog" aria-modal="true" aria-labelledby="morningAssemblyResetModalTitle">
+  <section class="w-full max-w-lg rounded-3xl border border-rose-300/70 dark:border-slate-700 bg-white dark:bg-slate-900 text-right shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 bg-rose-50 dark:bg-rose-950/30 p-5">
+      <div>
+        <h3 id="morningAssemblyResetModalTitle" class="text-base font-black text-slate-900 dark:text-white">تأكيد تصفير سجلات الطابور الصباحي</h3>
+        <p class="mt-1 text-[10px] font-bold text-rose-800 dark:text-rose-200">يلزم إدخال رمز مدير النظام العام مرتين</p>
+      </div>
+      <button type="button" onclick="closeMorningAssemblyResetModal()" aria-label="إغلاق" class="flex h-9 w-9 items-center justify-center rounded-xl bg-white dark:bg-slate-800 text-slate-500 shadow-sm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="space-y-4 p-5">
+      <p class="text-xs leading-6 text-slate-600 dark:text-slate-300">سيتم حذف جميع سجلات التأخر عن الطابور الصباحي فقط، دون المساس بأي قسم أو سجل آخر.</p>
+      <label class="block space-y-1.5">
+        <span class="text-[10px] font-black text-slate-700 dark:text-slate-200">رمز مدير النظام — الإدخال الأول</span>
+        <input type="password" id="morningAssemblyResetPin1" inputmode="numeric" autocomplete="new-password" maxlength="10" placeholder="أدخل رمز المدير" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm text-center font-black tracking-widest outline-none focus:ring-2 focus:ring-rose-400">
+      </label>
+      <label class="block space-y-1.5">
+        <span class="text-[10px] font-black text-slate-700 dark:text-slate-200">أعد إدخال الرمز نفسه للتأكيد</span>
+        <input type="password" id="morningAssemblyResetPin2" inputmode="numeric" autocomplete="new-password" maxlength="10" placeholder="أعد إدخال الرمز نفسه" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm text-center font-black tracking-widest outline-none focus:ring-2 focus:ring-rose-400">
+      </label>
+      <label class="flex cursor-pointer items-start gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-3">
+        <input type="checkbox" id="morningAssemblyResetFinalConfirm" class="mt-0.5 h-4 w-4 accent-red-700">
+        <span class="text-[10px] font-bold leading-5 text-red-800 dark:text-red-200">أؤكد حذف سجلات التأخر عن الطابور الصباحي وحدها نهائياً، مع إبقاء بقية بيانات النظام دون تغيير.</span>
+      </label>
+      <div id="morningAssemblyResetError" class="hidden rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs font-bold text-red-700 dark:text-red-300" role="alert"></div>
+      <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 dark:border-slate-700 pt-4">
+        <button type="button" onclick="closeMorningAssemblyResetModal()" class="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">إلغاء</button>
+        <button id="morningAssemblyResetSubmitButton" type="button" onclick="executeMorningAssemblyReset()" class="rounded-xl bg-red-700 hover:bg-red-800 px-5 py-2.5 text-xs font-black text-white shadow-md disabled:opacity-60">تأكيد التصفير النهائي</button>
+      </div>
+    </div>
+  </section>
 </div>
 <div id="reserveResetModal" class="hidden fixed inset-0 z-[12000] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3" role="dialog" aria-modal="true" aria-labelledby="reserveResetModalTitle">
   <section class="w-full max-w-lg rounded-3xl border border-amber-300/70 dark:border-slate-700 bg-white dark:bg-slate-900 text-right shadow-2xl overflow-hidden">
@@ -9902,6 +9947,8 @@ async function verifyAdminPinAndOpen() {
 function setupRolePermissions() {
   const reserveResetCard = document.getElementById("reserveResetCard");
   if (reserveResetCard) reserveResetCard.classList.toggle("hidden", !isGeneralAdminUser(activeUser));
+  const morningAssemblyResetCard = document.getElementById("morningAssemblyResetCard");
+  if (morningAssemblyResetCard) morningAssemblyResetCard.classList.toggle("hidden", !isGeneralAdminUser(activeUser));
 
   refreshReportPanelsVisibility();
   const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
@@ -11596,6 +11643,67 @@ async function executeFullReset() {
   showToast('تم إخفاء السجلات محلياً فقط؛ حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info'); initAdminDashboard();
 }
 
+
+function openMorningAssemblyResetModal() {
+  if (!isGeneralAdminUser(activeUser)) {
+    showToast("تصفير سجلات الطابور الصباحي متاح لمدير النظام العام فقط.", "error");
+    return;
+  }
+  document.getElementById("morningAssemblyResetModal")?.classList.remove("hidden");
+  document.getElementById("morningAssemblyResetPin1")?.focus();
+}
+function closeMorningAssemblyResetModal() {
+  document.getElementById("morningAssemblyResetModal")?.classList.add("hidden");
+  const pin1 = document.getElementById("morningAssemblyResetPin1");
+  const pin2 = document.getElementById("morningAssemblyResetPin2");
+  const confirm = document.getElementById("morningAssemblyResetFinalConfirm");
+  const errorNode = document.getElementById("morningAssemblyResetError");
+  if (pin1) pin1.value = "";
+  if (pin2) pin2.value = "";
+  if (confirm) confirm.checked = false;
+  if (errorNode) errorNode.classList.add("hidden");
+}
+async function executeMorningAssemblyReset() {
+  const pin1 = String(document.getElementById("morningAssemblyResetPin1")?.value || "").trim();
+  const pin2 = String(document.getElementById("morningAssemblyResetPin2")?.value || "").trim();
+  const finalConfirm = document.getElementById("morningAssemblyResetFinalConfirm")?.checked === true;
+  const errorNode = document.getElementById("morningAssemblyResetError");
+  const successNode = document.getElementById("morningAssemblyResetSuccess");
+  const button = document.getElementById("morningAssemblyResetSubmitButton");
+  const showError = (message) => {
+    if (errorNode) { errorNode.textContent = message; errorNode.classList.remove("hidden"); }
+  };
+  if (errorNode) errorNode.classList.add("hidden");
+  if (!isGeneralAdminUser(activeUser)) { showError("هذه العملية متاحة لمدير النظام العام فقط."); return; }
+  if (!/^[0-9]{4,10}$/.test(pin1) || !/^[0-9]{4,10}$/.test(pin2)) {
+    showError("أدخل رمز مدير النظام المكوّن من 4 إلى 10 أرقام في الحقلين."); return;
+  }
+  if (pin1 !== pin2) { showError("الرمزان غير متطابقين. أعد إدخال الرمز نفسه في الحقلين."); return; }
+  if (!finalConfirm) { showError("يرجى تحديد مربع التأكيد قبل تنفيذ التصفير النهائي."); return; }
+  const oldButtonHtml = button?.innerHTML || "";
+  if (button) { button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ تصفير سجلات الطابور...'; }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة الدخول الآمن. أعد تسجيل الدخول ثم حاول مجدداً.");
+    const response = await appAuthRequest({ action: "admin_reset_morning_assembly_lateness", pin1, pin2 }, token);
+    if (response?.ok !== true || response?.result?.ok !== true) {
+      throw new Error("لم يؤكد الخادم اكتمال تصفير سجلات الطابور الصباحي.");
+    }
+    const deleted = Number(response.result.deleted_records || 0);
+    if (successNode) {
+      successNode.textContent = "اكتمل تصفير سجلات التأخر عن الطابور الصباحي فقط: " + deleted + " سجلاً. بقيت بقية بيانات النظام دون تغيير.";
+      successNode.classList.remove("hidden");
+    }
+    closeMorningAssemblyResetModal();
+    showToast("تم تصفير سجلات التأخر عن الطابور الصباحي فقط بنجاح.", "success");
+    if (typeof loadMorningAssemblyLatenessReport === "function") await loadMorningAssemblyLatenessReport();
+    if (typeof loadMorningAssemblyLatenessToday === "function") await loadMorningAssemblyLatenessToday();
+  } catch (error) {
+    showError(error?.message || "تعذر تصفير سجلات الطابور الصباحي. لم يتم تأكيد نجاح العملية.");
+  } finally {
+    if (button) { button.disabled = false; button.innerHTML = oldButtonHtml || "تأكيد التصفير النهائي"; }
+  }
+}
 
 function openReserveResetModal() {
   if (!isGeneralAdminUser(activeUser)) {
