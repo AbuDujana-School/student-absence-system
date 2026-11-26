@@ -2752,6 +2752,11 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </button>
     </nav>
 
+    <div id="saSectionBackBar" class="hidden flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/90" dir="rtl">
+      <div class="min-w-0"><p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">شؤون الطلبة</p><h2 id="saSectionCurrentTitle" class="mt-1 text-sm font-black text-slate-900 dark:text-white">القسم</h2></div>
+      <button type="button" onclick="saReturnToMainNav()" class="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"><i class="fa-solid fa-arrow-right ml-1" aria-hidden="true"></i> العودة إلى الأقسام</button>
+    </div>
+
     <section id="saSec1" class="sa-main-pane hidden space-y-5">
 <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="sa-report-header flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="sa-report-tabs flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-label="نوع المتابعة"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span><span class="sa-report-tab-label">الغياب</span></button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span><span class="sa-report-tab-label">السلوكيات</span></button></div></div>
@@ -4153,15 +4158,26 @@ function saResetMainSectionView(){
   document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
     pane.classList.add("hidden");
   });
+  document.getElementById("saMainNav")?.classList.remove("hidden");
+  document.getElementById("saSectionBackBar")?.classList.add("hidden");
   document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
     button.classList.remove("is-active");
     button.setAttribute("aria-selected","false");
     button.setAttribute("aria-pressed","false");
   });
 }
+function saReturnToMainNav(){
+  saResetMainSectionView();
+}
 function saSwitchMainSection(secNumber){
   const selected=String(secNumber);
   if(!["1","2","3","4"].includes(selected))return;
+  const selectedButton=document.querySelector('#saMainNav .sa-nav-card[data-sec="'+selected+'"]');
+  if(!selectedButton)return;
+  document.getElementById("saMainNav")?.classList.add("hidden");
+  document.getElementById("saSectionBackBar")?.classList.remove("hidden");
+  const title=document.getElementById("saSectionCurrentTitle");
+  if(title)title.textContent=selectedButton.querySelector(".sa-nav-title")?.textContent?.trim()||"القسم";
   document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
     pane.classList.toggle("hidden",pane.id!=="saSec"+selected);
   });
