@@ -572,7 +572,7 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
     return {
       styleInHead: document.head.contains(style),
       display: getComputedStyle(nav).display,
-      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(/\\s+/).length,
+      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(" ").length,
       aspectRatio: getComputedStyle(cards[0]).aspectRatio,
       rects: cards.map(card => {
         const rect = card.getBoundingClientRect();
@@ -584,7 +584,7 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   expect(desktop.styleInHead).toBe(true);
   expect(desktop.display).toBe("grid");
   expect(desktop.columns).toBe(4);
-  expect(desktop.aspectRatio).toMatch(/1\\s*\\/\\s*1/);
+  expect(desktop.aspectRatio).toBe("1 / 1");
   expect(desktop.labels).toEqual([
     "متابعة الغياب والسلوكيات",
     "مؤشرات الغياب والسلوكيات",
@@ -600,7 +600,7 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
     const nav = document.getElementById("saMainNav");
     const cards = [...nav.querySelectorAll(".sa-nav-card")];
     return {
-      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(/\\s+/).length,
+      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(" ").length,
       rects: cards.map(card => {
         const rect = card.getBoundingClientRect();
         return { width: rect.width, height: rect.height };
@@ -614,7 +614,7 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
 
   await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
   await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#saSec3")).not.toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSec3")).not.toHaveClass(/hidden/);
   await expect(page.locator("#saSec1, #saSec2, #saSec4")).toHaveClass(/\\bhidden\\b/);
   await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
   expect(traffic.blockedWrites).toEqual([]);
