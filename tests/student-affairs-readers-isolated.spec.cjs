@@ -694,10 +694,10 @@ test("student detailed record supports Arabic partial multi-select with scoped n
 
   await page.locator("#saStudentProfileName").fill("احمد");
   await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
-    .filter({ hasText: "أحمد سالم" }).locator("input").check({ force: true });
+    .filter({ hasText: "أحمد سالم" }).click();
   await page.locator("#saStudentProfileName").fill("مريم");
   await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
-    .filter({ hasText: "مريم علي" }).locator("input").check({ force: true });
+    .filter({ hasText: "مريم علي" }).click();
 
   await expect(page.locator("#saStudentDetailCount")).toHaveText("2");
   await expect(page.locator("#saStudentDetailSelectedList")).toContainText("أحمد سالم");
