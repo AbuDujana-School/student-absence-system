@@ -60,6 +60,10 @@ async function openIsolatedApp(page) {
       let body = {};
       try { body = JSON.parse(request.postData() || "{}"); } catch (_) {}
       traffic.functionCalls.push(body);
+      if (body.action === "logout") {
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true }) });
+        return;
+      }
       if (body.action === "supervision_trend") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           class_count: 1,
@@ -643,6 +647,78 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
     await expect(page.locator("#" + id)).toHaveClass(/hidden/);
   }
   await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});
+
+
+test("student detailed record supports Arabic partial multi-select with scoped notice history and logout reset", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  await page.waitForFunction(
+    () => typeof window.saLoadStudentProfileDirectory === "function" &&
+      typeof window.saLoadStudentNoticeProfile === "function",
+    undefined,
+    { timeout: 30_000 },
+  );
+
+  await page.evaluate(() => {
+    saSession = {
+      token: "a".repeat(64),
+      expires_at: "2099-01-01T00:00:00.000Z",
+      principal: { type: "admin", name: "QA_ONLY_ADMIN" },
+    };
+    saReportPermissions = {
+      role: "admin",
+      can_read_attendance: true,
+      can_read_behavior: false,
+      can_print_attendance: true,
+      attendance_statuses: ["absent", "late", "escape", "outside"],
+      allowed_attendance_classes: ["QA_ONLY_CLASS"],
+      allowed_behavior_classes: [],
+    };
+    db.students = {
+      QA_ONLY_CLASS: ["أحمد سالم", "مريم علي", "خالد سعيد"],
+    };
+    saLoadStudentProfileDirectory();
+  });
+
+  await expect(page.locator("#saStudentProfileClass option").first()).toHaveAttribute("value", "__all__");
+  await expect(page.locator("#saStudentProfileClass option").first()).toHaveText("جميع صفوف المدرسة");
+
+  await page.locator("#saStudentProfileName").fill("احمد");
+  await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
+    .filter({ hasText: "أحمد سالم" }).locator("input").check({ force: true });
+  await page.locator("#saStudentProfileName").fill("مريم");
+  await page.locator("#saStudentDetailSearchResults label.sa-sdm-result")
+    .filter({ hasText: "مريم علي" }).locator("input").check({ force: true });
+
+  await expect(page.locator("#saStudentDetailCount")).toHaveText("2");
+  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("أحمد سالم");
+  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("مريم علي");
+
+  await page.evaluate(async () => { await saLoadStudentNoticeProfile(); });
+  await expect(page.locator("#saStudentProfileResult")).toContainText("تم تجهيز 2 ملفات طلابية");
+  await expect(page.locator("#saStudentProfileResult .sa-sdm-print-all")).toBeVisible();
+
+  const requestSummary = await page.evaluate(() => ({
+    selectionCount: document.getElementById("saStudentDetailCount")?.textContent,
+    profileText: document.getElementById("saStudentProfileResult")?.innerText || "",
+  }));
+  const viewCalls = traffic.functionCalls.filter(item => item.action === "reports" && item.report_mode === "view");
+  const historyCalls = traffic.functionCalls.filter(item => item.action === "reports" && item.report_mode === "notice_history");
+  expect(requestSummary.selectionCount).toBe("2");
+  expect(viewCalls.length).toBeGreaterThan(0);
+  expect(historyCalls).toHaveLength(1);
+  expect(historyCalls[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
+  expect(historyCalls[0].student_names).toEqual(["أحمد سالم", "مريم علي"]);
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+
+  await page.evaluate(async () => { await saLogout(); });
+  await expect(page.locator("#saStudentDetailCount")).toHaveText("0");
+  await expect(page.locator("#saStudentDetailSelectedList")).toContainText("لم تحدد أي طالب بعد");
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
