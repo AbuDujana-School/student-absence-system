@@ -124,6 +124,7 @@ test("class discipline ranking uses only the selected range and recorded attenda
 
   await page.locator("#adminPortalOpenButton").click();
   await page.locator('[data-admin-portal-open="stats"]').click();
+  await expect(page.locator(".admin-portal-original-stats-button")).toBeVisible();
   const ranking = page.locator("#adminPortalClassDisciplineList");
   await expect(ranking).toContainText("10/1");
   await expect(ranking).toContainText("100%");
