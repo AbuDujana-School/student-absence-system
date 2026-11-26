@@ -8,7 +8,7 @@ const feature = readFileSync(new URL("../student-detail-record.js", import.meta.
 const edge = readFileSync(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url), "utf8");
 
 test("student detail script is loaded after the final inline script, immediately before the real document end", () => {
-  const marker = '<script src="./student-detail-record.js?v=20261126-safe-multiselect-4" defer></script>';
+  const marker = '<script src="./student-detail-record.js?v=20261126-safe-multiselect-6" defer></script>';
   const scriptPosition = indexHtml.indexOf(marker);
   const finalBodyPosition = indexHtml.toLowerCase().lastIndexOf("</body>");
   const previousScriptClosePosition = indexHtml.toLowerCase().lastIndexOf("</script>", scriptPosition - 1);
@@ -113,4 +113,13 @@ test("detailed-record search matches the morning-assembly algorithm and ignores 
     .map(name => ({ name, score: profileHelpers.studentDetailMatchScore(name, "الحيثم هلال") }))
     .sort((a, b) => b.score - a.score);
   assert.equal(ranked[0].name, "الحيثم بن هلال");
+});
+
+test("detailed-record search results display the class as a prominent high-contrast badge", () => {
+  assert.match(feature, /\.sa-sdm-class\{[^}]*font-size:14px/);
+  assert.match(feature, /\.sa-sdm-class\{[^}]*background:linear-gradient/);
+  assert.match(feature, /\.dark \.sa-sdm-class\{[^}]*color:#fde68a/);
+  assert.match(feature, /\.sa-sdm-class\{[^}]*border-radius:999px/);
+  assert.match(feature, /<bdi dir="ltr">' \+ escapeHtml\(formatClassName\(item\.className\)\)/);
+  assert.match(feature, /font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate/);
 });
