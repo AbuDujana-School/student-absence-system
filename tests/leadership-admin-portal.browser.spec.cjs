@@ -77,3 +77,57 @@ test("teacher permission editor saves the explicit portal flag through the origi
   }));
   expect(saved).toEqual({ teacher: true, session: true, attendance: true, behavior: true });
 });
+
+
+test("class discipline ranking uses only the selected range and recorded attendance statuses", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.startDistronDashboardStages = () => {};
+    window.isGeneralAdminUser = () => false;
+    window.isAdminAuthorized = () => false;
+    window.hasAdminPanelAccess = () => false;
+    window.distronDashboardStagePending = () => false;
+    window.canAccessAdminTab = key => key === "studstats";
+    window.canAccessReport = () => false;
+    window.canAccessAnyReport = () => false;
+    window.renderAdminOverview = () => {};
+    window.updateAdvancedAnalytics = () => {
+      document.getElementById("analyticsStartDate").value = "2026-11-26";
+      document.getElementById("analyticsEndDate").value = "2026-11-26";
+    };
+    db.attendance = {
+      qa_class_a_period_1: {
+        date: "2026-11-26", className: "10/1", period: 1,
+        records: { "طالب أ": "present", "طالب ب": "present", "طالب ج": "present", "طالب د": "present" }
+      },
+      qa_class_b_period_1: {
+        date: "2026-11-26", className: "10/2", period: 1,
+        records: { "طالب هـ": "present", "طالب و": "absent", "طالب ز": "late", "طالب ح": "escape" }
+      },
+      qa_outside_range: {
+        date: "2026-11-25", className: "10/3", period: 1,
+        records: { "طالب ط": "present" }
+      }
+    };
+    activeUser = {
+      type: "teacher", name: "QA Synthetic Statistics User",
+      permissions: { canViewAdminRecords: true, studstats: true }
+    };
+    window.renderAuthenticatedDashboardShell();
+  });
+
+  await page.locator("#adminPortalOpenButton").click();
+  await page.locator('[data-admin-portal-open="stats"]').click();
+  const ranking = page.locator("#adminPortalClassDisciplineList");
+  await expect(ranking).toContainText("10/1");
+  await expect(ranking).toContainText("100%");
+  await expect(ranking).toContainText("10/2");
+  await expect(ranking).toContainText("25%");
+  await expect(ranking).not.toContainText("10/3");
+});
