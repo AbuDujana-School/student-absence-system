@@ -17,11 +17,9 @@ async function withStudentDetailScript(response) {
   if (!contentType.includes('text/html')) return response;
   const html = await response.text();
   const scriptTag = '<script src="./student-detail-record.js?v=1" defer></script>';
-  if (html.includes('student-detail-record.js')) {
-    return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
-  }
-  const updated = html.replace(/<\/body\s*>/i, scriptTag + '\n</body>');
-  if (updated === html) return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
+  const updated = html.includes('student-detail-record.js')
+    ? html
+    : html.replace(/<\/body\s*>/i, scriptTag + '\n</body>');
   const headers = new Headers(response.headers);
   ['content-length', 'content-encoding', 'etag', 'content-md5'].forEach(name => headers.delete(name));
   return new Response(updated, { status: response.status, statusText: response.statusText, headers });
