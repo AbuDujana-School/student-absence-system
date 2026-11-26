@@ -153,7 +153,7 @@ test("Chromium prints the 9/1 and 9/3 stress reports without horizontal cell ove
     preferCSSPageSize: true
   });
   const pdfText = pdf.toString("latin1");
-  const pageCount = (pdfText.match(/\\/Type\\s*\\/Page\\b/g) || []).length;
+  const pageCount = (pdfText.match(/\/Type\s*\/Page\b/g) || []).length;
   fs.writeFileSync("test-results/combined-report-layout-stress.pdf", pdf);
   await page.screenshot({
     path: "test-results/combined-report-layout-stress.png",
