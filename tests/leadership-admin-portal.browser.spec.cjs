@@ -229,3 +229,38 @@ test("behavior names remain absent from the statistics portal without behaviorst
   await expect(page.locator("#adminPortalBehaviorRankingList")).toHaveCount(0);
   await expect(page.locator("#adminPortalStatsHost")).not.toContainText("اسم طالب سري");
 });
+
+
+test("portal-only permission does not grant report or statistics access and keeps legacy admin entry", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.startDistronDashboardStages = () => {};
+    window.isGeneralAdminUser = () => false;
+    window.isAdminAuthorized = () => false;
+    window.hasAdminPanelAccess = () => true;
+    window.distronDashboardStagePending = () => false;
+    window.canAccessAdminTab = () => false;
+    window.canAccessReport = () => false;
+    window.canAccessAnyReport = () => false;
+    activeUser = {
+      type: "teacher", name: "QA Portal-Only User",
+      permissions: { canViewAdminRecords: true }
+    };
+    window.renderAuthenticatedDashboardShell();
+  });
+
+  await expect(page.locator("#adminPortalBanner")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#adminPanelBtn")).not.toHaveClass(/hidden/);
+  await page.locator("#adminPortalOpenButton").click();
+  await page.locator('[data-admin-portal-open="reports"]').click();
+  await expect(page.locator("#adminPortalModalBody")).toContainText("لا توجد صلاحيات تقارير");
+  await page.locator("#adminPortalModalBack").click();
+  await page.locator('[data-admin-portal-open="stats"]').click();
+  await expect(page.locator("#adminPortalModalBody")).toContainText("لا تملك صلاحية الاطلاع على الإحصائيات");
+});
