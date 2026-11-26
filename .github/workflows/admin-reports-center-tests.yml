@@ -1,0 +1,22 @@
+name: Administrative reports center tests
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "admin-reports-center.js"
+      - "tests/admin_reports_center_test.mjs"
+      - ".github/workflows/admin-reports-center-tests.yml"
+jobs:
+  reports-center-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check reports center module syntax
+        run: node --check admin-reports-center.js
+      - name: Run reports center integration contract tests
+        run: node --test tests/admin_reports_center_test.mjs
