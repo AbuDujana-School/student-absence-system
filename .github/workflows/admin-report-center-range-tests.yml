@@ -1,0 +1,29 @@
+name: Admin report center range tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "tests/admin_report_center_range_test.mjs"
+      - ".github/workflows/admin-report-center-range-tests.yml"
+  push:
+    branches:
+      - feature/admin-report-center-range-ui-20261126
+    paths:
+      - "index.html"
+      - "tests/admin_report_center_range_test.mjs"
+      - ".github/workflows/admin-report-center-range-tests.yml"
+
+jobs:
+  report-date-range:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test report date range boundaries
+        run: node --test tests/admin_report_center_range_test.mjs
