@@ -104,13 +104,13 @@ test("combined report print keeps day/month dates isolated in LTR order", () => 
 
 test("all data columns, including the last other/notes column, have fixed proportional widths", () => {
   const markup = createPrintMarkup();
-  const columnGroups = [...markup.matchAll(/<colgroup>([\\s\\S]*?)<\\/colgroup>/g)];
+  const columnGroups = [...markup.matchAll(/<colgroup>([\s\S]*?)<\/colgroup>/g)];
   assert.equal(columnGroups.length, 2, "Both tested classes must produce their own table");
   for (const [, group] of columnGroups) {
-    const widths = [...group.matchAll(/style="width:([\\d.]+)%"/g)].map(match => Number(match[1]));
+    const widths = [...group.matchAll(/style="width:([\d.]+)%"/g)].map(match => Number(match[1]));
     assert.equal(widths.length, 14, "Number, student, 11 reporting categories, and notes columns must all be present");
     assert.ok(Math.abs(widths.reduce((sum, width) => sum + width, 0) - 100) < 0.001, "Column widths must exactly fill the printable table");
-    assert.match(group, /<col class="matrix-col-notes" style="width:14\\.8%"><\\/colgroup>$/);
+    assert.match(group, /<col class="matrix-col-notes" style="width:14\.8%"><\/colgroup>$/);
   }
   assert.equal((markup.match(/class="matrix-student-row"/g) || []).length, 56);
   assert.equal((markup.match(/class="matrix-notes-cell"/g) || []).length, 56);
@@ -129,7 +129,7 @@ test("print pagination remains compact and uses the same scale for every student
   const markup = createPrintMarkup();
   assert.equal((markup.match(/class="class-sheet"/g) || []).length, 2);
   assert.doesNotMatch(markup, /<section class="class-sheet" style="zoom:/);
-  assert.match(markup, /\.matrix-table tr\\{break-inside:avoid!important;page-break-inside:avoid!important\\}/);
-  assert.match(markup, /\.matrix-table thead\\{display:table-header-group!important\\}/);
-  assert.match(markup, /@page\\{size:A4 landscape;margin:6mm 6mm 8mm\\}/);
+  assert.match(markup, /\.matrix-table tr\{break-inside:avoid!important;page-break-inside:avoid!important\}/);
+  assert.match(markup, /\.matrix-table thead\{display:table-header-group!important\}/);
+  assert.match(markup, /@page\{size:A4 landscape;margin:6mm 6mm 8mm\}/);
 });
