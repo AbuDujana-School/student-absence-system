@@ -778,6 +778,8 @@ jobs:
           node-version: 22
       - name: Run Student Affairs trend and competition UI regression tests
         run: node --test tests/student-affairs-trend-regression.test.mjs
+      - name: Run combined report PDF layout regression tests
+        run: node --test tests/combined-report-print-layout.test.mjs
       - name: Test secure cloud bootstrap and session expiry gates
         run: node --test tests/app_auth_bootstrap_order_test.mjs tests/admin_login_secondary_modules_test.mjs tests/timetable_substitution_support_selection_test.mjs tests/offline_login_fallback_test.mjs tests/pwa_update_strategy_test.mjs
       - uses: denoland/setup-deno@v2
