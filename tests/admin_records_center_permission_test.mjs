@@ -12,7 +12,8 @@ test("administrative records portal has a separate persisted permission", () => 
   assert.match(html, /id="perm_p_adminRecords"/);
   assert.match(html, /perm_p_adminRecords'\)\.checked = p\.adminRecords === true/);
   assert.match(html, /t\.permissions\.adminRecords = document\.getElementById\('perm_p_adminRecords'\)\.checked/);
-  assert.match(centerScript, /function allowed\(\)\{return !!activeUser&&\(isGeneralAdminUser\(activeUser\)\|\|activeUser\.permissions\?\.adminRecords===true\);\}/);
+  assert.match(centerScript, /function allowed\(\)\{return !!activeUser&&activeUser\.permissions\?\.adminRecords===true;\}/);
+  assert.doesNotMatch(centerScript, /function allowed\(\)\{[^}]*isGeneralAdminUser/);
 });
 
 test("the appended administrative center script parses as JavaScript", () => {
