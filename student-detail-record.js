@@ -231,22 +231,22 @@
     const behaviorScope = p.can_read_behavior === true ? saGetAllowedReportClasses('behavior') : [];
     const classNames = Array.from(new Set(items.map(item => item.className)));
     const access = new Map();
-    for (const className of classNames) {
-      if (!permitted.includes(className)) throw new Error('يوجد صف خارج نطاق صلاحياتك.');
-      const canAttendance = attendanceScope.includes(className);
-      const canBehavior = behaviorScope.includes(className);
-      if (!canAttendance && !canBehavior) throw new Error('لا تتوفر صلاحية قراءة سجلات أحد الصفوف المحددة.');
-      access.set(className, {
-        attendance: canAttendance, behavior: canBehavior,
-        canPrint: (!canAttendance || p.can_print_attendance === true) && (!canBehavior || p.can_print_behavior === true)
-      });
-    }
     loading = true;
     host.classList.remove('hidden');
     host.innerHTML = '<div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-center font-black text-indigo-800 dark:bg-slate-800 dark:text-indigo-200"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ جمع سجلات ' + items.length + ' طلاب والتحقق من الصلاحيات...</div>';
     printRoot.innerHTML = '';
-    saStudentProfileCanPrint = Array.from(access.values()).every(item => item.canPrint);
     try {
+      for (const className of classNames) {
+        if (!permitted.includes(className)) throw new Error('يوجد صف خارج نطاق صلاحياتك.');
+        const canAttendance = attendanceScope.includes(className);
+        const canBehavior = behaviorScope.includes(className);
+        if (!canAttendance && !canBehavior) throw new Error('لا تتوفر صلاحية قراءة سجلات أحد الصفوف المحددة.');
+        access.set(className, {
+          attendance: canAttendance, behavior: canBehavior,
+          canPrint: (!canAttendance || p.can_print_attendance === true) && (!canBehavior || p.can_print_behavior === true)
+        });
+      }
+      saStudentProfileCanPrint = Array.from(access.values()).every(item => item.canPrint);
       const today = getOmanLocalDate();
       const currentYear = Number(today.slice(0, 4));
       const attendanceClasses = classNames.filter(name => access.get(name).attendance);
