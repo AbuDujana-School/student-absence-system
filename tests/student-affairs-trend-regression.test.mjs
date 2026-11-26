@@ -150,6 +150,26 @@ test("Student Affairs navigation is four independent square cards with responsiv
   assert.match(html,/studentAffairsDashboardCard[\s\S]{0,160}classList\.toggle\(["']hidden["'], !showStudentAffairs\)/);
 });
 
+test("Student Affairs initially shows only the four-card landing and resets it on every entry",()=>{
+  const content = getElementById(html,"saContent");
+  const nav = getElementById(content,"saMainNav");
+  const firstCard = nav.match(/<button[^>]*data-sec="1"[^>]*>/)?.[0] || "";
+  assert.ok(firstCard, "first portal card must exist");
+  assert.doesNotMatch(firstCard,/is-active/);
+  assert.match(firstCard,/aria-selected="false"/);
+  assert.match(firstCard,/aria-pressed="false"/);
+  const firstPane = getElementById(content,"saSec1");
+  assert.match(firstPane,/class="sa-main-pane hidden/);
+  const controller = getElementById(html,"sa-four-section-navigation-controller");
+  assert.match(controller,/function saResetMainSectionView\(\)/);
+  assert.match(controller,/querySelectorAll\("#saContent > \.sa-main-pane"\)[\s\S]*pane\.classList\.add\("hidden"\)/);
+  assert.match(controller,/button\.classList\.remove\("is-active"\)/);
+  assert.ok(html.includes('saResetMainSectionView();\n  document.getElementById("adminModal")'),
+    "opening the Student Affairs module must reset to its landing view");
+  assert.ok(html.includes('classList.add("hidden");saResetMainSectionView();document.getElementById("saContent").classList.remove("hidden")'),
+    "successful module login must also start from the landing view");
+});
+
 test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{
   const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
   const styleEnd = html.indexOf("</style>", styleStart);
