@@ -129,10 +129,15 @@ test("Student Affairs navigation is four independent square cards with responsiv
   ]) assert.ok(nav.includes(label), "missing card title: " + label);
   assert.equal((nav.match(/class="sa-nav-icon"/g)||[]).length,4);
   assert.ok(nav.includes('role="group"'));
-  assert.match(html,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(html,/max-width:760px\)[\s\S]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(html,/aspect-ratio:1 \/ 1/);
-  assert.match(html,/flex-direction:column/);
+  const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
+  const styleEnd = html.indexOf("</style>", styleStart);
+  const navCss = html.slice(styleStart, styleEnd);
+  const compactCss = navCss.replace(/\s+/g, "");
+  assert.ok(compactCss.includes("grid-template-columns:repeat(4,minmax(0,1fr))"));
+  assert.ok(compactCss.includes("@mediascreenand(max-width:760px)"));
+  assert.ok(compactCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
+  assert.ok(compactCss.includes("aspect-ratio:1/1"));
+  assert.ok(compactCss.includes("flex-direction:column"));
   const dashboard = getElementById(html,"dashboardSelectionView");
   const dashboardCard = getElementById(dashboard,"studentAffairsDashboardCard");
   assert.ok(dashboardCard.includes('onclick="openStudentAffairsView(true)"'));
@@ -145,13 +150,51 @@ test("Student Affairs navigation is four independent square cards with responsiv
   assert.match(html,/studentAffairsDashboardCard[\s\S]{0,160}classList\.toggle\(["']hidden["'], !showStudentAffairs\)/);
 });
 
+test("Student Affairs initially shows only the four-card landing and resets it on every entry",()=>{
+  const content = getElementById(html,"saContent");
+  const nav = getElementById(content,"saMainNav");
+  const firstCard = nav.match(/<button[^>]*data-sec="1"[^>]*>/)?.[0] || "";
+  assert.ok(firstCard, "first portal card must exist");
+  assert.doesNotMatch(firstCard,/is-active/);
+  assert.match(firstCard,/aria-selected="false"/);
+  assert.match(firstCard,/aria-pressed="false"/);
+  const firstPane = getElementById(content,"saSec1");
+  assert.match(firstPane,/class="sa-main-pane hidden/);
+  const controller = getElementById(html,"sa-four-section-navigation-controller");
+  assert.match(controller,/function saResetMainSectionView\(\)/);
+  assert.match(controller,/querySelectorAll\("#saContent > \.sa-main-pane"\)[\s\S]*pane\.classList\.add\("hidden"\)/);
+  assert.match(controller,/button\.classList\.remove\("is-active"\)/);
+  assert.ok(html.includes('saResetMainSectionView();\n  document.getElementById("adminModal")'),
+    "opening the Student Affairs module must reset to its landing view");
+  assert.ok(html.includes('classList.add("hidden");saResetMainSectionView();document.getElementById("saContent").classList.remove("hidden")'),
+    "successful module login must also start from the landing view");
+});
+
 test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{
-  assert.match(html,/\.sa-main-pane\.hidden\{display:none!important\}/);
-  assert.match(html,/#saSec2:not\(\.hidden\)\{display:flex/);
+  const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
+  const styleEnd = html.indexOf("</style>", styleStart);
+  const compactCss = html.slice(styleStart, styleEnd).replace(/\s+/g, "");
+  assert.ok(compactCss.includes(".sa-main-pane.hidden{display:none!important"));
+  assert.ok(compactCss.includes("#saSec2:not(.hidden){display:flex"));
   const controller = getElementById(html,"sa-four-section-navigation-controller");
   assert.match(controller,/pane\.classList\.toggle\("hidden",pane\.id!==\"saSec\"\+selected\)/);
   assert.match(controller,/button\.setAttribute\("aria-selected",active\?\"true\":\"false\"\)/);
   assert.match(controller,/button\.setAttribute\("aria-pressed",active\?\"true\":\"false\"\)/);
   assert.match(controller,/saSupervisionTrendChart/);
   assert.match(controller,/saSupervisionBehaviorChart/);
+});
+
+
+test("Student Affairs navigation stylesheet is in the live document head, not the print HTML template",()=>{
+  const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
+  const headEnd = html.indexOf("</head>");
+  const styleEnd = html.indexOf("</style>",styleStart);
+  assert.ok(styleStart >= 0 && styleStart < headEnd, "navigation CSS must be parsed by the actual application document");
+  assert.ok(styleEnd > styleStart && styleEnd < headEnd, "navigation stylesheet must close inside the actual head");
+  assert.equal((html.match(/id="sa-four-section-navigation-ui"/g)||[]).length,1);
+  const css = html.slice(styleStart,styleEnd);
+  assert.match(css,/grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css,/aspect-ratio:\s*1\s*\/\s*1/);
+  assert.match(css,/\.sa-main-pane\.hidden\s*\{\s*display:\s*none\s*!important/);
+  assert.match(css,/@media screen and \(max-width:\s*760px\)[\s\S]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 });

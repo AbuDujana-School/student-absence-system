@@ -1952,6 +1952,179 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="sa-four-section-navigation-ui">
+@media screen {
+  #studentAffairsView .sa-main-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 18px;
+  }
+
+  #studentAffairsView .sa-nav-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    padding: 18px 12px;
+    border: 1px solid #d9e4ec;
+    border-radius: 24px;
+    background: linear-gradient(150deg, #fff, #f3f8fb);
+    color: #183653;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.65;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 12px 28px -19px rgba(24,54,83,.48);
+    transition: .2s ease;
+  }
+
+  .dark #studentAffairsView .sa-nav-card {
+    border-color: #31485c;
+    background: linear-gradient(150deg, #172d40, #102234);
+    color: #e6f0f7;
+  }
+
+  #studentAffairsView .sa-nav-icon {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    flex: 0 0 60px;
+    border: 1px solid rgba(255,255,255,.36);
+    border-radius: 19px;
+    background: linear-gradient(145deg, #168c85, #0f6e69);
+    color: white;
+    font-size: 25px;
+  }
+
+  #studentAffairsView .sa-nav-card[data-sec="2"] .sa-nav-icon {
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+
+  #studentAffairsView .sa-nav-card[data-sec="3"] .sa-nav-icon {
+    background: linear-gradient(145deg, #f59e0b, #b45309);
+  }
+
+  #studentAffairsView .sa-nav-card[data-sec="4"] .sa-nav-icon {
+    background: linear-gradient(145deg, #8b5cf6, #5b21b6);
+  }
+
+  #studentAffairsView .sa-nav-title {
+    display: block;
+    max-width: 100%;
+    font-weight: 900;
+  }
+
+  #studentAffairsView .sa-nav-card:hover {
+    transform: translateY(-3px);
+    border-color: #168c85;
+  }
+
+  #studentAffairsView .sa-nav-card.is-active {
+    border-color: #d5a64a !important;
+    background: linear-gradient(145deg, #183653, #0f6e69) !important;
+    color: white !important;
+    box-shadow: 0 18px 36px -17px rgba(15,110,105,.62);
+  }
+
+  #studentAffairsView .sa-nav-card.is-active .sa-nav-icon {
+    border-color: rgba(255,255,255,.42);
+    background: rgba(255,255,255,.16);
+  }
+
+  #studentAffairsView .sa-nav-card:focus-visible {
+    outline: 3px solid rgba(22,140,133,.38);
+    outline-offset: 4px;
+  }
+
+  #studentAffairsView .sa-main-pane {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Keep hidden sections hidden even when another rule assigns display:flex. */
+  #studentAffairsView .sa-main-pane.hidden {
+    display: none !important;
+  }
+
+  /* Indicators are flex only while their tab is selected. */
+  #saSec2:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  #saSec2 .sa-empty-state {
+    display: block;
+  }
+
+  #saSec2:has(
+    #saSupervisionPanel:not(.hidden),
+    #saCompetitionPanel:not(.hidden)
+  ) .sa-empty-state {
+    display: none;
+  }
+}
+
+/* Phones and tablets: 2 × 2. */
+@media screen and (max-width: 760px) {
+  #studentAffairsView .sa-main-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #studentAffairsView .sa-nav-card {
+    gap: 11px;
+    padding: 14px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+
+  #studentAffairsView .sa-nav-icon {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+    font-size: 22px;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  #studentAffairsView .sa-main-nav {
+    gap: 8px;
+  }
+
+  #studentAffairsView .sa-nav-card {
+    gap: 9px;
+    padding: 10px 7px;
+    font-size: 12px;
+  }
+
+  #studentAffairsView .sa-nav-icon {
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #studentAffairsView .sa-nav-card {
+    transition: none;
+  }
+
+  #studentAffairsView .sa-nav-card:hover {
+    transform: none;
+  }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -2561,7 +2734,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   <div id="saLogin" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/20"><p id="saLoginError" class="text-sm font-bold text-amber-800 dark:text-amber-200">جارٍ التحقق من جلسة دخولك...</p></div>
   <div id="saContent" class="hidden space-y-5">
     <nav id="saMainNav" class="sa-main-nav" aria-label="أقسام شؤون الطلبة" role="group">
-      <button type="button" class="sa-nav-card is-active" data-sec="1" aria-controls="saSec1" aria-selected="true" aria-pressed="true" onclick="saSwitchMainSection(1)">
+      <button type="button" class="sa-nav-card" data-sec="1" aria-controls="saSec1" aria-selected="false" aria-pressed="false" onclick="saSwitchMainSection(1)">
         <span class="sa-nav-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
         <span class="sa-nav-title">متابعة الغياب والسلوكيات</span>
       </button>
@@ -2579,7 +2752,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </button>
     </nav>
 
-    <section id="saSec1" class="sa-main-pane space-y-5">
+    <section id="saSec1" class="sa-main-pane hidden space-y-5">
 <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="sa-report-header flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="sa-report-tabs flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-label="نوع المتابعة"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span><span class="sa-report-tab-label">الغياب</span></button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span><span class="sa-report-tab-label">السلوكيات</span></button></div></div>
       <div id="saReportPeriodControls" class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40">
@@ -3976,6 +4149,16 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 
 <script id="sa-four-section-navigation-controller">
+function saResetMainSectionView(){
+  document.querySelectorAll("#saContent > .sa-main-pane").forEach(pane=>{
+    pane.classList.add("hidden");
+  });
+  document.querySelectorAll("#saMainNav .sa-nav-card").forEach(button=>{
+    button.classList.remove("is-active");
+    button.setAttribute("aria-selected","false");
+    button.setAttribute("aria-pressed","false");
+  });
+}
 function saSwitchMainSection(secNumber){
   const selected=String(secNumber);
   if(!["1","2","3","4"].includes(selected))return;
@@ -4882,6 +5065,7 @@ async function openStudentAffairsView(fromHome = false) {
     return;
   }
 
+  saResetMainSectionView();
   document.getElementById("adminModal")?.classList.add("hidden");
   ["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView",
     "behaviorClassesView","behaviorSessionView","teacherTimetableView"]
@@ -4948,7 +5132,7 @@ async function openStudentAffairsView(fromHome = false) {
   }
 }
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(studentAffairsOpenedFromHome){studentAffairsOpenedFromHome=false;document.getElementById("dashboardSelectionView")?.classList.remove("hidden");return;}if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
-async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(isGeneralAdminUser(d.principal))await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");try{await saRequest({action:"reports",report_mode:"activity_event",activity_type:"module_access"});}catch(activityError){console.warn("Student Affairs access audit unavailable",activityError);}window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
+async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");saResetMainSectionView();document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(isGeneralAdminUser(d.principal))await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");try{await saRequest({action:"reports",report_mode:"activity_event",activity_type:"module_access"});}catch(activityError){console.warn("Student Affairs access audit unavailable",activityError);}window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
   const teachers=Array.isArray(saAdminData?.teachers)?saAdminData.teachers:[];
@@ -12304,81 +12488,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 
 
-<style id="sa-four-section-navigation-ui">
-@media screen {
-  #studentAffairsView .sa-main-nav{
-    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
-    width:100%;padding:0;margin:0 0 18px;border:0;border-radius:0;
-    background:transparent;box-shadow:none;backdrop-filter:none;
-  }
-  #studentAffairsView .sa-nav-card{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:14px;width:100%;min-width:0;aspect-ratio:1 / 1;padding:18px 12px;
-    border:1px solid #d9e4ec;border-radius:24px;
-    background:linear-gradient(150deg,#fff 0%,#f3f8fb 100%);color:#183653;
-    font-size:14px;font-weight:900;line-height:1.65;text-align:center;cursor:pointer;
-    box-shadow:0 12px 28px -19px rgba(24,54,83,.48),inset 0 1px 0 rgba(255,255,255,.9);
-    transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease;
-  }
-  .dark #studentAffairsView .sa-nav-card{
-    border-color:#31485c;background:linear-gradient(150deg,#172d40 0%,#102234 100%);
-    color:#e6f0f7;box-shadow:0 14px 30px -20px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.04);
-  }
-  #studentAffairsView .sa-nav-icon{
-    display:grid;place-items:center;width:60px;height:60px;flex:0 0 60px;
-    border:1px solid rgba(255,255,255,.36);border-radius:19px;
-    background:linear-gradient(145deg,#168c85,#0f6e69);color:#fff;font-size:25px;
-    box-shadow:0 10px 22px -13px rgba(15,110,105,.85),inset 0 1px 0 rgba(255,255,255,.22);
-  }
-  #studentAffairsView .sa-nav-card[data-sec="2"] .sa-nav-icon{background:linear-gradient(145deg,#3b82f6,#1d4ed8)}
-  #studentAffairsView .sa-nav-card[data-sec="3"] .sa-nav-icon{background:linear-gradient(145deg,#f59e0b,#b45309)}
-  #studentAffairsView .sa-nav-card[data-sec="4"] .sa-nav-icon{background:linear-gradient(145deg,#8b5cf6,#5b21b6)}
-  #studentAffairsView .sa-nav-title{display:block;max-width:100%;font-weight:900}
-  #studentAffairsView .sa-nav-card:hover{transform:translateY(-3px);border-color:#168c85;box-shadow:0 18px 34px -18px rgba(15,110,105,.5)}
-  #studentAffairsView .sa-nav-card.is-active{
-    border-color:#d5a64a!important;background:linear-gradient(145deg,#183653 0%,#0f6e69 100%)!important;
-    color:#fff!important;box-shadow:0 18px 36px -17px rgba(15,110,105,.62),inset 0 1px 0 rgba(255,255,255,.2);
-  }
-  #studentAffairsView .sa-nav-card.is-active .sa-nav-icon{border-color:rgba(255,255,255,.42);background:rgba(255,255,255,.16);box-shadow:none}
-  #studentAffairsView .sa-nav-card:focus-visible{outline:3px solid rgba(22,140,133,.38);outline-offset:4px}
-  #studentAffairsView .sa-main-pane{min-width:0;width:100%}
-  #studentAffairsView .sa-main-pane.hidden{display:none!important}
-  #saSec2:not(.hidden){display:flex;flex-direction:column;gap:18px}
-  #saSec2 .sa-empty-state{display:block}
-  #saSec2:has(#saSupervisionPanel:not(.hidden),#saCompetitionPanel:not(.hidden)) .sa-empty-state{display:none}
-  #studentAffairsView>div:first-child p{display:none!important}
-  #saSec1 .sa-report-header>div:first-child p,
-  #saSec1 #saReportClassPicker>div:first-child p,
-  #saSec2 #saCompetitionPanel .text-right p,
-  #saSec2 #saCompetitionPanel > div:last-child > div:nth-child(2) > p,
-  #saSec2 #saCompetitionPanel > div:last-child > div:nth-child(4) > p,
-  #saSec2 #saCompetitionPanel > div:last-child > p:last-child,
-  #saSec3 #saAutomaticNotices>div:first-child>div p,
-  #saSec3 #saAutomaticNotices>p,
-  #saSec4>div>div:first-child p{display:none!important}
-  #saSec3 #saAutomaticNotices{width:100%;border-radius:24px}
-  #saSec4>div{width:100%;border:1px solid var(--sa-line,#dce6ee);box-shadow:0 14px 34px -24px rgba(24,54,83,.35)}
-  .dark #saSec4>div{border-color:#2b4054;background:#0d1b2b}
-  #saSec1 .sa-report-tabs{flex-shrink:0}
-  #saSec1 #saReportClassPicker,#saSec1 #saReportPeriodControls{border-radius:18px}
-}
-@media screen and (max-width:760px){
-  #studentAffairsView .sa-main-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  #studentAffairsView .sa-nav-card{gap:11px;padding:14px 10px;border-radius:20px;font-size:13px}
-  #studentAffairsView .sa-nav-icon{width:52px;height:52px;flex-basis:52px;border-radius:16px;font-size:22px}
-}
-@media screen and (max-width:420px){
-  #studentAffairsView .sa-main-nav{gap:8px}
-  #studentAffairsView .sa-nav-card{gap:9px;padding:10px 7px;font-size:12px}
-  #studentAffairsView .sa-nav-icon{width:46px;height:46px;flex-basis:46px;border-radius:14px;font-size:20px}
-  #saSec1 .sa-report-header{align-items:stretch}
-  #saSec1 .sa-report-tabs{width:100%}
-}
-@media (prefers-reduced-motion:reduce){
-  #studentAffairsView .sa-nav-card{transition:none}
-  #studentAffairsView .sa-nav-card:hover{transform:none}
-}
-</style>
+
 
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
