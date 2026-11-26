@@ -635,3 +635,22 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
 });
+
+
+test("student affairs cards open dedicated inner screens and return to the card menu", async ({ page }) => {
+  await openIsolatedApp(page);
+
+  await page.evaluate(() => saSwitchMainSection(1));
+  await expect(page.locator("#saMainNav")).toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSec1")).not.toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSec2")).toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSectionCurrentTitle")).toHaveText("متابعة الغياب والسلوكيات");
+
+  await page.evaluate(() => saReturnToMainNav());
+  await expect(page.locator("#saMainNav")).not.toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSectionBackBar")).toHaveClass(/\\bhidden\\b/);
+  for (const section of [1, 2, 3, 4]) {
+    await expect(page.locator("#saSec" + section)).toHaveClass(/\\bhidden\\b/);
+  }
+});
