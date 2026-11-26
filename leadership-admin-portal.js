@@ -75,8 +75,10 @@
           (typeof window.hasAdminPanelAccess === 'function' && window.hasAdminPanelAccess(currentUser()))
         );
       } catch (_) {}
-      adminButton.classList.toggle('hidden', !showAdminPanel || allowed);
-      adminButton.classList.toggle('flex', showAdminPanel && !allowed);
+      // Keep the legacy admin entry available during the portal's trial phase.
+      // The portal permission must not hide or replace existing dashboard access.
+      adminButton.classList.toggle('hidden', !showAdminPanel);
+      adminButton.classList.toggle('flex', showAdminPanel);
     }
     if (!allowed && !document.getElementById('adminSectionView')?.classList.contains('hidden')) {
       closeAdminSection();
