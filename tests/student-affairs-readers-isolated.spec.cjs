@@ -621,10 +621,16 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   }
 
   await page.locator('#saMainNav .sa-nav-card[data-sec="1"]').click();
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/hidden/);
   await expect(page.locator("#saSec1")).not.toHaveClass(/hidden/);
   await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
 
+  await page.locator("#saSectionBackBar button").click();
+  await expect(page.locator("#saMainNav")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).toHaveClass(/hidden/);
   await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
   await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#saSec3")).not.toHaveClass(/hidden/);
   for (const id of ["saSec1", "saSec2", "saSec4"]) {
