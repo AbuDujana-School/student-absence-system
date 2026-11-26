@@ -171,10 +171,16 @@ async function handle(req:Request) {
       return reply(500,{error:"تعذر التحقق من حالة تأخر الطالب."});
     }
     if (existing) {
-      const {data:removed,error:deleteError}=await db.from("morning_assembly_lateness")
-        .delete().eq("id",existing.id).select("id").maybeSingle();
-      if (deleteError || !removed) {
-        console.error("morning assembly lateness toggle removal failed",deleteError);
+      // Direct DELETE is intentionally revoked on this append-only ledger.
+      // Use a service-role-only SECURITY DEFINER RPC scoped to this exact record,
+      // student and school-local date; no table-wide DELETE privilege is granted.
+      const {data:removed,error:deleteError}=await db.rpc("delete_morning_assembly_lateness_record",{
+        p_record_id:existing.id,
+        p_student_id:student.id,
+        p_late_date:ctx.date,
+      });
+      if (deleteError || removed?.ok !== true || Number(removed?.deleted_records) !== 1) {
+        console.error("morning assembly lateness toggle removal failed",deleteError || removed);
         return reply(500,{error:"تعذر إلغاء تسجيل التأخر. لم يتم تأكيد أي تغيير."});
       }
       return reply(200,{success:true,action:"removed",student_name:student.student_name,class_name:student.class_name});
