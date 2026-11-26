@@ -540,6 +540,8 @@
         openAdminSubModal('reports');
         activateReportTab('teachers');
       }, 'فتح تقرير نشاط المعلمين');
+      if (canLate) bindPulseCard(document.getElementById('dashMorningAssemblyLateCount')?.parentElement, () => { void showMorningAssemblyDetails(); }, 'عرض المتأخرين عن الطابور الصباحي');
+      if (canReserve) bindPulseCard(document.getElementById('dashReserveTeachersCount')?.parentElement, () => { void showReserveDetails(); }, 'عرض المعلمين الغائبين الموزعين احتياط');
     }
 
     if (canLate || canReserve) {
