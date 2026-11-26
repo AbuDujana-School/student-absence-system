@@ -11,8 +11,9 @@ const centerScript = centerStart >= 0 && centerEnd > centerStart ? html.slice(ce
 
 test("administrative records portal has a separate persisted permission", () => {
   assert.match(html, /id="perm_p_adminRecords"/);
-  assert.match(html, /perm_p_adminRecords'\)\.checked = p\.adminRecords === true/);
-  assert.match(html, /t\.permissions\.adminRecords = document\.getElementById\('perm_p_adminRecords'\)\.checked/);
+  assert.match(html, /perm_p_adminRecords'\\)\\.checked = p\\.additionalAdmin === true[\\s\\S]*?p\\.adminRecords === true/);
+  assert.match(html, /t\\.permissions\\.additionalAdminOverrides = \\{[\\s\\S]*?adminRecords: document\\.getElementById\\('perm_p_adminRecords'\\)\\.checked/);
+  assert.match(html, /else \\{ t\\.permissions\\.adminRecords = document\\.getElementById\\('perm_p_adminRecords'\\)\\.checked; \\}/);
   assert.match(centerScript, /function allowed\(\)\{return !!activeUser&&activeUser\.permissions\?\.adminRecords===true;\}/);
   assert.doesNotMatch(centerScript, /function allowed\(\)\{[^}]*isGeneralAdminUser/);
 });
