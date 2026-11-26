@@ -664,6 +664,69 @@
     activateReportTab(tabs[0].id);
   }
 
+  function renderAdminBehaviorRanking(host, start, end) {
+    if (!host) return;
+    host.replaceChildren();
+    if (!canAdminTab('behaviorstats')) {
+      host.appendChild(createEmptyMessage('ترتيب السلوكيات غير متاح لهذا الحساب؛ يتطلب صلاحية إحصائيات السلوكيات.'));
+      return;
+    }
+    if (!start || !end || start > end) {
+      host.appendChild(createEmptyMessage('اختر فترة زمنية صحيحة لاحتساب أكثر الطلاب تسجيلاً للمخالفات.'));
+      return;
+    }
+    const students = new Map();
+    const typeLabels = {
+      eating: 'الأكل', talking: 'الكلام', tools: 'الأدوات',
+      chaos: 'الفوضى', sleeping: 'النوم', homework: 'الواجب', other: 'أخرى'
+    };
+    Object.entries(typeof db !== 'undefined' ? db.behaviors || {} : {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = typeof parseAttendanceKey === 'function' ? parseAttendanceKey(key) : {};
+      const date = String(session.date || parsed.date || '');
+      if (date < start || date > end) return;
+      const className = String(session.className || parsed.className || 'غير محدد').trim();
+      Object.entries(session.records).forEach(([studentName, rawRecord]) => {
+        const name = String(studentName || '').trim();
+        if (!name || !rawRecord || typeof rawRecord !== 'object') return;
+        const normalized = typeof window.normalizeBehaviorRecord === 'function'
+          ? window.normalizeBehaviorRecord(rawRecord)
+          : rawRecord;
+        const types = Array.isArray(normalized?.types)
+          ? Array.from(new Set(normalized.types.map(value => String(value || '').trim()).filter(value => value && value !== 'normal')))
+          : (normalized?.type && normalized.type !== 'normal' ? [String(normalized.type)] : []);
+        if (!types.length) return;
+        const keyForStudent = className + '::' + name;
+        if (!students.has(keyForStudent)) students.set(keyForStudent, {
+          name, className, incidents: 0, types: new Set(), days: new Set()
+        });
+        const item = students.get(keyForStudent);
+        item.incidents += types.length;
+        types.forEach(type => item.types.add(typeLabels[type] || type));
+        item.days.add(date);
+      });
+    });
+    const ranked = Array.from(students.values())
+      .sort((a, b) => b.incidents - a.incidents || b.days.size - a.days.size || a.name.localeCompare(b.name, 'ar'))
+      .slice(0, 5);
+    if (!ranked.length) {
+      host.appendChild(createEmptyMessage('لا توجد مخالفات سلوكية مسجلة في الفترة المحددة.'));
+      return;
+    }
+    ranked.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.className = 'admin-portal-ranking-row';
+      const rank = textNode('span', 'admin-portal-ranking-rank', String(index + 1));
+      const copy = document.createElement('span');
+      copy.className = 'admin-portal-ranking-copy';
+      copy.appendChild(textNode('strong', '', item.name + ' · ' + item.className));
+      copy.appendChild(textNode('small', '', Array.from(item.types).join('، ') + ' · ' + item.days.size.toLocaleString('en-US') + ' أيام'));
+      const count = textNode('strong', 'admin-portal-ranking-rate', item.incidents.toLocaleString('en-US') + ' مخالفة');
+      row.append(rank, copy, count);
+      host.appendChild(row);
+    });
+  }
+
   function renderAdminClassDisciplineRanking() {
     const host = document.getElementById('adminPortalClassDisciplineList');
     if (!host) return;
@@ -755,16 +818,33 @@
     rankingList.id = 'adminPortalClassDisciplineList';
     ranking.appendChild(rankingList);
     host.appendChild(ranking);
+
+    if (canAdminTab('behaviorstats')) {
+      const behaviorRanking = document.createElement('section');
+      behaviorRanking.className = 'admin-portal-class-ranking';
+      behaviorRanking.appendChild(textNode('h4', '', 'الطلاب الأكثر تسجيلاً للمخالفات السلوكية'));
+      behaviorRanking.appendChild(textNode('p', '', 'ترتيب للفترة المحددة، ويُحتسب كل نوع مخالفة مرة واحدة في سجل الحصة الواحدة.'));
+      const behaviorList = document.createElement('div');
+      behaviorList.id = 'adminPortalBehaviorRankingList';
+      behaviorRanking.appendChild(behaviorList);
+      host.appendChild(behaviorRanking);
+    }
     mountModule('sec-studstats', host);
     if (typeof window.updateAdvancedAnalytics === 'function') {
       try { window.updateAdvancedAnalytics(); } catch (error) { console.warn('Leadership portal statistics render failed.', error); }
     }
-    renderAdminClassDisciplineRanking();
+    const renderRankings = () => {
+      const start = document.getElementById('analyticsStartDate')?.value || '';
+      const end = document.getElementById('analyticsEndDate')?.value || '';
+      renderAdminClassDisciplineRanking();
+      renderAdminBehaviorRanking(document.getElementById('adminPortalBehaviorRankingList'), start, end);
+    };
+    renderRankings();
     ['analyticsStartDate', 'analyticsEndDate'].forEach(id => {
       const input = document.getElementById(id);
       if (!input || input.dataset.adminPortalRankingBound === '1') return;
       input.dataset.adminPortalRankingBound = '1';
-      input.addEventListener('change', renderAdminClassDisciplineRanking);
+      input.addEventListener('change', renderRankings);
     });
     requestAnimationFrame(() => {
       try { Object.values(window.chartInstances || {}).forEach(chart => chart?.resize?.()); } catch (_) {}
