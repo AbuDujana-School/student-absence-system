@@ -14,8 +14,9 @@ test("administrative records portal has a separate persisted permission", () => 
   assert.ok(html.includes("p.additionalAdmin === true && p.additionalAdminOverrides"), "Additional-admin permission editor must read the explicit override");
   assert.ok(html.includes("adminRecords: document.getElementById('perm_p_adminRecords').checked"), "Additional-admin permission editor must persist the explicit override");
   assert.ok(html.includes("else { t.permissions.adminRecords = document.getElementById('perm_p_adminRecords').checked; }"), "Ordinary teachers must keep the direct permission field");
-  assert.match(centerScript, /function allowed\(\)\{return !!activeUser&&\(isGeneralAdminUser\(activeUser\)\|\|activeUser\.permissions\?\.adminRecords===true\);\}/);
-  assert.match(centerScript, /isGeneralAdminUser\(activeUser\)\|\|activeUser\.permissions\?\.adminRecords===true/);
+  assert.match(centerScript, /function canViewAdminRecords\(user=activeUser\)/);
+  assert.match(centerScript, /user\.canViewAdminRecords===true\|\|p\.canViewAdminRecords===true\|\|p\.adminRecords===true\|\|p\.additionalAdminOverrides\?\.adminRecords===true/);
+  assert.match(centerScript, /function allowed\(\)\{return canViewAdminRecords\(activeUser\);\}/);
 });
 
 test("the appended administrative center script parses as JavaScript", () => {
