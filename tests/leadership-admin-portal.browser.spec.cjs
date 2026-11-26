@@ -43,3 +43,37 @@ test("leadership portal visibility and daily-data gate do not grant permissions"
   await expect(page.locator("#adminPortalBanner")).toHaveClass(/hidden/);
   expect(supabaseRequests.length).toBe(requestCountAfterDeniedPulse);
 });
+
+
+test("teacher permission editor saves the explicit portal flag through the original permission workflow", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.saveSystemDataToCloud = async () => true;
+    window.renderTeachersList = () => {};
+    window.showToast = () => {};
+    window.canManageReportPermissions = () => false;
+    db.teachers = [{ name: "QA Synthetic Teacher", permissions: { attendance: true, behavior: true } }];
+    activeUser = { type: "teacher", name: "QA Synthetic Teacher", permissions: {} };
+    window.openPermissionsModal(0);
+  });
+
+  const portalPermission = page.locator("#perm_p_canViewAdminRecords");
+  await expect(portalPermission).toBeVisible();
+  await expect(portalPermission).not.toBeChecked();
+  await portalPermission.check();
+  await page.locator('#teacherPermissionsModal button[onclick="saveTeacherPermissions()"]').click();
+  await expect(page.locator("#teacherPermissionsModal")).toHaveClass(/hidden/);
+  const saved = await page.evaluate(() => ({
+    teacher: db.teachers[0].permissions.canViewAdminRecords,
+    session: activeUser.permissions.canViewAdminRecords,
+    attendance: db.teachers[0].permissions.attendance,
+    behavior: db.teachers[0].permissions.behavior
+  }));
+  expect(saved).toEqual({ teacher: true, session: true, attendance: true, behavior: true });
+});
