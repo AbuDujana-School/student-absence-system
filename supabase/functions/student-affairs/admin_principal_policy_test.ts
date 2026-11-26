@@ -42,3 +42,23 @@ Deno.test("additional admin report and reserve capabilities are opt-in and indep
     throw new Error("Explicit additional-admin capability overrides were ignored");
   }
 });
+
+
+Deno.test("additional admins receive the administrative-records portal only when explicitly granted", async () => {
+  const { buildAdditionalAdminPermissions } = await import("../_shared/admin_principal_policy.ts");
+  const denied = buildAdditionalAdminPermissions({ role: "teacher", permissions: { additionalAdmin: true } });
+  if (denied.adminRecords !== false) throw new Error("Administrative records access must default to denied");
+
+  const granted = buildAdditionalAdminPermissions({ role: "teacher", permissions: {
+    additionalAdmin: true,
+    adminRecords: true,
+  } });
+  if (granted.adminRecords !== true) throw new Error("The explicit administrative-records permission was not preserved");
+
+  const overridden = buildAdditionalAdminPermissions({ role: "teacher", permissions: {
+    additionalAdmin: true,
+    adminRecords: true,
+    additionalAdminOverrides: { adminRecords: false },
+  } });
+  if (overridden.adminRecords !== false) throw new Error("The explicit additional-admin override must take precedence");
+});
