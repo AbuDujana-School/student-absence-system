@@ -615,7 +615,9 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
   await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#saSec3")).not.toHaveClass(/hidden/);
-  await expect(page.locator("#saSec1, #saSec2, #saSec4")).toHaveClass(/hidden/);
+  for (const id of ["saSec1", "saSec2", "saSec4"]) {
+    await expect(page.locator("#" + id)).toHaveClass(/hidden/);
+  }
   await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
