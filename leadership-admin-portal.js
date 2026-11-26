@@ -391,25 +391,58 @@
     card.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
   }
 
+  function canReadReserveArchive() {
+    return currentUser()?.permissions?.schoolwideReserveArchive === true ||
+      (typeof window.isGeneralAdminUser === 'function' && window.isGeneralAdminUser(currentUser()));
+  }
+
+  async function refreshAuthorizedDailyMetrics() {
+    const today = localDate();
+    let cache = window.__adminPortalDailyMetricsCache;
+    if (!cache || cache.date !== today) {
+      cache = { date: today, morningAssemblyRows: [], reserveArchive: [], morningAssemblyLoaded: false, reserveArchiveLoaded: false };
+      window.__adminPortalDailyMetricsCache = cache;
+    }
+    const jobs = [];
+    if (canReport('reportMorningAssemblyLateness') && cache.morningAssemblyLoaded !== true) {
+      jobs.push((async () => {
+        const data = await callMorningAssemblyLatenessApi({ action: 'today' });
+        cache.morningAssemblyRows = Array.isArray(data?.rows) ? data.rows : [];
+        cache.morningAssemblyLoaded = true;
+      })());
+    }
+    if (canReadReserveArchive() && cache.reserveArchiveLoaded !== true) {
+      jobs.push((async () => {
+        const token = appAuthSession?.token || readAppAuthToken();
+        if (!token) throw new Error('جلسة الدخول غير متاحة');
+        const data = await appAuthRequest({
+          action: 'timetable_substitution_archive',
+          dateFrom: today,
+          dateTo: today,
+          archiveScope: 'school'
+        }, token);
+        cache.reserveArchive = Array.isArray(data?.archive) ? data.archive : [];
+        cache.reserveArchiveLoaded = true;
+      })());
+    }
+    await Promise.allSettled(jobs);
+    return cache;
+  }
+
   async function showMorningAssemblyDetails() {
     const today = localDate();
-    const cache = window.__adminPortalDailyMetricsCache;
-    const canReadMorning = canReport('reportMorningAssemblyLateness');
-    if (canReadMorning && (cache?.date !== today || cache?.morningAssemblyLoaded !== true) &&
-        typeof window.refreshDashboardDailyMetrics === 'function') {
-      try { await window.refreshDashboardDailyMetrics(true); } catch (_) {}
-    }
-    const latest = window.__adminPortalDailyMetricsCache;
-    const sourceRows = latest?.date === today && latest.morningAssemblyLoaded === true
-      ? latest.morningAssemblyRows || []
+    const allowed = canReport('reportMorningAssemblyLateness');
+    const cache = allowed ? await refreshAuthorizedDailyMetrics() : null;
+    const sourceRows = cache?.date === today && cache.morningAssemblyLoaded === true
+      ? cache.morningAssemblyRows || []
       : [];
-    const seenStudents = new Set();
+    const seen = new Set();
     const rows = sourceRows.filter(row => {
       const key = typeof window.morningAssemblyStudentKey === 'function'
         ? window.morningAssemblyStudentKey(row?.class_name_snapshot, row?.student_name_snapshot)
         : String(row?.class_name_snapshot || '').trim() + '|' + String(row?.student_name_snapshot || '').trim();
-      if (!key || seenStudents.has(key)) return false;
-      seenStudents.add(key);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
     buildDetailList(
@@ -417,23 +450,15 @@
       rows,
       row => String(row?.student_name_snapshot || 'طالب غير محدد'),
       row => String(row?.class_name_snapshot || 'صف غير محدد'),
-      canReport('reportMorningAssemblyLateness')
-        ? 'لا توجد حالات تأخر صباحي مسجلة اليوم.'
+      allowed ? (cache?.morningAssemblyLoaded ? 'لا توجد حالات تأخر صباحي مسجلة اليوم.' : 'تعذر تحميل سجل الطابور الصباحي حالياً.')
         : 'لا تتوفر صلاحية قراءة تفاصيل سجل الطابور الصباحي لهذا الحساب.'
     );
   }
 
   async function showReserveDetails() {
-    const today = localDate();
-    let cache = window.__adminPortalDailyMetricsCache;
-    const canReadReserve = currentUser()?.permissions?.schoolwideReserveArchive === true ||
-      (typeof window.isGeneralAdminUser === 'function' && window.isGeneralAdminUser(currentUser()));
-    if (canReadReserve && (cache?.date !== today || cache?.reserveArchiveLoaded !== true) &&
-        typeof window.refreshDashboardDailyMetrics === 'function') {
-      try { await window.refreshDashboardDailyMetrics(true); } catch (_) {}
-      cache = window.__adminPortalDailyMetricsCache;
-    }
-    const rows = cache?.date === today && cache.reserveArchiveLoaded === true
+    const allowed = canReadReserveArchive();
+    const cache = allowed ? await refreshAuthorizedDailyMetrics() : null;
+    const rows = cache?.date === localDate() && cache.reserveArchiveLoaded === true
       ? cache.reserveArchive || []
       : [];
     const unique = new Map();
@@ -451,19 +476,42 @@
       list,
       row => row.name,
       row => [row.department, row.periods.size ? 'الحصص: ' + Array.from(row.periods).join('، ') : '', row.classes.size ? 'الصفوف: ' + Array.from(row.classes).join('، ') : ''].filter(Boolean).join(' · '),
-      cache?.reserveArchiveLoaded === true
-        ? 'لا توجد توزيعات احتياط مسجلة لهذا اليوم.'
-        : 'تعذر قراءة أرشيف الاحتياط الشامل أو لا يملك الحساب صلاحية الاطلاع عليه.'
+      allowed ? (cache?.reserveArchiveLoaded ? 'لا توجد توزيعات احتياط مسجلة لهذا اليوم.' : 'تعذر قراءة أرشيف الاحتياط الشامل حالياً.')
+        : 'لا تتوفر صلاحية قراءة أرشيف الاحتياط الشامل لهذا الحساب.'
     );
   }
 
+  function appendDailyMetric(host, title, description, iconClass, onOpen) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'admin-portal-daily-metric';
+    const icon = document.createElement('span');
+    icon.className = 'admin-portal-daily-metric-icon';
+    const glyph = document.createElement('i');
+    glyph.className = iconClass;
+    icon.appendChild(glyph);
+    const copy = document.createElement('span');
+    copy.className = 'admin-portal-daily-metric-copy';
+    copy.appendChild(textNode('strong', '', title));
+    copy.appendChild(textNode('small', '', description));
+    const count = textNode('span', 'admin-portal-daily-metric-count', '—');
+    const action = textNode('span', 'admin-portal-daily-metric-action', 'عرض الكشف');
+    card.append(icon, copy, count, action);
+    card.addEventListener('click', onOpen);
+    host.appendChild(card);
+    return count;
+  }
+
   function openPulseModal() {
-    if (!canAdminTab('studstats')) {
-      setActiveModal('pulse', 'الصندوق الأول · نبض اليوم', 'نبض اليوم المدرسي', 'يتطلب هذا الملخص صلاحية الإحصائيات وقراءة السجلات المرتبطة بها.');
-      document.getElementById('adminPortalModalBody').replaceChildren(createEmptyMessage('لا تملك صلاحية الاطلاع على مؤشرات اليوم المدرسي. اطلب تفعيل صلاحية الإحصائيات المناسبة من إدارة المستفيدين.'));
+    const canStats = canAdminTab('studstats');
+    const canLate = canReport('reportMorningAssemblyLateness');
+    const canReserve = canReadReserveArchive();
+    if (!canStats && !canLate && !canReserve) {
+      setActiveModal('pulse', 'الصندوق الأول · نبض اليوم', 'نبض اليوم المدرسي', 'تُعرض المؤشرات وفق صلاحياتها الأصلية.');
+      document.getElementById('adminPortalModalBody').replaceChildren(createEmptyMessage('لا تملك صلاحية لأي من مؤشرات اليوم المدرسي. اطلب تفعيل صلاحية الإحصائيات أو التقرير المناسب من إدارة المستفيدين.'));
       return;
     }
-    setActiveModal('pulse', 'الصندوق الأول · متابعة يومية', 'نبض اليوم المدرسي', 'مؤشرات مستمدة من سجلات المدرسة الفعلية. اضغط على المؤشرات القابلة للتفصيل لفتح الكشف المرتبط بها.');
+    setActiveModal('pulse', 'الصندوق الأول · متابعة يومية', 'نبض اليوم المدرسي', 'كل مؤشر مرتبط بمصدره وصلاحيته الأصلية؛ لا تؤدي صلاحية بوابة الإدارة إلى فتح سجلات إضافية.');
     const body = document.getElementById('adminPortalModalBody');
     body.replaceChildren();
     const host = document.createElement('div');
@@ -472,40 +520,49 @@
     const detailHost = document.createElement('div');
     detailHost.id = 'adminPortalPulseDetailHost';
     body.appendChild(detailHost);
-    mountModule('dashboardMetricsSection', host);
-    mountModule('dashboardUrgentSection', host);
-    if (typeof window.renderAdminOverview === 'function') {
-      try { window.renderAdminOverview(); } catch (error) { console.warn('Leadership portal daily summary render failed.', error); }
+
+    if (canStats) {
+      mountModule('dashboardMetricsSection', host);
+      mountModule('dashboardUrgentSection', host);
+      if (typeof window.renderAdminOverview === 'function') {
+        try { window.renderAdminOverview(); } catch (error) { console.warn('Leadership portal daily summary render failed.', error); }
+      }
+      bindPulseCard(document.getElementById('dashAbsentToday')?.closest('.group'), () => {
+        if (typeof window.toggleUrgentCategory === 'function') window.toggleUrgentCategory('absent');
+        document.getElementById('dashboardUrgentSection')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 'عرض كشف الغياب اليوم');
+      bindPulseCard(document.getElementById('dashBehaviorToday')?.closest('.group'), () => {
+        closeAdminSubModal();
+        openAdminSubModal('stats');
+      }, 'فتح إحصائيات السلوك');
+      bindPulseCard(document.getElementById('dashPeriodsRecorded')?.closest('.group'), () => {
+        closeAdminSubModal();
+        openAdminSubModal('reports');
+        activateReportTab('teachers');
+      }, 'فتح تقرير نشاط المعلمين');
     }
-    if (typeof window.refreshDashboardDailyMetrics === 'function') {
-      const hasDailyRead = canReport('reportMorningAssemblyLateness') ||
-        currentUser()?.permissions?.schoolwideReserveArchive === true ||
-        (typeof window.isGeneralAdminUser === 'function' && window.isGeneralAdminUser(currentUser()));
-      if (hasDailyRead) void window.refreshDashboardDailyMetrics();
+
+    if (canLate || canReserve) {
+      const dailyCards = document.createElement('div');
+      dailyCards.className = 'admin-portal-daily-metrics-grid';
+      const lateCount = canLate ? appendDailyMetric(dailyCards, 'التأخر عن الطابور الصباحي', 'كشف الطلاب المتأخرين اليوم', 'fa-solid fa-clock', () => { void showMorningAssemblyDetails(); }) : null;
+      const reserveCount = canReserve ? appendDailyMetric(dailyCards, 'المعلمون الغائبون الموزعون احتياط', 'كل معلم يُحتسب مرة واحدة فقط', 'fa-solid fa-chalkboard-user', () => { void showReserveDetails(); }) : null;
+      host.appendChild(dailyCards);
+      void refreshAuthorizedDailyMetrics().then(cache => {
+        if (lateCount && cache.morningAssemblyLoaded) {
+          const seen = new Set((cache.morningAssemblyRows || []).map(row =>
+            typeof window.morningAssemblyStudentKey === 'function'
+              ? window.morningAssemblyStudentKey(row?.class_name_snapshot, row?.student_name_snapshot)
+              : String(row?.class_name_snapshot || '').trim() + '|' + String(row?.student_name_snapshot || '').trim()
+          ));
+          lateCount.textContent = seen.size.toLocaleString('en-US') + ' طالب';
+        }
+        if (reserveCount && cache.reserveArchiveLoaded) {
+          const unique = new Set((cache.reserveArchive || []).filter(row => String(row?.status || 'assigned') !== 'cancelled').map(row => String(row?.absentTeacherName || '').trim()).filter(Boolean));
+          reserveCount.textContent = unique.size.toLocaleString('en-US') + ' معلم';
+        }
+      });
     }
-    const absentCard = document.getElementById('dashAbsentToday')?.closest('.group');
-    bindPulseCard(absentCard, () => {
-      if (typeof window.toggleUrgentCategory === 'function') window.toggleUrgentCategory('absent');
-      document.getElementById('dashboardUrgentSection')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 'عرض كشف الغياب اليوم');
-    const behaviorCard = document.getElementById('dashBehaviorToday')?.closest('.group');
-    bindPulseCard(behaviorCard, () => {
-      closeAdminSubModal();
-      openAdminSubModal('stats');
-      setTimeout(() => {
-        if (typeof window.switchStatsSubTab === 'function') window.switchStatsSubTab('behaviors');
-      }, 80);
-    }, 'فتح إحصائيات السلوك');
-    const coverageCard = document.getElementById('dashPeriodsRecorded')?.closest('.group');
-    bindPulseCard(coverageCard, () => {
-      closeAdminSubModal();
-      openAdminSubModal('reports');
-      setTimeout(() => activateReportTab('teachers'), 80);
-    }, 'فتح تقرير نشاط المعلمين');
-    const lateNode = document.getElementById('dashMorningAssemblyLateCount');
-    bindPulseCard(lateNode?.parentElement, () => { void showMorningAssemblyDetails(); }, 'عرض المتأخرين عن الطابور الصباحي');
-    const reserveNode = document.getElementById('dashReserveTeachersCount');
-    bindPulseCard(reserveNode?.parentElement, () => { void showReserveDetails(); }, 'عرض المعلمين الغائبين الموزعين احتياط');
   }
 
   function availableReportTabs() {
