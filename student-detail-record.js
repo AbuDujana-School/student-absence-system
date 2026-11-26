@@ -19,7 +19,8 @@
   function currentSelectionOwner() {
     const principal = saSession?.principal || null;
     if (!principal) return '';
-    return String(principal.type || '') + ':' + String(principal.name || '');
+    return String(principal.type || '') + ':' + String(principal.name || '') +
+      ':' + String(saSession?.expires_at || '');
   }
 
   function syncSelectionOwner() {
