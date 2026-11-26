@@ -155,3 +155,18 @@ test("only the selected Student Affairs pane can remain visible, including indic
   assert.match(controller,/saSupervisionTrendChart/);
   assert.match(controller,/saSupervisionBehaviorChart/);
 });
+
+
+test("Student Affairs navigation stylesheet is in the live document head, not the print HTML template",()=>{
+  const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
+  const headEnd = html.indexOf("</head>");
+  const styleEnd = html.indexOf("</style>",styleStart);
+  assert.ok(styleStart >= 0 && styleStart < headEnd, "navigation CSS must be parsed by the actual application document");
+  assert.ok(styleEnd > styleStart && styleEnd < headEnd, "navigation stylesheet must close inside the actual head");
+  assert.equal((html.match(/id="sa-four-section-navigation-ui"/g)||[]).length,1);
+  const css = html.slice(styleStart,styleEnd);
+  assert.match(css,/grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css,/aspect-ratio:\s*1\s*\/\s*1/);
+  assert.match(css,/\.sa-main-pane\.hidden\s*\{\s*display:\s*none\s*!important/);
+  assert.match(css,/@media screen and \(max-width:\s*760px\)[\s\S]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+});
