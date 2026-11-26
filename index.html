@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-26-student-affairs-summary-only-1">
+<meta name="app-build" content="2026-11-26-leadership-admin-portal-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./leadership-admin-portal.css?v=20261126-portal-1">
 <style>
   body { font-family: 'Tajawal', sans-serif; }
   .hidden { display: none !important; }
@@ -10124,6 +10125,9 @@ let dashboardDailyMetricsDate = '';
 let dashboardDailyMetricsPromise = null;
 async function refreshDashboardDailyMetrics(force = false) {
   const today = getOmanLocalDate();
+  if (!window.__adminPortalDailyMetricsCache || window.__adminPortalDailyMetricsCache.date !== today) {
+    window.__adminPortalDailyMetricsCache = { date: today, morningAssemblyRows: [], reserveArchive: [], morningAssemblyLoaded: false, reserveArchiveLoaded: false };
+  }
   if (!force && dashboardDailyMetricsDate === today) return;
   if (dashboardDailyMetricsPromise) return dashboardDailyMetricsPromise;
   const lateNode = document.getElementById('dashMorningAssemblyLateCount');
@@ -10136,7 +10140,10 @@ async function refreshDashboardDailyMetrics(force = false) {
       (async () => {
         if (typeof callMorningAssemblyLatenessApi !== 'function') throw new Error('خدمة الطابور غير متاحة');
         const data = await callMorningAssemblyLatenessApi({ action: 'today' });
-        const unique = new Set((Array.isArray(data?.rows) ? data.rows : []).map(row =>
+        const rows = Array.isArray(data?.rows) ? data.rows : [];
+        window.__adminPortalDailyMetricsCache.morningAssemblyRows = rows;
+        window.__adminPortalDailyMetricsCache.morningAssemblyLoaded = true;
+        const unique = new Set(rows.map(row =>
           morningAssemblyStudentKey(row.class_name_snapshot, row.student_name_snapshot)
         ));
         if (lateNode) lateNode.textContent = unique.size.toLocaleString('en-US') + ' طالب';
@@ -10149,7 +10156,10 @@ async function refreshDashboardDailyMetrics(force = false) {
           dateTo: today,
           archiveScope: 'school'
         }, token);
-        const unique = new Set((Array.isArray(data?.archive) ? data.archive : [])
+        const archive = Array.isArray(data?.archive) ? data.archive : [];
+        window.__adminPortalDailyMetricsCache.reserveArchive = archive;
+        window.__adminPortalDailyMetricsCache.reserveArchiveLoaded = true;
+        const unique = new Set(archive
           .filter(row => String(row?.status || 'assigned') !== 'cancelled')
           .map(row => String(row?.absentTeacherName || '').trim())
           .filter(Boolean));
@@ -16327,5 +16337,6 @@ window.addEventListener('reserve:muscat-day-changed',()=>{if(current==='edit')vo
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })()</script>
 <script src="./student-detail-record.js?v=20261126-safe-multiselect-6" defer></script>
+<script src="./leadership-admin-portal.js?v=20261126-portal-1" defer></script>
 </body>
 </html>
