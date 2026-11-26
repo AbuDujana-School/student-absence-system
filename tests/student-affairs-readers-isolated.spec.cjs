@@ -550,3 +550,74 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
 });
+
+
+test("Student Affairs four navigation cards render as actual squares on desktop and mobile and switch one pane only", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  await page.evaluate(() => {
+    let node = document.getElementById("studentAffairsView");
+    while (node && node !== document.body) {
+      node.classList.remove("hidden");
+      node = node.parentElement;
+    }
+    document.getElementById("saContent")?.classList.remove("hidden");
+    saSwitchMainSection(1);
+  });
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const desktop = await page.evaluate(() => {
+    const style = document.getElementById("sa-four-section-navigation-ui");
+    const nav = document.getElementById("saMainNav");
+    const cards = [...nav.querySelectorAll(".sa-nav-card")];
+    return {
+      styleInHead: document.head.contains(style),
+      display: getComputedStyle(nav).display,
+      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(/\\s+/).length,
+      aspectRatio: getComputedStyle(cards[0]).aspectRatio,
+      rects: cards.map(card => {
+        const rect = card.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+      labels: cards.map(card => card.querySelector(".sa-nav-title")?.textContent.trim()),
+    };
+  });
+  expect(desktop.styleInHead).toBe(true);
+  expect(desktop.display).toBe("grid");
+  expect(desktop.columns).toBe(4);
+  expect(desktop.aspectRatio).toMatch(/1\\s*\\/\\s*1/);
+  expect(desktop.labels).toEqual([
+    "متابعة الغياب والسلوكيات",
+    "مؤشرات الغياب والسلوكيات",
+    "طباعة التنبيهات",
+    "السجل التفصيلي للطالب",
+  ]);
+  for (const rect of desktop.rects) {
+    expect(Math.abs(rect.width - rect.height)).toBeLessThanOrEqual(1.5);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await page.evaluate(() => {
+    const nav = document.getElementById("saMainNav");
+    const cards = [...nav.querySelectorAll(".sa-nav-card")];
+    return {
+      columns: getComputedStyle(nav).gridTemplateColumns.trim().split(/\\s+/).length,
+      rects: cards.map(card => {
+        const rect = card.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+    };
+  });
+  expect(mobile.columns).toBe(2);
+  for (const rect of mobile.rects) {
+    expect(Math.abs(rect.width - rect.height)).toBeLessThanOrEqual(1.5);
+  }
+
+  await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
+  await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#saSec3")).not.toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saSec1, #saSec2, #saSec4")).toHaveClass(/\\bhidden\\b/);
+  await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});
