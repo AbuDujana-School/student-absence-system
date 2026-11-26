@@ -1,15 +1,32 @@
-const CACHE_NAME = 'abudujana-app-v59';
+const CACHE_NAME = 'abudujana-app-v60';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './sw.js',
   './teacher-attendance-compliance.js?v=2',
+  './student-detail-record.js?v=1',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
 const RUNTIME_CACHE = 'abudujana-static-v66';
+
+async function withStudentDetailScript(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) return response;
+  const html = await response.text();
+  const scriptTag = '<script src="./student-detail-record.js?v=1" defer></script>';
+  if (html.includes('student-detail-record.js')) {
+    return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
+  }
+  const updated = html.replace(/<\/body\s*>/i, scriptTag + '\n</body>');
+  if (updated === html) return new Response(html, { status: response.status, statusText: response.statusText, headers: response.headers });
+  const headers = new Headers(response.headers);
+  ['content-length', 'content-encoding', 'etag', 'content-md5'].forEach(name => headers.delete(name));
+  return new Response(updated, { status: response.status, statusText: response.statusText, headers });
+}
+
 function fetchWithTimeout(request, timeoutMs = 7000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -24,6 +41,8 @@ self.addEventListener('install', event => {
     const precacheWork = (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(APP_SHELL);
+      const cachedIndex = await cache.match('./index.html');
+      if (cachedIndex) await cache.put('./index.html', await withStudentDetailScript(cachedIndex));
       // External CDN and backend requests are deliberately not precached.
       // They remain normal browser network requests and are never intercepted here.
     })();
@@ -72,7 +91,7 @@ self.addEventListener('fetch', event => {
         if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
         return response;
       } catch (error) {
-        const cached = await cache.match(request);
+        const cached = await cache.match(request) || await (await caches.open(CACHE_NAME)).match(request);
         if (cached) return cached;
         return new Response('', { status: 504, statusText: 'Application script unavailable offline' });
       }
@@ -103,8 +122,10 @@ self.addEventListener('fetch', event => {
       try {
         const response = await fetchWithTimeout(request, 7000);
         if (response && response.ok && url.origin === self.location.origin) {
+          const enhanced = await withStudentDetailScript(response.clone());
           const cache = await caches.open(CACHE_NAME);
-          cache.put('./index.html', response.clone()).catch(() => {});
+          cache.put('./index.html', enhanced.clone()).catch(() => {});
+          return enhanced;
         }
         return response;
       } catch (error) {
