@@ -8,12 +8,44 @@
   const selected = new Map();
   let matches = [];
   let loading = false;
+  let selectionOwner = '';
   const normalize = value => String(value || '').normalize('NFC')
     .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
     .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
     .replace(/\s+/g, ' ').trim().toLocaleLowerCase('ar');
   const keyOf = item => item.className + '\u001f' + item.name;
   const allowed = () => saStudentProfileAllowedClasses();
+
+  function currentSelectionOwner() {
+    const principal = saSession?.principal || null;
+    if (!principal) return '';
+    return String(principal.type || '') + ':' + String(principal.name || '') +
+      ':' + String(saSession?.expires_at || '');
+  }
+
+  function syncSelectionOwner() {
+    const nextOwner = currentSelectionOwner();
+    if (selectionOwner && nextOwner !== selectionOwner) {
+      selected.clear();
+      renderSelected();
+      markSelectionChanged();
+    }
+    selectionOwner = nextOwner;
+  }
+
+  function resetSelectionOnLogout() {
+    const originalLogout = window.saLogout;
+    if (typeof originalLogout !== 'function' || originalLogout.__saStudentDetailReset) return;
+    const wrappedLogout = async function (...args) {
+      selected.clear();
+      selectionOwner = '';
+      renderSelected();
+      markSelectionChanged();
+      return originalLogout.apply(this, args);
+    };
+    wrappedLogout.__saStudentDetailReset = true;
+    window.saLogout = wrappedLogout;
+  }
 
   function styles() {
     if (document.getElementById('saStudentDetailMultiStyles')) return;
@@ -97,6 +129,28 @@
     return true;
   }
 
+  function setLoadingState(isLoading) {
+    const controls = document.querySelectorAll(
+      '#saStudentProfileClass, #saStudentProfileName, ' +
+      'button[onclick="saLoadStudentNoticeProfile()"], ' +
+      '#saStudentDetailMultiPanel input, #saStudentDetailMultiPanel button'
+    );
+    controls.forEach(control => {
+      if (isLoading) {
+        control.dataset.sdmWasDisabled = control.disabled ? '1' : '0';
+        control.disabled = true;
+        control.setAttribute('aria-disabled', 'true');
+      } else {
+        const prior = control.dataset.sdmWasDisabled;
+        if (prior !== undefined) {
+          control.disabled = prior === '1';
+          delete control.dataset.sdmWasDisabled;
+        }
+        control.removeAttribute('aria-disabled');
+      }
+    });
+  }
+
   function markSelectionChanged() {
     const host = document.getElementById('saStudentProfileResult');
     const printRoot = document.getElementById('saStudentProfilePrintRoot');
@@ -165,11 +219,19 @@
   }
 
   window.saLoadStudentProfileDirectory = function () {
+    syncSelectionOwner();
     const select = document.getElementById('saStudentProfileClass');
     if (!select) return;
     const classes = allowed();
+    const allowedSet = new Set(classes);
+    for (const [key, item] of selected) {
+      if (!allowedSet.has(item.className)) selected.delete(key);
+    }
+    renderSelected();
     const prior = select.value;
     if (!classes.length) {
+      selected.clear();
+      renderSelected();
       select.innerHTML = '<option value="">لا توجد صفوف مصرح بها</option>';
       saStudentProfileStatus('لا توجد صلاحية لعرض سجلات الطلاب.', true);
       return;
@@ -229,6 +291,10 @@
     const host = document.getElementById('saStudentProfileResult');
     const printRoot = document.getElementById('saStudentProfilePrintRoot');
     const p = saReportPermissions || {};
+    if (!host || !printRoot) {
+      saStudentProfileStatus('تعذر تهيئة مساحة عرض السجل التفصيلي.', true);
+      return;
+    }
     if (!items.length) {
       saStudentProfileStatus('ابحث عن طالب وحدد اسمه بعلامة الصح أولاً. يمكنك اختيار أكثر من طالب.', true);
       return;
@@ -244,6 +310,7 @@
     const classNames = Array.from(new Set(items.map(item => item.className)));
     const access = new Map();
     loading = true;
+    setLoadingState(true);
     host.classList.remove('hidden');
     host.innerHTML = '<div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-center font-black text-indigo-800 dark:bg-slate-800 dark:text-indigo-200"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ جمع سجلات ' + items.length + ' طلاب والتحقق من الصلاحيات...</div>';
     printRoot.innerHTML = '';
@@ -266,16 +333,47 @@
       const attendance = [];
       const behaviors = [];
       for (let year = 2000; year <= currentYear; year++) {
+        const from = year + '-01-01';
+        const to = year === currentYear ? today : year + '-12-31';
         const result = await saRequest({
           action: 'reports', report_mode: 'view',
           attendance_classes: attendanceClasses, behavior_classes: behaviorClasses,
           attendance_status_filters: attendanceClasses.length
             ? (p.attendance_statuses || []).filter(type => ['absent', 'late', 'escape', 'outside'].includes(type)) : [],
-          from: year + '-01-01', to: year === currentYear ? today : year + '-12-31'
+          from, to
         });
-        const a = result?.attendance || [];
-        const b = result?.behaviors || [];
-        if (a.length >= 5000 || b.length >= 5000) throw new Error('تجاوزت سجلات سنة ' + year + ' الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.');
+        const a = Array.isArray(result?.attendance) ? result.attendance : [];
+        const b = Array.isArray(result?.behaviors) ? result.behaviors : [];
+
+        // The Reports API caps each table response at 5,000 rows. If a school-wide
+        // aggregate reaches that cap, retry that year class-by-class so one busy
+        // class does not cause an incomplete or falsely rejected multi-class report.
+        if (a.length >= 5000 || b.length >= 5000) {
+          for (const className of classNames) {
+            const scope = access.get(className);
+            const classResult = await saRequest({
+              action: 'reports', report_mode: 'view',
+              attendance_classes: scope.attendance ? [className] : [],
+              behavior_classes: scope.behavior ? [className] : [],
+              attendance_status_filters: scope.attendance
+                ? (p.attendance_statuses || []).filter(type => ['absent', 'late', 'escape', 'outside'].includes(type)) : [],
+              from, to
+            });
+            const classAttendance = Array.isArray(classResult?.attendance) ? classResult.attendance : [];
+            const classBehaviors = Array.isArray(classResult?.behaviors) ? classResult.behaviors : [];
+            if (classAttendance.length >= 5000 || classBehaviors.length >= 5000) {
+              throw new Error('تجاوزت سجلات الصف ' + formatClassName(className) + ' في سنة ' + year + ' الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.');
+            }
+            if (classAttendance.some(row => String(row.class_name || '') !== className) ||
+                classBehaviors.some(row => String(row.class_name || '') !== className)) {
+              throw new Error('تضمن رد السجلات بيانات من صف آخر غير الصف المطلوب.');
+            }
+            attendance.push.apply(attendance, classAttendance);
+            behaviors.push.apply(behaviors, classBehaviors);
+          }
+          continue;
+        }
+
         if (a.some(row => !attendanceClasses.includes(String(row.class_name || ''))) ||
             b.some(row => !behaviorClasses.includes(String(row.class_name || '')))) {
           throw new Error('تضمن الرد سجلات من صف خارج نطاق الاختيار المصرح.');
@@ -283,6 +381,23 @@
         attendance.push.apply(attendance, a);
         behaviors.push.apply(behaviors, b);
       }
+      // Read official notice history once per selected class, scoped server-side
+      // to the selected student names. No other students' notices are returned.
+      // Use the currently deployed, server-supported single-student filter.
+      // The batch student_names endpoint is present in source but must not be
+      // assumed live until the Edge Function is explicitly deployed.
+      const noticeHistoryByStudent = new Map();
+      for (const item of items) {
+        const history = await saRequest({
+          action: 'reports', report_mode: 'notice_history',
+          notice_classes: [item.className], student_name: item.name, to: today
+        });
+        noticeHistoryByStudent.set(
+          keyOf(item),
+          Array.isArray(history?.notices) ? history.notices : []
+        );
+      }
+
       const cards = [];
       const printDocs = [];
       for (const item of items) {
@@ -295,11 +410,7 @@
         const b = scope.behavior ? behaviors.filter(row => String(row.class_name || '') === item.className) : [];
         saNoticeProfileSelectedName = item.name;
         const rows = saBuildStudentProfileRows(a, b);
-        const history = await saRequest({
-          action: 'reports', report_mode: 'notice_history',
-          notice_classes: [item.className], student_name: item.name, to: today
-        });
-        const notices = (history?.notices || []).filter(row =>
+        const notices = (noticeHistoryByStudent.get(keyOf(item)) || []).filter(row =>
           String(row.student_name || '').trim() === item.name &&
           String(row.class_name || item.className) === item.className);
         cards.push(profileCard(item, rows, notices));
@@ -321,12 +432,14 @@
       saStudentProfileStatus(error?.message || 'تعذر تحميل السجلات التفصيلية للطلاب المحددين.', true);
     } finally {
       loading = false;
+      setLoadingState(false);
     }
   };
 
   function init() {
     styles();
     if (!setup()) return;
+    resetSelectionOnLogout();
     window.saLoadStudentProfileDirectory();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

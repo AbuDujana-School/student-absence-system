@@ -785,6 +785,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Test student detail script loading and multi-student privacy guards
+        run: node --test tests/student_detail_record_safety_test.mjs
       - name: Check inline application JavaScript syntax
         run: |
           python - <<'PY'

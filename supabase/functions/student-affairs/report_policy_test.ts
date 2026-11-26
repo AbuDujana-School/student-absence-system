@@ -8,7 +8,7 @@ Deno.test("Reports entry permission enables preview, analytics, and all print mo
   const unchanged = applyReportsEntryPermissions(original, ["9/1", "9/2"], false);
   if (unchanged.can_print_combined !== false || unchanged.can_read_attendance !== false) throw new Error("Users without Reports access gained permissions");
 });
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions, filterNoticeHistoryRows } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -136,4 +136,25 @@ Deno.test("visitor Reports entry retains school-wide scope", () => {
 Deno.test("unassigned legacy report grants retain their existing school-wide behavior", () => {
   const granted = applyReportsEntryPermissions({}, ["9/1", "9/2"], true);
   if (granted.allowed_classes?.join(",") !== "9/1,9/2") throw new Error("legacy report access behavior changed");
+});
+
+
+Deno.test("notice history filtering supports one or many selected students without exposing other students", () => {
+  const rows = [
+    { student_name: "أحمد سالم", issue_number: 1 },
+    { student_name: "مريم علي", issue_number: 2 },
+    { student_name: "خالد سعيد", issue_number: 3 },
+  ];
+  const multiple = filterNoticeHistoryRows(rows, "", ["أحمد سالم", "خالد سعيد"]);
+  if (multiple.map(row => row.student_name).join("|") !== "أحمد سالم|خالد سعيد") {
+    throw new Error("multi-student notice filter returned an unexpected student");
+  }
+  const single = filterNoticeHistoryRows(rows, "مريم علي", undefined);
+  if (single.length !== 1 || single[0].issue_number !== 2) {
+    throw new Error("legacy single-student notice filter changed");
+  }
+  const empty = filterNoticeHistoryRows(rows, "", []);
+  if (empty.length !== 0) throw new Error("an empty multi-student filter must not return all notices");
+  const legacy = filterNoticeHistoryRows(rows, "", undefined);
+  if (legacy.length !== 3) throw new Error("legacy unfiltered history behavior changed");
 });

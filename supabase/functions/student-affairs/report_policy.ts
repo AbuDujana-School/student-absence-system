@@ -137,3 +137,24 @@ export function areClassesAllowed(requested: string[], allowed: string[]): boole
   const allowedSet = new Set(allowed);
   return requested.every(className => allowedSet.has(className));
 }
+
+
+/**
+ * Keep notice-history responses limited to the requested student(s).
+ * An omitted filter preserves the legacy all-students behavior for existing callers.
+ */
+export function filterNoticeHistoryRows<T extends { student_name?: unknown }>(
+  rows: T[],
+  studentName: unknown,
+  studentNames: unknown,
+): T[] {
+  const selectedNames = Array.isArray(studentNames)
+    ? new Set(studentNames.map(value => String(value ?? "").trim()).filter(Boolean))
+    : null;
+  const singleName = String(studentName ?? "").trim();
+  return rows.filter(row => {
+    const name = String(row.student_name ?? "").trim();
+    if (selectedNames) return selectedNames.has(name);
+    return !singleName || name === singleName;
+  });
+}

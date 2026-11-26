@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions, filterNoticeHistoryRows } from "./report_policy.ts";
 import { buildNoticeCandidates, validateNoticeIssueItem, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
 import { fetchNoticeRowsForClasses } from "./notice_issue_fetch.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange, isCompetitionWeeklyCutoffReached, getCompetitionMonthRange } from "./competition_policy.ts";
@@ -2328,13 +2328,24 @@ async function handle(req: Request) {
       const noticeClasses = Array.isArray(body.notice_classes) ? Array.from(new Set((body.notice_classes as unknown[]).map(String))) : [];
       const allowedNoticeClasses = [...new Set([...(permissions.allowed_attendance_classes || []), ...(permissions.allowed_behavior_classes || [])])];
       if (!noticeClasses.length || !areClassesAllowed(noticeClasses, allowedNoticeClasses)) return reply(403, { error: "لا تملك صلاحية الاطلاع على سجل التنبيهات في الصف المحدد." });
-      const { data, error } = await db.from("student_affairs_notice_issues")
+      const studentName = String(body.student_name || "").trim();
+      let requestedStudentNames: string[] | null = null;
+      if (body.student_names !== undefined && body.student_names !== null) {
+        if (!Array.isArray(body.student_names) || !body.student_names.length || body.student_names.length > 1000 ||
+            body.student_names.some((name: unknown) => typeof name !== "string" || !name.trim()) || studentName) {
+          return reply(400, { error: "قائمة أسماء الطلاب المطلوبة لسجل التنبيهات غير صالحة." });
+        }
+        requestedStudentNames = Array.from(new Set((body.student_names as string[]).map(name => name.trim())));
+      }
+      let noticeQuery: any = db.from("student_affairs_notice_issues")
         .select("id,class_name,student_name,issue_number,issued_on,issued_at,issued_by_type,issued_by_name,delivered,delivered_at,threshold,period_start,period_end,selected_types,events")
-        .in("class_name", noticeClasses).lte("issued_on", to).order("issued_at", { ascending: true }).limit(10000);
+        .in("class_name", noticeClasses).lte("issued_on", to);
+      if (requestedStudentNames) noticeQuery = noticeQuery.in("student_name", requestedStudentNames);
+      else if (studentName) noticeQuery = noticeQuery.eq("student_name", studentName);
+      const { data, error } = await noticeQuery.order("issued_at", { ascending: true }).limit(10000);
       if (error) return reply(500, { error: "تعذر تحميل سجل التنبيهات الرسمي." });
       if ((data || []).length >= 10000) return reply(413, { error: "سجل التنبيهات كبير جداً للعرض دفعة واحدة. حدد طالباً أو صفاً واحداً." });
-      const studentName = String(body.student_name || "").trim();
-      const rows = (data || []).filter((row: any) => !studentName || String(row.student_name || "") === studentName).map((row: any) => ({
+      const rows = filterNoticeHistoryRows(data || [], studentName, requestedStudentNames).map((row: any) => ({
         ...row,
         events: (Array.isArray(row.events) ? row.events : []).filter((event: any) => {
           const type = String(event?.type || "");
