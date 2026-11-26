@@ -5,8 +5,9 @@ import vm from "node:vm";
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const policy = fs.readFileSync(new URL("../supabase/functions/_shared/admin_principal_policy.ts", import.meta.url), "utf8");
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-const centerScript = scripts.at(-1)?.[1] || "";
+const centerStart = html.indexOf("/* Administrative records center:");
+const centerEnd = html.indexOf("</script>", centerStart);
+const centerScript = centerStart >= 0 && centerEnd > centerStart ? html.slice(centerStart, centerEnd) : "";
 
 test("administrative records portal has a separate persisted permission", () => {
   assert.match(html, /id="perm_p_adminRecords"/);
