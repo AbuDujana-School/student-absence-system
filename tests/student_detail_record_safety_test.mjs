@@ -38,3 +38,12 @@ test("multi-student search locks mutable selection controls while results are lo
   assert.match(feature, /setLoadingState\(true\)/);
   assert.match(feature, /setLoadingState\(false\)/);
 });
+
+
+test("multi-class reports fall back per class only when the 5,000-row response cap is reached", () => {
+  assert.match(feature, /if \\(a\\.length >= 5000 \\|\\| b\\.length >= 5000\\)/);
+  assert.match(feature, /for \\(const className of classNames\\)/);
+  assert.match(feature, /attendance_classes: scope\\.attendance \\? \\[className\\] : \\[\\]/);
+  assert.match(feature, /behavior_classes: scope\\.behavior \\? \\[className\\] : \\[\\]/);
+  assert.match(feature, /classAttendance\\.length >= 5000 \\|\\| classBehaviors\\.length >= 5000/);
+});
