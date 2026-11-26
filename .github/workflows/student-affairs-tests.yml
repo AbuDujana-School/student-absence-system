@@ -783,7 +783,7 @@ jobs:
       - name: Test secure cloud bootstrap and session expiry gates
         run: node --test tests/app_auth_bootstrap_order_test.mjs tests/admin_login_secondary_modules_test.mjs tests/timetable_substitution_support_selection_test.mjs tests/offline_login_fallback_test.mjs tests/pwa_update_strategy_test.mjs
       - name: Verify leadership portal permission isolation and UI integration
-        run: node --test tests/leadership_admin_portal_safety.test.cjs
+        run: node --check leadership-admin-portal.js && node --test tests/leadership_admin_portal_safety.test.cjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

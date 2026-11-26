@@ -46,7 +46,7 @@ test("the visual layer uses the school brand palette and responsive RTL presenta
   assert.match(styles, /#183653/i);
   assert.match(styles, /#168C85/i);
   assert.match(styles, /#D5A64A/i);
-  assert.match(styles, /direction:\s*rtl/i);
+  assert.match(portal, /setAttribute\('dir', 'rtl'\)/);
   assert.match(styles, /@media/);
   assert.match(styles, /backdrop-filter/);
 });
