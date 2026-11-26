@@ -14,7 +14,7 @@ const ADDITIONAL_ADMIN_PERMISSION_DEFAULTS: Record<string, boolean> = {
   studentAffairs: true, morningAssemblyLateness: true,
   reserve: false, reportSubstitutionDistribution: false,
   reportClassLatenessFollowup: false, reportComprehensiveAbsence: false,
-  reportMorningAssemblyLateness: false, reportStudentAffairs: false,
+  reportMorningAssemblyLateness: false, reportStudentAffairs: false, adminRecords: false,
 };
 
 /** Apply explicit per-account overrides without mixing them with ordinary teacher permissions. */
@@ -27,6 +27,7 @@ export function buildAdditionalAdminPermissions(value: unknown): Record<string, 
   const result = { ...ADDITIONAL_ADMIN_PERMISSION_DEFAULTS };
   for (const key of Object.keys(ADDITIONAL_ADMIN_PERMISSION_DEFAULTS)) {
     if (typeof overrides[key] === "boolean") result[key] = overrides[key] as boolean;
+    else if (key === "adminRecords" && typeof permissions.adminRecords === "boolean") result[key] = permissions.adminRecords;
   }
   return result;
 }
