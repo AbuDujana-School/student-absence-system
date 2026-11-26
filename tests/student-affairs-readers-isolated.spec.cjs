@@ -715,9 +715,10 @@ test("student detailed record supports Arabic partial multi-select with scoped n
   const historyCalls = traffic.functionCalls.filter(item => item.action === "reports" && item.report_mode === "notice_history");
   expect(requestSummary.selectionCount).toBe("2");
   expect(viewCalls.length).toBeGreaterThan(0);
-  expect(historyCalls).toHaveLength(1);
-  expect(historyCalls[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
-  expect(historyCalls[0].student_names).toEqual(["أحمد سالم", "مريم علي"]);
+  expect(historyCalls).toHaveLength(2);
+  expect(historyCalls.map(item => item.student_name).sort()).toEqual(["أحمد سالم", "مريم علي"]);
+  expect(historyCalls.every(item => item.notice_classes?.[0] === "QA_ONLY_CLASS")).toBe(true);
+  expect(historyCalls.every(item => !Object.prototype.hasOwnProperty.call(item, "student_names"))).toBe(true);
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
