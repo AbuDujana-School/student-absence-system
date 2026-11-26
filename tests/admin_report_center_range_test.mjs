@@ -5,8 +5,10 @@ import vm from "node:vm";
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const start = html.indexOf("function reportDateRangeDays(");
-const end = html.indexOf("\nfunction reportCatalog()", start);
+const exportBoundary = html.indexOf("\n// Expose the validator", start);
+const end = exportBoundary > start ? exportBoundary : html.indexOf("\nfunction reportCatalog()", start);
 assert.ok(start >= 0 && end > start, "report date range helper must exist");
+assert.ok(html.includes("window.reportDateRangeDays=reportDateRangeDays"), "date-range helper must be exposed to report functions in other script scopes");
 const helperSource = html.slice(start, end).trim();
 const reportDateRangeDays = vm.runInNewContext("(" + helperSource + ")");
 

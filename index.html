@@ -16331,6 +16331,8 @@ function detail(k){if(!pulse)return;var allowedByKey={absent:tab('studstats'),es
 
 function reportDateDefaults(){var today=getOmanLocalDate(),parts=today.split('-'),year=Number(parts[0]),month=Number(parts[1]);return {from:(month>=9?year:year-1)+'-09-01',to:today};}
 function reportDateRangeDays(from,to){var out=[],d=new Date(from+'T12:00:00Z'),last=new Date(to+'T12:00:00Z');if(!Number.isFinite(d.getTime())||!Number.isFinite(last.getTime())||last<d)throw new RangeError('الفترة الزمنية غير صحيحة.');var totalDays=Math.floor((last.getTime()-d.getTime())/86400000)+1;if(totalDays>370)throw new RangeError('الفترة المحددة تتجاوز الحد الآمن وهو 370 يوماً. قلّص الفترة حتى لا يصدر الكشف ناقصاً.');while(d<=last){out.push(d.toISOString().slice(0,10));d.setUTCDate(d.getUTCDate()+1);}return out;}
+// Expose the validator to the legacy report-printing script, which runs in a separate script scope.
+window.reportDateRangeDays=reportDateRangeDays;
 function reportCatalog(){return [
 {key:'absence',title:'تقرير الغياب الشامل',desc:'كشف الغياب والحالات اليومية وفق التسطيرة الأصلية المعتمدة.',category:'students',label:'شؤون الطلاب',icon:'fa-user-xmark',tone:'#be3b56',allowed:rep('reportComprehensiveAbsence')},
 {key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
