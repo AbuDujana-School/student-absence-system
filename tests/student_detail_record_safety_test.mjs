@@ -11,10 +11,10 @@ test("student detail script is loaded after the final inline script, immediately
   const marker = '<script src="./student-detail-record.js?v=20261126-safe-multiselect-2" defer></script>';
   const scriptPosition = indexHtml.indexOf(marker);
   const finalBodyPosition = indexHtml.toLowerCase().lastIndexOf("</body>");
-  const finalScriptClosePosition = indexHtml.toLowerCase().lastIndexOf("</script>");
+  const previousScriptClosePosition = indexHtml.toLowerCase().lastIndexOf("</script>", scriptPosition - 1);
 
   assert.notEqual(scriptPosition, -1, "the feature script reference is missing");
-  assert.ok(scriptPosition > finalScriptClosePosition, "the feature script was inserted before an inline script finished");
+  assert.ok(previousScriptClosePosition >= 0 && scriptPosition > previousScriptClosePosition, "the feature script was inserted before the previous inline script finished");
   assert.ok(scriptPosition < finalBodyPosition, "the feature script must remain inside the document body");
   assert.equal(indexHtml.slice(scriptPosition + marker.length, finalBodyPosition).trim(), "", "the script must sit directly before the document's final body close");
 });
