@@ -1074,5 +1074,6 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            combined-report-evidence/
           if-no-files-found: warn
           retention-days: 7
