@@ -310,13 +310,19 @@
         attendance.push.apply(attendance, a);
         behaviors.push.apply(behaviors, b);
       }
-      // Read official notice history once per selected class, not once per student.
-      // The API already enforces the caller's class and event-type permissions.
+      // Read official notice history once per selected class, scoped server-side
+      // to the selected student names. No other students' notices are returned.
+      const namesByClass = new Map();
+      for (const item of items) {
+        const names = namesByClass.get(item.className) || [];
+        if (!names.includes(item.name)) names.push(item.name);
+        namesByClass.set(item.className, names);
+      }
       const noticeHistoryByClass = new Map();
       for (const className of classNames) {
         const history = await saRequest({
           action: 'reports', report_mode: 'notice_history',
-          notice_classes: [className], to: today
+          notice_classes: [className], student_names: namesByClass.get(className) || [], to: today
         });
         noticeHistoryByClass.set(
           className,
