@@ -11564,7 +11564,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
   document.getElementById('perm_p_admin').checked = !!p.admin;
-  document.getElementById('perm_p_adminRecords').checked = p.adminRecords === true;
+  document.getElementById('perm_p_adminRecords').checked = p.additionalAdmin === true && p.additionalAdminOverrides && typeof p.additionalAdminOverrides.adminRecords === 'boolean' ? p.additionalAdminOverrides.adminRecords : p.adminRecords === true;
   document.getElementById('perm_teacher_duty_day').value = SCHOOL_DAYS.includes(p.dutyDay) ? p.dutyDay : '';
   document.getElementById('teacherPermissionsModal').classList.remove('hidden');
 }
@@ -11598,7 +11598,7 @@ async function saveTeacherPermissions() {
   t.permissions.sync = document.getElementById('perm_p_sync').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
   t.permissions.admin = document.getElementById('perm_p_admin').checked;
-  t.permissions.adminRecords = document.getElementById('perm_p_adminRecords').checked;
+  if (t.permissions.additionalAdmin === true) { t.permissions.additionalAdminOverrides = { ...(t.permissions.additionalAdminOverrides && typeof t.permissions.additionalAdminOverrides === 'object' ? t.permissions.additionalAdminOverrides : {}), adminRecords: document.getElementById('perm_p_adminRecords').checked }; } else { t.permissions.adminRecords = document.getElementById('perm_p_adminRecords').checked; }
   const chosenDutyDay = document.getElementById('perm_teacher_duty_day').value;
   t.permissions.dutyDay = SCHOOL_DAYS.includes(chosenDutyDay) ? chosenDutyDay : '';
   dirtySets.teachers.add(t.name);
