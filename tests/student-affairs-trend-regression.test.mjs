@@ -214,3 +214,29 @@ test("Student Affairs inner view has a working return action that restores the f
   assert.match(html, /nav\?\.classList\.remove\("hidden"\)/);
   assert.match(html, /backbar\?\.classList\.add\("hidden"\)/);
 });
+
+
+test("Student Affairs browsing keeps only concise summaries instead of long report tables",()=>{
+  const singleStart=html.indexOf("function saRenderReport(d,classes)");
+  const singleEnd=html.indexOf("async function saGetVerifiedPrintRows()",singleStart);
+  assert.ok(singleStart>=0&&singleEnd>singleStart);
+  const singleRenderer=html.slice(singleStart,singleEnd);
+  assert.match(singleRenderer,/saSummary/);
+  assert.match(singleRenderer,/تم إعداد الملخص/);
+  assert.doesNotMatch(singleRenderer,/results\.innerHTML=Object\.entries\(groups\)/);
+  const combinedStart=html.indexOf("function render(prefix,rows)");
+  const combinedEnd=html.indexOf("async function load(prefix)",combinedStart);
+  assert.ok(combinedStart>=0&&combinedEnd>combinedStart);
+  const combinedRenderer=html.slice(combinedStart,combinedEnd);
+  assert.match(combinedRenderer,/الملخص الإجمالي للتقرير/);
+  assert.match(combinedRenderer,/تم إعداد الملخص/);
+  assert.doesNotMatch(combinedRenderer,/matrix-preview/);
+});
+
+test("Student Affairs detailed print/PDF is generated independently of browser preview",()=>{
+  assert.match(html,/async function saPrint\(\)[\s\S]*?saGetVerifiedPrintRows\(\)[\s\S]*?saBuildPrintHtml\(data\)/);
+  assert.match(html,/async function saGetVerifiedPrintRows\(\)[\s\S]*?report_mode:domain==="attendance"\?"print_attendance":"print_behavior"/);
+  assert.match(html,/function saBuildPrintHtml\(data\)[\s\S]*?const tableRows=/);
+  assert.match(html,/async function print\(prefix\)[\s\S]*?getData\(prefix\)[\s\S]*?printHtml\(data\)/);
+  assert.match(html,/report_mode:"print_combined"/);
+});
