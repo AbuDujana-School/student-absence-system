@@ -621,10 +621,16 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   }
 
   await page.locator('#saMainNav .sa-nav-card[data-sec="1"]').click();
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/hidden/);
   await expect(page.locator("#saSec1")).not.toHaveClass(/hidden/);
   await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
 
+  await page.locator("#saSectionBackBar button").click();
+  await expect(page.locator("#saMainNav")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).toHaveClass(/hidden/);
   await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
   await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#saSec3")).not.toHaveClass(/hidden/);
   for (const id of ["saSec1", "saSec2", "saSec4"]) {
@@ -634,4 +640,23 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
+});
+
+
+test("student affairs cards open dedicated inner screens and return to the card menu", async ({ page }) => {
+  await openIsolatedApp(page);
+
+  await page.evaluate(() => saSwitchMainSection(1));
+  await expect(page.locator("#saMainNav")).toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSec1")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSec2")).toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionCurrentTitle")).toHaveText("متابعة الغياب والسلوكيات");
+
+  await page.evaluate(() => saReturnToMainNav());
+  await expect(page.locator("#saMainNav")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saSectionBackBar")).toHaveClass(/hidden/);
+  for (const section of [1, 2, 3, 4]) {
+    await expect(page.locator("#saSec" + section)).toHaveClass(/hidden/);
+  }
 });
