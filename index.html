@@ -3456,8 +3456,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <button type="button" onclick="toggleUrgentCategory('absent')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-slate-800 dark:text-slate-200 block">1. حالات الغياب</span><p class="text-[10px] text-slate-500 mt-0.5">حسب الحصص المسجلة اليوم</p></div><span id="dashAbsentCount" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-black rounded-xl">0 حالات</span></button>
             <button type="button" onclick="toggleUrgentCategory('escape')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-rose-900 dark:text-rose-200 block">2. حالات التسرب</span><p class="text-[10px] text-rose-600/80 dark:text-rose-400 mt-0.5">انقر للاستعراض</p></div><span id="dashEscapeCount" class="px-3 py-1.5 bg-rose-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
-            <button type="button" onclick="toggleUrgentCategory('late')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-amber-50/70 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-amber-900 dark:text-amber-200 block">3. حالات التأخر</span><p class="text-[10px] text-amber-600/80 dark:text-amber-400 mt-0.5">انقر للاستعراض</p></div><span id="dashLateCount" class="px-3 py-1.5 bg-amber-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
-<button type="button" onclick="toggleUrgentCategory('outside')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-purple-50/70 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 border border-purple-200/80 dark:border-purple-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-purple-900 dark:text-purple-200 block">4. حالات الخروج</span><p class="text-[10px] text-purple-600/80 dark:text-purple-400 mt-0.5">انقر للاستعراض</p></div><span id="dashOutsideCount" class="px-3 py-1.5 bg-purple-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
+            <div class="p-4 rounded-2xl bg-fuchsia-50/70 dark:bg-fuchsia-950/25 border border-fuchsia-200/80 dark:border-fuchsia-900/40 flex items-center justify-between text-right transition-all"><div><span class="text-xs font-black text-fuchsia-900 dark:text-fuchsia-200 block">3. التأخر عن الطابور</span><p class="text-[10px] text-fuchsia-700/80 dark:text-fuchsia-300 mt-0.5">الطلاب المسجل تأخرهم صباح اليوم</p></div><span id="dashMorningAssemblyLateCount" class="px-3 py-1.5 bg-fuchsia-700 text-white text-xs font-black rounded-xl">—</span></div>
+            <div class="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/25 border border-cyan-200/80 dark:border-cyan-900/40 flex items-center justify-between text-right transition-all"><div><span class="text-xs font-black text-cyan-900 dark:text-cyan-200 block">4. المعلمون الموزعون احتياط</span><p class="text-[10px] text-cyan-700/80 dark:text-cyan-300 mt-0.5">معلمون من جميع التخصصات · كل معلم مرة</p></div><span id="dashReserveTeachersCount" class="px-3 py-1.5 bg-cyan-700 text-white text-xs font-black rounded-xl">—</span></div>
           </div>
           <div id="urgentCategoryDetailsContainer" class="hidden" aria-live="polite"></div>
         </div>
@@ -10117,6 +10117,51 @@ function refreshUrgentCategoryCounts() {
   if (currentUrgentType && panel && !panel.classList.contains('hidden')) renderUrgentCategoryDetails(currentUrgentType);
 }
 
+// Dashboard-only daily metrics. Fetch once per Oman school day; never poll.
+let dashboardDailyMetricsDate = '';
+let dashboardDailyMetricsPromise = null;
+async function refreshDashboardDailyMetrics() {
+  const today = getOmanLocalDate();
+  if (dashboardDailyMetricsDate === today) return;
+  if (dashboardDailyMetricsPromise) return dashboardDailyMetricsPromise;
+  const lateNode = document.getElementById('dashMorningAssemblyLateCount');
+  const reserveNode = document.getElementById('dashReserveTeachersCount');
+  if (lateNode) lateNode.textContent = '…';
+  if (reserveNode) reserveNode.textContent = '…';
+  dashboardDailyMetricsPromise = (async () => {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const jobs = [
+      (async () => {
+        if (typeof callMorningAssemblyLatenessApi !== 'function') throw new Error('خدمة الطابور غير متاحة');
+        const data = await callMorningAssemblyLatenessApi({ action: 'today' });
+        const unique = new Set((Array.isArray(data?.rows) ? data.rows : []).map(row =>
+          morningAssemblyStudentKey(row.class_name_snapshot, row.student_name_snapshot)
+        ));
+        if (lateNode) lateNode.textContent = unique.size.toLocaleString('en-US') + ' طالب';
+      })(),
+      (async () => {
+        if (!token) throw new Error('جلسة الدخول غير متاحة');
+        const data = await appAuthRequest({
+          action: 'timetable_substitution_archive',
+          dateFrom: today,
+          dateTo: today,
+          archiveScope: 'school'
+        }, token);
+        const unique = new Set((Array.isArray(data?.archive) ? data.archive : [])
+          .filter(row => String(row?.status || 'assigned') !== 'cancelled')
+          .map(row => String(row?.absentTeacherName || '').trim())
+          .filter(Boolean));
+        if (reserveNode) reserveNode.textContent = unique.size.toLocaleString('en-US') + ' معلم';
+      })()
+    ];
+    await Promise.allSettled(jobs);
+    if (lateNode && lateNode.textContent === '…') lateNode.textContent = '—';
+    if (reserveNode && reserveNode.textContent === '…') reserveNode.textContent = '—';
+    dashboardDailyMetricsDate = today;
+  })().finally(() => { dashboardDailyMetricsPromise = null; });
+  return dashboardDailyMetricsPromise;
+}
+
 /* ============ Advanced real-data analytics ============ */
 function analyticsDateKey(date) {
   return date.toISOString().slice(0, 10);
@@ -10425,7 +10470,7 @@ function initAdminDashboard() {
   const saAction = document.getElementById('dashboardStudentAffairsAction');
   if (saAction) { const show = !!(isA || activeUser?.permissions?.studentAffairs === true); saAction.classList.toggle('hidden', !show); saAction.classList.toggle('flex', show); }
   try {
-    if (has('studstats')) renderStudentStatsDashboard();
+    if (has('studstats')) { renderStudentStatsDashboard(); void refreshDashboardDailyMetrics(); }
     if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
     if (has('users')) renderCustomUsersList();
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
