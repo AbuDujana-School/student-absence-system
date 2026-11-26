@@ -8,12 +8,43 @@
   const selected = new Map();
   let matches = [];
   let loading = false;
+  let selectionOwner = '';
   const normalize = value => String(value || '').normalize('NFC')
     .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
     .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
     .replace(/\s+/g, ' ').trim().toLocaleLowerCase('ar');
   const keyOf = item => item.className + '\u001f' + item.name;
   const allowed = () => saStudentProfileAllowedClasses();
+
+  function currentSelectionOwner() {
+    const principal = saSession?.principal || null;
+    if (!principal) return '';
+    return String(principal.type || '') + ':' + String(principal.name || '');
+  }
+
+  function syncSelectionOwner() {
+    const nextOwner = currentSelectionOwner();
+    if (selectionOwner && nextOwner !== selectionOwner) {
+      selected.clear();
+      renderSelected();
+      markSelectionChanged();
+    }
+    selectionOwner = nextOwner;
+  }
+
+  function resetSelectionOnLogout() {
+    const originalLogout = window.saLogout;
+    if (typeof originalLogout !== 'function' || originalLogout.__saStudentDetailReset) return;
+    const wrappedLogout = async function (...args) {
+      selected.clear();
+      selectionOwner = '';
+      renderSelected();
+      markSelectionChanged();
+      return originalLogout.apply(this, args);
+    };
+    wrappedLogout.__saStudentDetailReset = true;
+    window.saLogout = wrappedLogout;
+  }
 
   function styles() {
     if (document.getElementById('saStudentDetailMultiStyles')) return;
@@ -187,6 +218,7 @@
   }
 
   window.saLoadStudentProfileDirectory = function () {
+    syncSelectionOwner();
     const select = document.getElementById('saStudentProfileClass');
     if (!select) return;
     const classes = allowed();
@@ -402,6 +434,7 @@
   function init() {
     styles();
     if (!setup()) return;
+    resetSelectionOnLogout();
     window.saLoadStudentProfileDirectory();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
