@@ -202,3 +202,19 @@ body.admin-portal-lock { overflow:hidden; }
 .dark .admin-portal-daily-metric-copy small { color:#cbd5e1; }
 .dark .admin-portal-daily-metric-count { color:#5eead4; }
 @media (max-width:620px) { .admin-portal-daily-metrics-grid { grid-template-columns:1fr; } .admin-portal-daily-metric { padding:.9rem; } }
+
+.admin-portal-class-ranking { margin:0 0 1.1rem;padding:1.1rem;border:1px solid rgba(213,166,74,.4);border-radius:20px;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(244,249,249,.92));box-shadow:0 12px 28px rgba(24,54,83,.07); }
+.admin-portal-class-ranking h4 { margin:0;color:#183653;font-size:1rem;font-weight:950; }
+.admin-portal-class-ranking > p { margin:.35rem 0 .9rem;color:#64748b;font-size:.72rem;line-height:1.75; }
+.admin-portal-class-ranking #adminPortalClassDisciplineList { display:grid;gap:.55rem; }
+.admin-portal-ranking-row { display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:.7rem;padding:.75rem .85rem;border:1px solid rgba(22,140,133,.14);border-radius:14px;background:rgba(240,248,247,.72); }
+.admin-portal-ranking-rank { display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:linear-gradient(145deg,#183653,#168c85);color:#fff;font-size:.8rem;font-weight:950; }
+.admin-portal-ranking-copy { display:grid;gap:.15rem;min-width:0; }
+.admin-portal-ranking-copy strong { color:#183653;font-size:.82rem;font-weight:950; }
+.admin-portal-ranking-copy small { color:#64748b;font-size:.67rem;font-weight:700;line-height:1.5; }
+.admin-portal-ranking-rate { color:#168c85;font-size:1rem;font-weight:950; }
+.dark .admin-portal-class-ranking { background:linear-gradient(135deg,rgba(15,35,55,.98),rgba(20,48,60,.9));border-color:rgba(213,166,74,.28); }
+.dark .admin-portal-class-ranking h4,.dark .admin-portal-ranking-copy strong { color:#f8fafc; }
+.dark .admin-portal-class-ranking > p,.dark .admin-portal-ranking-copy small { color:#cbd5e1; }
+.dark .admin-portal-ranking-row { background:rgba(15,23,42,.7);border-color:rgba(45,170,160,.2); }
+.dark .admin-portal-ranking-rate { color:#5eead4; }

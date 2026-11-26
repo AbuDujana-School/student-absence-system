@@ -678,7 +678,7 @@
     const allowedStatuses = new Set(['present', 'absent', 'late', 'escape', 'outside']);
     Object.entries(typeof db !== 'undefined' ? db.attendance || {} : {}).forEach(([key, session]) => {
       if (!session || !session.records || typeof session.records !== 'object') return;
-      const parsed = typeof window.parseAttendanceKey === 'function' ? window.parseAttendanceKey(key) : {};
+      const parsed = typeof parseAttendanceKey === 'function' ? parseAttendanceKey(key) : {};
       const date = String(session.date || parsed.date || '');
       if (date < start || date > end) return;
       const className = String(session.className || parsed.className || '').trim();
