@@ -8,7 +8,7 @@ const feature = readFileSync(new URL("../student-detail-record.js", import.meta.
 const edge = readFileSync(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url), "utf8");
 
 test("student detail script is loaded after the final inline script, immediately before the real document end", () => {
-  const marker = '<script src="./student-detail-record.js?v=20261126-safe-multiselect-2" defer></script>';
+  const marker = '<script src="./student-detail-record.js?v=20261126-safe-multiselect-3" defer></script>';
   const scriptPosition = indexHtml.indexOf(marker);
   const finalBodyPosition = indexHtml.toLowerCase().lastIndexOf("</body>");
   const previousScriptClosePosition = indexHtml.toLowerCase().lastIndexOf("</script>", scriptPosition - 1);
@@ -55,4 +55,6 @@ test("student selections are cleared when Student Affairs logs out or the princi
   assert.ok(feature.includes("window.saLogout = wrappedLogout"));
   assert.ok(feature.includes("selected.clear()"));
   assert.ok(feature.includes("syncSelectionOwner()"));
+  assert.ok(feature.includes("const allowedSet = new Set(classes)"));
+  assert.ok(feature.includes("if (!allowedSet.has(item.className)) selected.delete(key)"));
 });
