@@ -132,10 +132,12 @@ test("Student Affairs navigation is four independent square cards with responsiv
   const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
   const styleEnd = html.indexOf("</style>", styleStart);
   const navCss = html.slice(styleStart, styleEnd);
-  assert.match(navCss,/grid-template-columns:\\s*repeat\\(4,\\s*minmax\\(0,\\s*1fr\\)\\)/);
-  assert.match(navCss,/@media screen and \\(max-width:\\s*760px\\)[\\s\\S]*grid-template-columns:\\s*repeat\\(2,\\s*minmax\\(0,\\s*1fr\\)\\)/);
-  assert.match(navCss,/aspect-ratio:\\s*1\\s*\\/\\s*1/);
-  assert.match(navCss,/flex-direction:\\s*column/);
+  const compactCss = navCss.replace(/\\s+/g, "");
+  assert.ok(compactCss.includes("grid-template-columns:repeat(4,minmax(0,1fr))"));
+  assert.ok(compactCss.includes("@mediascreenand(max-width:760px)"));
+  assert.ok(compactCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
+  assert.ok(compactCss.includes("aspect-ratio:1/1"));
+  assert.ok(compactCss.includes("flex-direction:column"));
   const dashboard = getElementById(html,"dashboardSelectionView");
   const dashboardCard = getElementById(dashboard,"studentAffairsDashboardCard");
   assert.ok(dashboardCard.includes('onclick="openStudentAffairsView(true)"'));
@@ -151,9 +153,9 @@ test("Student Affairs navigation is four independent square cards with responsiv
 test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{
   const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
   const styleEnd = html.indexOf("</style>", styleStart);
-  const navCss = html.slice(styleStart, styleEnd);
-  assert.match(navCss,/\.sa-main-pane\.hidden\\s*\\{\\s*display:\\s*none\\s*!important/);
-  assert.match(navCss,/#saSec2:not\\(\\.hidden\\)\\s*\\{\\s*display:\\s*flex/);
+  const compactCss = html.slice(styleStart, styleEnd).replace(/\\s+/g, "");
+  assert.ok(compactCss.includes(".sa-main-pane.hidden{display:none!important"));
+  assert.ok(compactCss.includes("#saSec2:not(.hidden){display:flex"));
   const controller = getElementById(html,"sa-four-section-navigation-controller");
   assert.match(controller,/pane\.classList\.toggle\("hidden",pane\.id!==\"saSec\"\+selected\)/);
   assert.match(controller,/button\.setAttribute\("aria-selected",active\?\"true\":\"false\"\)/);
