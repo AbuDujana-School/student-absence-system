@@ -22,12 +22,12 @@ test("the appended administrative center script parses as JavaScript", () => {
   assert.doesNotThrow(() => new vm.Script(centerScript));
 });
 
-test("raw schoolwide pulse data is restricted to administrative accounts", () => {
+test("daily pulse data requires portal access and the matching attendance permission", () => {
   const start = centerScript.indexOf("function pulseData()");
   const end = centerScript.indexOf("\nfunction metric", start);
   assert.ok(start >= 0 && end > start, "Could not locate pulseData");
   const source = centerScript.slice(start, end);
-  assert.match(source, /if\(!\(isGeneralAdminUser\(activeUser\)\|\|isAdminAuthorized\(\)\)\)return[\s\S]*?restricted:true/);
+  assert.match(source, /if\(!allowed\(\)\)return[\s\S]*?restricted:true/);\n  assert.match(source, /if\(tab\(\x27studstats\x27\)\)Object\.entries\(db\.attendance/);\n  assert.match(source, /if\(tab\(\x27behaviorstats\x27\)\)Object\.entries\(db\.behaviors/);
 });
 
 test("trend aggregation applies the same schoolwide guard to attendance and behavior", () => {
