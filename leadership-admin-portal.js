@@ -664,26 +664,93 @@
     activateReportTab(tabs[0].id);
   }
 
+  function renderAdminClassDisciplineRanking() {
+    const host = document.getElementById('adminPortalClassDisciplineList');
+    if (!host) return;
+    host.replaceChildren();
+    const start = document.getElementById('analyticsStartDate')?.value || '';
+    const end = document.getElementById('analyticsEndDate')?.value || '';
+    if (!start || !end || start > end) {
+      host.appendChild(createEmptyMessage('اختر فترة زمنية صحيحة لاحتساب ترتيب الصفوف.'));
+      return;
+    }
+    const totals = new Map();
+    const allowedStatuses = new Set(['present', 'absent', 'late', 'escape', 'outside']);
+    Object.entries(typeof db !== 'undefined' ? db.attendance || {} : {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = typeof window.parseAttendanceKey === 'function' ? window.parseAttendanceKey(key) : {};
+      const date = String(session.date || parsed.date || '');
+      if (date < start || date > end) return;
+      const className = String(session.className || parsed.className || '').trim();
+      if (!className) return;
+      if (!totals.has(className)) totals.set(className, { total: 0, regular: 0 });
+      const item = totals.get(className);
+      Object.values(session.records).forEach(rawStatus => {
+        const status = String(rawStatus || '');
+        if (!allowedStatuses.has(status)) return;
+        item.total += 1;
+        if (status === 'present') item.regular += 1;
+      });
+    });
+    const ranked = Array.from(totals.entries())
+      .filter(([, value]) => value.total > 0)
+      .map(([className, value]) => ({
+        className,
+        total: value.total,
+        regular: value.regular,
+        rate: Math.round((value.regular / value.total) * 100)
+      }))
+      .sort((a, b) => b.rate - a.rate || b.total - a.total || a.className.localeCompare(b.className, 'ar'))
+      .slice(0, 5);
+    if (!ranked.length) {
+      host.appendChild(createEmptyMessage('لا توجد سجلات حضور كافية لترتيب الصفوف في هذه الفترة.'));
+      return;
+    }
+    ranked.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.className = 'admin-portal-ranking-row';
+      const rank = textNode('span', 'admin-portal-ranking-rank', String(index + 1));
+      const copy = document.createElement('span');
+      copy.className = 'admin-portal-ranking-copy';
+      copy.appendChild(textNode('strong', '', item.className));
+      copy.appendChild(textNode('small', '', item.regular.toLocaleString('en-US') + ' حضور منتظم من ' + item.total.toLocaleString('en-US') + ' سجل رصد'));
+      const rate = textNode('strong', 'admin-portal-ranking-rate', item.rate.toLocaleString('en-US') + '%');
+      row.append(rank, copy, rate);
+      host.appendChild(row);
+    });
+  }
+
   function openStatsModal() {
     if (!canAdminTab('studstats')) {
       setActiveModal('stats', 'الصندوق الثالث · الإحصائيات', 'مرصد الإحصاء والاتجاهات', 'يتطلب هذا المرصد صلاحية الإحصائيات المدرسية.');
       document.getElementById('adminPortalModalBody').replaceChildren(createEmptyMessage('لا تملك صلاحية الاطلاع على الإحصائيات المدرسية.'));
       return;
     }
-    setActiveModal('stats', 'الصندوق الثالث · التحليل المدرسي', 'مرصد الإحصاء والاتجاهات', 'تحليلات ومخططات النظام الأصلية، معتمدة على السجلات الفعلية والفترة التي تختارها.');
+    setActiveModal('stats', 'الصندوق الثالث · التحليل المدرسي', 'مرصد الإحصاء والاتجاهات', 'اتجاهات الغياب والسلوك، الطلاب الأكثر تكراراً للمخالفات، وترتيب الصفوف وفق سجلات الحضور المرصودة.');
     const body = document.getElementById('adminPortalModalBody');
     body.replaceChildren();
     const host = document.createElement('div');
     host.id = 'adminPortalStatsHost';
     body.appendChild(host);
+    const ranking = document.createElement('section');
+    ranking.className = 'admin-portal-class-ranking';
+    ranking.appendChild(textNode('h4', '', 'الصفوف الأكثر انتظاماً في الحصص المرصودة'));
+    ranking.appendChild(textNode('p', '', 'الترتيب محسوب من نسبة سجلات الحضور المنتظم إلى جميع حالات الرصد المعروفة (حضور، غياب، تأخر، تسرب، خروج) خلال الفترة المحددة.'));
+    const rankingList = document.createElement('div');
+    rankingList.id = 'adminPortalClassDisciplineList';
+    ranking.appendChild(rankingList);
+    host.appendChild(ranking);
     mountModule('sec-studstats', host);
-    if (typeof window.switchStatsSubTab === 'function') window.switchStatsSubTab('absence');
-    if (typeof window.renderStudentStatsDashboard === 'function') {
-      try { window.renderStudentStatsDashboard(); } catch (error) { console.warn('Leadership portal statistics render failed.', error); }
-    }
     if (typeof window.updateAdvancedAnalytics === 'function') {
-      try { window.updateAdvancedAnalytics(); } catch (error) { console.warn('Leadership portal charts render failed.', error); }
+      try { window.updateAdvancedAnalytics(); } catch (error) { console.warn('Leadership portal statistics render failed.', error); }
     }
+    renderAdminClassDisciplineRanking();
+    ['analyticsStartDate', 'analyticsEndDate'].forEach(id => {
+      const input = document.getElementById(id);
+      if (!input || input.dataset.adminPortalRankingBound === '1') return;
+      input.dataset.adminPortalRankingBound = '1';
+      input.addEventListener('change', renderAdminClassDisciplineRanking);
+    });
     requestAnimationFrame(() => {
       try { Object.values(window.chartInstances || {}).forEach(chart => chart?.resize?.()); } catch (_) {}
     });
