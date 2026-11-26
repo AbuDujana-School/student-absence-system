@@ -47,3 +47,12 @@ test("multi-class reports fall back per class only when the 5,000-row response c
   assert.ok(feature.includes("behavior_classes: scope.behavior ? [className] : []"));
   assert.ok(feature.includes("classAttendance.length >= 5000 || classBehaviors.length >= 5000"));
 });
+
+
+test("student selections are cleared when Student Affairs logs out or the principal session changes", () => {
+  assert.ok(feature.includes("function syncSelectionOwner()"));
+  assert.ok(feature.includes("function resetSelectionOnLogout()"));
+  assert.ok(feature.includes("window.saLogout = wrappedLogout"));
+  assert.ok(feature.includes("selected.clear()"));
+  assert.ok(feature.includes("syncSelectionOwner()"));
+});
