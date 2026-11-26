@@ -132,7 +132,7 @@ test("Student Affairs navigation is four independent square cards with responsiv
   const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
   const styleEnd = html.indexOf("</style>", styleStart);
   const navCss = html.slice(styleStart, styleEnd);
-  const compactCss = navCss.replace(/\\s+/g, "");
+  const compactCss = navCss.replace(/\s+/g, "");
   assert.ok(compactCss.includes("grid-template-columns:repeat(4,minmax(0,1fr))"));
   assert.ok(compactCss.includes("@mediascreenand(max-width:760px)"));
   assert.ok(compactCss.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
@@ -153,7 +153,7 @@ test("Student Affairs navigation is four independent square cards with responsiv
 test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{
   const styleStart = html.indexOf('<style id="sa-four-section-navigation-ui">');
   const styleEnd = html.indexOf("</style>", styleStart);
-  const compactCss = html.slice(styleStart, styleEnd).replace(/\\s+/g, "");
+  const compactCss = html.slice(styleStart, styleEnd).replace(/\s+/g, "");
   assert.ok(compactCss.includes(".sa-main-pane.hidden{display:none!important"));
   assert.ok(compactCss.includes("#saSec2:not(.hidden){display:flex"));
   const controller = getElementById(html,"sa-four-section-navigation-controller");
