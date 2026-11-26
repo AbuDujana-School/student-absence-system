@@ -97,6 +97,28 @@
     return true;
   }
 
+  function setLoadingState(isLoading) {
+    const controls = document.querySelectorAll(
+      '#saStudentProfileClass, #saStudentProfileName, ' +
+      'button[onclick="saLoadStudentNoticeProfile()"], ' +
+      '#saStudentDetailMultiPanel input, #saStudentDetailMultiPanel button'
+    );
+    controls.forEach(control => {
+      if (isLoading) {
+        control.dataset.sdmWasDisabled = control.disabled ? '1' : '0';
+        control.disabled = true;
+        control.setAttribute('aria-disabled', 'true');
+      } else {
+        const prior = control.dataset.sdmWasDisabled;
+        if (prior !== undefined) {
+          control.disabled = prior === '1';
+          delete control.dataset.sdmWasDisabled;
+        }
+        control.removeAttribute('aria-disabled');
+      }
+    });
+  }
+
   function markSelectionChanged() {
     const host = document.getElementById('saStudentProfileResult');
     const printRoot = document.getElementById('saStudentProfilePrintRoot');
@@ -229,6 +251,10 @@
     const host = document.getElementById('saStudentProfileResult');
     const printRoot = document.getElementById('saStudentProfilePrintRoot');
     const p = saReportPermissions || {};
+    if (!host || !printRoot) {
+      saStudentProfileStatus('تعذر تهيئة مساحة عرض السجل التفصيلي.', true);
+      return;
+    }
     if (!items.length) {
       saStudentProfileStatus('ابحث عن طالب وحدد اسمه بعلامة الصح أولاً. يمكنك اختيار أكثر من طالب.', true);
       return;
@@ -244,6 +270,7 @@
     const classNames = Array.from(new Set(items.map(item => item.className)));
     const access = new Map();
     loading = true;
+    setLoadingState(true);
     host.classList.remove('hidden');
     host.innerHTML = '<div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-center font-black text-indigo-800 dark:bg-slate-800 dark:text-indigo-200"><i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ جمع سجلات ' + items.length + ' طلاب والتحقق من الصلاحيات...</div>';
     printRoot.innerHTML = '';
@@ -283,6 +310,20 @@
         attendance.push.apply(attendance, a);
         behaviors.push.apply(behaviors, b);
       }
+      // Read official notice history once per selected class, not once per student.
+      // The API already enforces the caller's class and event-type permissions.
+      const noticeHistoryByClass = new Map();
+      for (const className of classNames) {
+        const history = await saRequest({
+          action: 'reports', report_mode: 'notice_history',
+          notice_classes: [className], to: today
+        });
+        noticeHistoryByClass.set(
+          className,
+          Array.isArray(history?.notices) ? history.notices : []
+        );
+      }
+
       const cards = [];
       const printDocs = [];
       for (const item of items) {
@@ -295,11 +336,7 @@
         const b = scope.behavior ? behaviors.filter(row => String(row.class_name || '') === item.className) : [];
         saNoticeProfileSelectedName = item.name;
         const rows = saBuildStudentProfileRows(a, b);
-        const history = await saRequest({
-          action: 'reports', report_mode: 'notice_history',
-          notice_classes: [item.className], student_name: item.name, to: today
-        });
-        const notices = (history?.notices || []).filter(row =>
+        const notices = (noticeHistoryByClass.get(item.className) || []).filter(row =>
           String(row.student_name || '').trim() === item.name &&
           String(row.class_name || item.className) === item.className);
         cards.push(profileCard(item, rows, notices));
@@ -321,6 +358,7 @@
       saStudentProfileStatus(error?.message || 'تعذر تحميل السجلات التفصيلية للطلاب المحددين.', true);
     } finally {
       loading = false;
+      setLoadingState(false);
     }
   };
 
