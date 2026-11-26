@@ -668,6 +668,11 @@ test("student detailed record supports Arabic partial multi-select with scoped n
       expires_at: "2099-01-01T00:00:00.000Z",
       principal: { type: "admin", name: "QA_ONLY_ADMIN" },
     };
+    // Simulate the authenticated Student Affairs view. This is a synthetic
+    // browser test, so reveal the same hidden panes that a successful login
+    // and navigation to the detailed-record section would reveal.
+    document.getElementById("saContent")?.classList.remove("hidden");
+    document.getElementById("saSec4")?.classList.remove("hidden");
     saReportPermissions = {
       role: "admin",
       can_read_attendance: true,
