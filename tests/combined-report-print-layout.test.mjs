@@ -110,7 +110,7 @@ test("all data columns, including the last other/notes column, have fixed propor
     const widths = [...group.matchAll(/style="width:([\d.]+)%"/g)].map(match => Number(match[1]));
     assert.equal(widths.length, 14, "Number, student, 11 reporting categories, and notes columns must all be present");
     assert.ok(Math.abs(widths.reduce((sum, width) => sum + width, 0) - 100) < 0.001, "Column widths must exactly fill the printable table");
-    assert.match(group, /<col class="matrix-col-notes" style="width:14\.8%">$/);
+    assert.match(group, /<col class="matrix-col-notes" style="width:21%">$/);
   }
   assert.equal((markup.match(/class="matrix-student-row"/g) || []).length, 56);
   assert.equal((markup.match(/class="matrix-notes-cell"/g) || []).length, 56);
