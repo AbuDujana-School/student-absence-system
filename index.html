@@ -11261,7 +11261,7 @@ function printTeachersActivityPDF() {
     '</style></head><body><main class="report">' +
     '<header class="header"><div class="header-main"><div><h1 class="school">'+esc(schoolName)+'</h1><div class="report-title">كشف تقييم وتفريغ نشاط المعلمين</div></div>' +
     '<div class="identity"><strong>نظام حصر الغياب والسلوك الذكي</strong><span>متابعة الأداء والتفاعل مع النظام</span></div></div>' +
-    '<div class="meta"><span><b>تاريخ الاستخراج:</b> '+esc(new Date().toLocaleDateString('ar-OM'))+'</span><span><b>عدد المعلمين:</b> '+number(data.teachersArray.length)+'</span><span><b>إجمالي التسجيلات:</b> '+number(totalEntries)+'</span><span><b>ترتيب الكشف:</b> من الأعلى نشاطاً إلى الأقل</span></div></header>' +
+    '<div class="meta"><span><b>الفترة:</b> '+esc(data.from&&data.to?data.from+' إلى '+data.to:'كل السجلات')+'</span><span><b>تاريخ الاستخراج:</b> '+esc(new Date().toLocaleDateString('ar-OM'))+'</span><span><b>عدد المعلمين:</b> '+number(data.teachersArray.length)+'</span><span><b>إجمالي التسجيلات:</b> '+number(totalEntries)+'</span><span><b>ترتيب الكشف:</b> من الأعلى نشاطاً إلى الأقل</span></div></header>' +
     '<section class="stats">' +
     '<div class="stat active-stat"><span class="stat-label">المعلمون النشطون</span><strong class="stat-value">'+number(activeCount)+' <small>معلم</small></strong></div>' +
     '<div class="stat inactive-stat"><span class="stat-label">المعلمون غير النشطين</span><strong class="stat-value">'+number(inactiveCount)+' <small>معلم</small></strong></div>' +
