@@ -40,6 +40,7 @@
       '.sa-sdm-profile-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;padding:17px 18px;color:white;background:linear-gradient(115deg,#0f766e,#2563eb 60%,#6d28d9)}.sa-sdm-profile-head h4{font-size:17px;font-weight:900}',
       '.sa-sdm-profile-body{padding:16px}.sa-sdm-table-wrap{overflow-x:auto;border-radius:14px}.sa-sdm-table{width:100%;min-width:520px;border-collapse:collapse;font-size:12px}.sa-sdm-table th{background:#eef2ff;color:#334155;font-weight:900}.dark .sa-sdm-table th{background:#1e293b;color:#e2e8f0}.sa-sdm-table td,.sa-sdm-table th{padding:11px 10px;text-align:right;border-bottom:1px solid rgba(148,163,184,.2)}',
       '.sa-sdm-print-all{min-height:52px;padding:13px 22px;border-radius:16px;color:white;font-size:15px;font-weight:900;background:linear-gradient(110deg,#0f766e,#2563eb);box-shadow:0 10px 22px rgba(37,99,235,.18)}',
+      '.sa-sdm-load-button{min-height:56px!important;padding:14px 22px!important;border-radius:17px!important;font-size:15px!important;font-weight:900!important;background:linear-gradient(110deg,#0f766e,#2563eb)!important;box-shadow:0 10px 22px rgba(37,99,235,.18)!important}',
       '@media(max-width:640px){#saStudentDetailMultiPanel{padding:14px;border-radius:20px}.sa-sdm-result{min-height:68px}.sa-sdm-name{font-size:14px}}'
     ].join('\n');
     document.head.appendChild(style);
@@ -82,6 +83,7 @@
       } else selected.delete(keyOf(item));
       renderSelected();
       renderMatches();
+      markSelectionChanged();
     });
     panel.addEventListener('click', function (event) {
       const remove = event.target.closest('button[data-sdm-remove]');
@@ -90,8 +92,18 @@
       if (entry) selected.delete(entry[0]);
       renderSelected();
       renderMatches();
+      markSelectionChanged();
     });
     return true;
+  }
+
+  function markSelectionChanged() {
+    const host = document.getElementById('saStudentProfileResult');
+    const printRoot = document.getElementById('saStudentProfilePrintRoot');
+    if (host) { host.innerHTML = ''; host.classList.add('hidden'); }
+    if (printRoot) printRoot.innerHTML = '';
+    saStudentProfileCanPrint = false;
+    saStudentProfileStatus('تم تحديث قائمة الطلاب المحددين. اضغط عرض السجلات لتحديث النتائج والطباعة.');
   }
 
   function renderSelected() {
