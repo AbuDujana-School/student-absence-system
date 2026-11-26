@@ -293,16 +293,47 @@
       const attendance = [];
       const behaviors = [];
       for (let year = 2000; year <= currentYear; year++) {
+        const from = year + '-01-01';
+        const to = year === currentYear ? today : year + '-12-31';
         const result = await saRequest({
           action: 'reports', report_mode: 'view',
           attendance_classes: attendanceClasses, behavior_classes: behaviorClasses,
           attendance_status_filters: attendanceClasses.length
             ? (p.attendance_statuses || []).filter(type => ['absent', 'late', 'escape', 'outside'].includes(type)) : [],
-          from: year + '-01-01', to: year === currentYear ? today : year + '-12-31'
+          from, to
         });
-        const a = result?.attendance || [];
-        const b = result?.behaviors || [];
-        if (a.length >= 5000 || b.length >= 5000) throw new Error('تجاوزت سجلات سنة ' + year + ' الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.');
+        const a = Array.isArray(result?.attendance) ? result.attendance : [];
+        const b = Array.isArray(result?.behaviors) ? result.behaviors : [];
+
+        // The Reports API caps each table response at 5,000 rows. If a school-wide
+        // aggregate reaches that cap, retry that year class-by-class so one busy
+        // class does not cause an incomplete or falsely rejected multi-class report.
+        if (a.length >= 5000 || b.length >= 5000) {
+          for (const className of classNames) {
+            const scope = access.get(className);
+            const classResult = await saRequest({
+              action: 'reports', report_mode: 'view',
+              attendance_classes: scope.attendance ? [className] : [],
+              behavior_classes: scope.behavior ? [className] : [],
+              attendance_status_filters: scope.attendance
+                ? (p.attendance_statuses || []).filter(type => ['absent', 'late', 'escape', 'outside'].includes(type)) : [],
+              from, to
+            });
+            const classAttendance = Array.isArray(classResult?.attendance) ? classResult.attendance : [];
+            const classBehaviors = Array.isArray(classResult?.behaviors) ? classResult.behaviors : [];
+            if (classAttendance.length >= 5000 || classBehaviors.length >= 5000) {
+              throw new Error('تجاوزت سجلات الصف ' + formatClassName(className) + ' في سنة ' + year + ' الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.');
+            }
+            if (classAttendance.some(row => String(row.class_name || '') !== className) ||
+                classBehaviors.some(row => String(row.class_name || '') !== className)) {
+              throw new Error('تضمن رد السجلات بيانات من صف آخر غير الصف المطلوب.');
+            }
+            attendance.push.apply(attendance, classAttendance);
+            behaviors.push.apply(behaviors, classBehaviors);
+          }
+          continue;
+        }
+
         if (a.some(row => !attendanceClasses.includes(String(row.class_name || ''))) ||
             b.some(row => !behaviorClasses.includes(String(row.class_name || '')))) {
           throw new Error('تضمن الرد سجلات من صف خارج نطاق الاختيار المصرح.');
