@@ -198,3 +198,19 @@ test("Student Affairs navigation stylesheet is in the live document head, not th
   assert.match(css,/\.sa-main-pane\.hidden\s*\{\s*display:\s*none\s*!important/);
   assert.match(css,/@media screen and \(max-width:\s*760px\)[\s\S]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 });
+
+
+test("Student Affairs section cards open a standalone view and hide the card navigation", () => {
+  assert.match(html, /id="saSectionBackbar" class="hidden/);
+  assert.match(html, /function saSwitchMainSection\(secNumber\)/);
+  assert.match(html, /nav\.classList\.add\("hidden"\)/);
+  assert.match(html, /backbar\.classList\.remove\("hidden"\)/);
+  assert.match(html, /pane\.classList\.toggle\("hidden",pane\.id!==\"saSec\"\+selected\)/);
+});
+
+test("Student Affairs inner view has a working return action that restores the four cards", () => {
+  assert.match(html, /onclick="saReturnToMainNavigation\(\)"/);
+  assert.match(html, /function saReturnToMainNavigation\(\)/);
+  assert.match(html, /nav\?\.classList\.remove\("hidden"\)/);
+  assert.match(html, /backbar\?\.classList\.add\("hidden"\)/);
+});
