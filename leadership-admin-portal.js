@@ -720,6 +720,17 @@
     });
   }
 
+  async function openOriginalStatsSection() {
+    if (!canAdminTab('studstats')) {
+      notify('لا تملك صلاحية الإحصائيات المدرسية.', 'error');
+      return;
+    }
+    closeAdminSection();
+    if (typeof window.openAdminModal === 'function') await window.openAdminModal();
+    if (typeof window.switchAdminTab === 'function') window.switchAdminTab('studstats');
+    document.getElementById('sec-studstats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function openStatsModal() {
     if (!canAdminTab('studstats')) {
       setActiveModal('stats', 'الصندوق الثالث · الإحصائيات', 'مرصد الإحصاء والاتجاهات', 'يتطلب هذا المرصد صلاحية الإحصائيات المدرسية.');
@@ -732,6 +743,10 @@
     const host = document.createElement('div');
     host.id = 'adminPortalStatsHost';
     body.appendChild(host);
+    const originalStatsButton = textNode('button', 'admin-portal-original-stats-button', 'الانتقال إلى قسم الإحصائيات الأصلي');
+    originalStatsButton.type = 'button';
+    originalStatsButton.addEventListener('click', () => { void openOriginalStatsSection(); });
+    host.appendChild(originalStatsButton);
     const ranking = document.createElement('section');
     ranking.className = 'admin-portal-class-ranking';
     ranking.appendChild(textNode('h4', '', 'الصفوف الأكثر انتظاماً في الحصص المرصودة'));
