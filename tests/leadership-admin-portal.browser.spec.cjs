@@ -132,3 +132,100 @@ test("class discipline ranking uses only the selected range and recorded attenda
   await expect(ranking).toContainText("25%");
   await expect(ranking).not.toContainText("10/3");
 });
+
+
+test("behavior ranking is shown only with behaviorstats permission and counts normalized multi-type records", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.startDistronDashboardStages = () => {};
+    window.isGeneralAdminUser = () => false;
+    window.isAdminAuthorized = () => false;
+    window.hasAdminPanelAccess = () => false;
+    window.distronDashboardStagePending = () => false;
+    window.canAccessAdminTab = key => key === "studstats" || key === "behaviorstats";
+    window.canAccessReport = () => false;
+    window.canAccessAnyReport = () => false;
+    window.renderAdminOverview = () => {};
+    window.updateAdvancedAnalytics = () => {
+      document.getElementById("analyticsStartDate").value = "2026-11-26";
+      document.getElementById("analyticsEndDate").value = "2026-11-26";
+    };
+    db.behaviors = {
+      "2026-11-26_10/1_p1": {
+        date: "2026-11-26", className: "10/1",
+        records: {
+          "طالب متكرر": { types: ["talking", "chaos"] },
+          "طالب آخر": { type: "eating" }
+        }
+      },
+      "2026-11-26_10/1_p2": {
+        date: "2026-11-26", className: "10/1",
+        records: { "طالب متكرر": { types: ["talking", "sleeping"] } }
+      },
+      "2026-11-25_10/1_p3": {
+        date: "2026-11-25", className: "10/1",
+        records: { "طالب خارج الفترة": { type: "chaos" } }
+      }
+    };
+    activeUser = {
+      type: "teacher", name: "QA Synthetic Behavior Statistics User",
+      permissions: { canViewAdminRecords: true, studstats: true, behaviorstats: true }
+    };
+    window.renderAuthenticatedDashboardShell();
+  });
+
+  await page.locator("#adminPortalOpenButton").click();
+  await page.locator('[data-admin-portal-open="stats"]').click();
+  const ranking = page.locator("#adminPortalBehaviorRankingList");
+  await expect(ranking).toContainText("طالب متكرر");
+  await expect(ranking).toContainText("4 مخالفة");
+  await expect(ranking).toContainText("طالب آخر");
+  await expect(ranking).not.toContainText("طالب خارج الفترة");
+});
+
+test("behavior names remain absent from the statistics portal without behaviorstats permission", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.startDistronDashboardStages = () => {};
+    window.isGeneralAdminUser = () => false;
+    window.isAdminAuthorized = () => false;
+    window.hasAdminPanelAccess = () => false;
+    window.distronDashboardStagePending = () => false;
+    window.canAccessAdminTab = key => key === "studstats";
+    window.canAccessReport = () => false;
+    window.canAccessAnyReport = () => false;
+    window.renderAdminOverview = () => {};
+    window.updateAdvancedAnalytics = () => {
+      document.getElementById("analyticsStartDate").value = "2026-11-26";
+      document.getElementById("analyticsEndDate").value = "2026-11-26";
+    };
+    db.behaviors = {
+      "2026-11-26_10/1_p1": {
+        date: "2026-11-26", className: "10/1",
+        records: { "اسم طالب سري": { type: "talking" } }
+      }
+    };
+    activeUser = {
+      type: "teacher", name: "QA Synthetic Attendance Statistics User",
+      permissions: { canViewAdminRecords: true, studstats: true }
+    };
+    window.renderAuthenticatedDashboardShell();
+  });
+
+  await page.locator("#adminPortalOpenButton").click();
+  await page.locator('[data-admin-portal-open="stats"]').click();
+  await expect(page.locator("#adminPortalBehaviorRankingList")).toHaveCount(0);
+  await expect(page.locator("#adminPortalStatsHost")).not.toContainText("اسم طالب سري");
+});
