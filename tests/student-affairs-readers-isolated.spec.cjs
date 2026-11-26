@@ -561,8 +561,16 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
       node = node.parentElement;
     }
     document.getElementById("saContent")?.classList.remove("hidden");
-    saSwitchMainSection(1);
+    saResetMainSectionView();
   });
+
+  const landing = await page.evaluate(() => ({
+    visiblePanes: document.querySelectorAll("#saContent > .sa-main-pane:not(.hidden)").length,
+    activeCards: document.querySelectorAll("#saMainNav .sa-nav-card.is-active").length,
+    selectedCards: [...document.querySelectorAll("#saMainNav .sa-nav-card")]
+      .filter(button => button.getAttribute("aria-selected") === "true").length,
+  }));
+  expect(landing).toEqual({ visiblePanes: 0, activeCards: 0, selectedCards: 0 });
 
   await page.setViewportSize({ width: 1280, height: 900 });
   const desktop = await page.evaluate(() => {
@@ -611,6 +619,10 @@ test("Student Affairs four navigation cards render as actual squares on desktop 
   for (const rect of mobile.rects) {
     expect(Math.abs(rect.width - rect.height)).toBeLessThanOrEqual(1.5);
   }
+
+  await page.locator('#saMainNav .sa-nav-card[data-sec="1"]').click();
+  await expect(page.locator("#saSec1")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#saContent > .sa-main-pane:not(.hidden)")).toHaveCount(1);
 
   await page.locator('#saMainNav .sa-nav-card[data-sec="3"]').click();
   await expect(page.locator('#saMainNav .sa-nav-card[data-sec="3"]')).toHaveAttribute("aria-pressed", "true");
