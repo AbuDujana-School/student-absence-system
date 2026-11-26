@@ -31,6 +31,11 @@ test("the new portal permission is an independent visibility gate and preserves 
   assert.doesNotMatch(portal, /db\.teachers\.find\(item => String\(item\?\.name/);
 });
 
+test("legacy admin dashboard access is not hidden by the new portal grant", () => {
+  assert.match(portal, /adminButton\.classList\.toggle\('hidden', !showAdminPanel\)/);
+  assert.doesNotMatch(portal, /adminButton\.classList\.toggle\('hidden', !showAdminPanel \|\| allowed\)/);
+});
+
 test("daily pulse reads are individually guarded by their original report/archive permissions", () => {
   assert.match(portal, /if \(canReport\('reportMorningAssemblyLateness'\) && cache\.morningAssemblyLoaded !== true\)/);
   assert.match(portal, /if \(canReadReserveArchive\(\) && cache\.reserveArchiveLoaded !== true\)/);
