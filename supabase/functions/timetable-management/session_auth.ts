@@ -115,6 +115,7 @@ export async function resolveTimetablePrincipal(
     return { type: "admin", name, permissions };
   }
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
+  const schoolwideReserveArchiveAccess = type === "teacher" && permissions.schoolwideReserveArchive === true;
   // These two reads are strictly self-scoped by their request handlers. The
   // handlers verify the live portal allow-list or query only this teacher's
   // assignments, so preflight permission/portal queries here are redundant.
@@ -158,6 +159,14 @@ export async function resolveTimetablePrincipal(
       type, name, permissions, reserveAccess: true, schoolwideReserveStats,
       ...(dutyReportAction ? { dutyReportAccess } : {}),
     };
+  }
+  // This grant is deliberately read-only and authorizes only the two archive
+  // endpoints. It does not unlock substitution planning, saving, or editing.
+  if (schoolwideReserveArchiveAccess && new Set([
+    "timetable_substitution_archive",
+    "timetable_substitution_archive_access",
+  ]).has(requestedAction)) {
+    return { type, name, permissions };
   }
   const schoolwideReserveStats = await hasSchoolwideReserveStats();
   if (schoolwideReserveStats) {

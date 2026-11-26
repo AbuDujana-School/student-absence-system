@@ -380,7 +380,15 @@ async function handle(req: Request) {
     (principal.type === "teacher" || principal.type === "custom")
       ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
       : false;
-  const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
+  // Schoolwide archive is a distinct, explicit teacher grant. Preserve the
+  // existing full-school access for reserve coordinators and custom absence
+  // coordinators, but do not infer it from a teacher's generic timetable grant.
+  const hasExplicitSchoolwideArchivePermission = principal.type === "teacher" &&
+    principal.permissions?.schoolwideReserveArchive === true;
+  const hasSchoolwideArchiveGrant = principal.type === "admin" || hasReservePermission ||
+    (principal.type === "custom" && hasTimetableGrant) || hasExplicitSchoolwideArchivePermission;
+  const hasArchivePermission = principal.type === "admin" || hasReservePermission ||
+    hasTimetableGrant || hasExplicitSchoolwideArchivePermission;
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
     principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
@@ -464,7 +472,7 @@ async function handle(req: Request) {
     directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId)
       .forEach((teacher:any)=>departmentMap.set(String(teacher.departmentId),String(teacher.departmentName||teacher.department||teacher.departmentId)));
     const departments=[...departmentMap.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,"ar"));
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasArchivePermission);
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
     const canSelectAnyDepartment=principal.type==="admin";
     const canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId);
     return reply(200,{ok:true,canView:true,canViewDepartmentArchive,canViewSchoolwide,canSelectAnyDepartment,
@@ -496,9 +504,9 @@ async function handle(req: Request) {
     if(requestedArchiveScope&&!["department","school"].includes(requestedArchiveScope))
       return reply(400,{error:"نوع نطاق الأرشيف غير صحيح."});
     const requestedDepartmentId=String(body.departmentId||"").trim();
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasArchivePermission);
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
     if(requestedArchiveScope==="school"&&!canViewSchoolwide)
-      return reply(403,{error:"أرشيف المدرسة الشامل يتطلب صلاحية توزيع الاحتياط أو حساب منسق غياب مخوّلاً."});
+      return reply(403,{error:"أرشيف المدرسة الشامل يتطلب صلاحية الاطلاع على أرشيف الاحتياط الشامل أو صلاحية منسق احتياط مخوّل."});
     const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&principal.type==="admin");
     const actorDepartmentId=String(actor?.departmentId||"").trim();
     // A non-admin's department scope is always derived from the authenticated
@@ -1614,7 +1622,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
         const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-          (canViewSchoolwideReserveArchive(principal.type,hasArchivePermission)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
+          (canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
         const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
           visibleNames.has(String(row.absent_teacher_name||""))&&
           (!requestedDate||String(row.assignment_date||"")===requestedDate))

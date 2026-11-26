@@ -588,3 +588,27 @@ Deno.test("delegated full administrator is elevated only inside timetable author
     throw new Error("Delegated administrator capability was not read from the live teacher profile");
   }
 });
+
+
+Deno.test("schoolwide archive-only teacher permission authenticates only the two archive reads", async () => {
+  const session = { principal_type: "teacher", principal_name: "Archive Reader", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: {
+      name: "Archive Reader",
+      role: "teacher",
+      permissions: { schoolwideReserveArchive: true },
+    },
+  });
+  for (const action of ["timetable_substitution_archive", "timetable_substitution_archive_access"]) {
+    const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, action);
+    if (principal?.type !== "teacher" || principal.permissions?.schoolwideReserveArchive !== true) {
+      throw new Error("Archive-only teacher permission did not authenticate " + action);
+    }
+  }
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_substitution_save",
+  );
+  if (principal !== null) {
+    throw new Error("Archive-only teacher permission must not authenticate reserve management actions");
+  }
+});

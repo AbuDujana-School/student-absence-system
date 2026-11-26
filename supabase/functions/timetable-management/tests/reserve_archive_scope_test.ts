@@ -18,7 +18,7 @@ Deno.test("system admins and explicitly archive-authorized coordinators can read
 
 Deno.test("the archive endpoint uses the shared server-side scope policy", async () => {
   const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
-  const policyUses = backend.match(/canViewSchoolwideReserveArchive\(principal\.type,hasArchivePermission\)/g) || [];
+  const policyUses = backend.match(/canViewSchoolwideReserveArchive\(principal\.type,hasSchoolwideArchiveGrant\)/g) || [];
   assert(
     policyUses.length >= 2,
     "Both archive query paths must use the validated archive grant for schoolwide visibility",
@@ -40,8 +40,12 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
     "Department results must be filtered against the server-resolved department id",
   );
   assert(
-    backend.includes("const hasArchivePermission = principal.type === \"admin\" || hasReservePermission || hasTimetableGrant;"),
-    "Schoolwide archive visibility must use an already-validated reserve or absence-coordinator archive grant",
+    backend.includes('const hasExplicitSchoolwideArchivePermission = principal.type === "teacher" &&'),
+    "A teacher must receive schoolwide archive access only through the explicit teacher permission",
+  );
+  assert(
+    backend.includes("hasTimetableGrant || hasExplicitSchoolwideArchivePermission"),
+    "The explicit teacher permission must authorize archive reads without granting reserve management",
   );
 });
 
@@ -52,4 +56,17 @@ Deno.test("archive access exposes both scopes to all principals with a validated
   assert(backend.includes("const canSelectAnyDepartment=principal.type===\"admin\";"), "Only administrators may select another department for the department archive");
   assert(backend.includes("departments:canSelectAnyDepartment?departments:(actor?.departmentId?departments.filter(item=>item.id===String(actor.departmentId)):[])"), "Non-admins receive only their own department option");
   assert(backend.includes("canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId)"), "Authorized accounts may view the school archive even when no department is linked");
+});
+
+
+Deno.test("a generic teacher timetable grant does not imply schoolwide archive access", async () => {
+  const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+  assert(
+    backend.includes('(principal.type === "custom" && hasTimetableGrant) || hasExplicitSchoolwideArchivePermission'),
+    "Only custom coordinators retain their legacy schoolwide archive access from timetable grants",
+  );
+  assert(
+    backend.includes('principal.permissions?.schoolwideReserveArchive === true'),
+    "Teacher schoolwide archive permission must be read from the authenticated permission snapshot",
+  );
 });

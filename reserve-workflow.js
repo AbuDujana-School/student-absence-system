@@ -2082,6 +2082,9 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       // Do not warm archive/preview/statistics reads as a side effect of a permission check.
       // The edit/archive screen loads its own data when the user opens it.
       if(reserveMutation)refreshDailyArchiveInBackground();
+      if(reserveMutation&&typeof window.refreshDashboardDailyMetrics==="function"){
+        refreshInBackground("Dashboard reserve metric refresh failed.",()=>window.refreshDashboardDailyMetrics(true));
+      }
       if(reserveMutation&&$("substitutionTodayAssignmentsResults")){
         refreshInBackground("Reserve home-today refresh failed.",window.substitutionLoadHomeTodayAssignments);
       }
@@ -2822,6 +2825,67 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
   installReserveArchiveAutoRefresh();
+
+  // Add the narrowly-scoped schoolwide reserve archive permission to the
+  // existing teacher permissions dialog without changing login or other grants.
+  (function installSchoolwideReserveArchivePermissionControl(){
+    const modal=document.getElementById("teacherPermissionsModal");
+    if(!modal||modal.dataset.schoolwideArchivePermissionInstalled==="1")return;
+    const saveButton=modal.querySelector('button[onclick="saveTeacherPermissions()"]');
+    const footer=saveButton?.parentElement;
+    if(!footer)return;
+    const section=document.createElement("div");
+    section.className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4 dark:border-cyan-900 dark:bg-cyan-950/30";
+    section.innerHTML='<label for="perm_p_schoolwideReserveArchive" class="flex cursor-pointer items-start gap-3"><input id="perm_p_schoolwideReserveArchive" type="checkbox" class="mt-1 h-4 w-4 accent-cyan-700"><span><span class="block text-sm font-black text-cyan-950 dark:text-cyan-100">عرض أرشيف الاحتياط الشامل للمدرسة</span><span class="mt-1 block text-xs leading-6 text-cyan-800 dark:text-cyan-200">تسمح هذه الصلاحية بالاطلاع على سجلات الاحتياط لجميع التخصصات، وتُظهر لصاحبها مؤشر عدد المعلمين الموزعين احتياط في لوحة التحكم. لا تمنح صلاحية التوزيع أو التعديل أو الإلغاء.</span></span></label>';
+    footer.parentElement.insertBefore(section,footer);
+    modal.dataset.schoolwideArchivePermissionInstalled="1";
+    const syncCheckbox=()=>{
+      const name=String(document.getElementById("permTeacherName")?.textContent||"").trim();
+      const teacher=(typeof db!=="undefined"&&Array.isArray(db.teachers))?db.teachers.find(item=>item.name===name):null;
+      const checkbox=document.getElementById("perm_p_schoolwideReserveArchive");
+      if(checkbox)checkbox.checked=teacher?.permissions?.schoolwideReserveArchive===true;
+    };
+    if(typeof window.openPermissionsModal==="function"&&!window.openPermissionsModal.__schoolwideArchiveWrapped){
+      const originalOpen=window.openPermissionsModal;
+      const wrappedOpen=function(...args){const result=originalOpen.apply(this,args);syncCheckbox();return result;};
+      wrappedOpen.__schoolwideArchiveWrapped=true;wrappedOpen.__original=originalOpen;
+      window.openPermissionsModal=wrappedOpen;
+    }
+    if(typeof window.saveTeacherPermissions==="function"&&!window.saveTeacherPermissions.__schoolwideArchiveWrapped){
+      const originalSave=window.saveTeacherPermissions;
+      const wrappedSave=async function(...args){
+        const name=String(document.getElementById("permTeacherName")?.textContent||"").trim();
+        const teacher=(typeof db!=="undefined"&&Array.isArray(db.teachers))?db.teachers.find(item=>item.name===name):null;
+        if(teacher){
+          if(!teacher.permissions||typeof teacher.permissions!=="object")teacher.permissions={};
+          teacher.permissions.schoolwideReserveArchive=document.getElementById("perm_p_schoolwideReserveArchive")?.checked===true;
+        }
+        return originalSave.apply(this,args);
+      };
+      wrappedSave.__schoolwideArchiveWrapped=true;wrappedSave.__original=originalSave;
+      window.saveTeacherPermissions=wrappedSave;
+    }
+  })();
+
+  // The schoolwide daily count is shown only to principals who can actually
+  // read the consolidated archive; the ordinary dashboard cards stay intact.
+  if(typeof window.refreshDashboardDailyMetrics==="function"&&!window.refreshDashboardDailyMetrics.__schoolwideArchiveVisibilityWrapped){
+    const originalRefresh=window.refreshDashboardDailyMetrics;
+    const wrappedRefresh=function(...args){
+      const allowed=typeof activeUser!=="undefined"&&(
+        activeUser?.type==="admin"||
+        activeUser?.permissions?.admin===true||
+        activeUser?.permissions?.reserve===true||
+        activeUser?.permissions?.schoolwideReserveArchive===true
+      );
+      const metricCard=document.getElementById("dashReserveTeachersCount")?.closest(".p-4");
+      if(metricCard)metricCard.classList.toggle("hidden",!allowed);
+      return originalRefresh.apply(this,args);
+    };
+    wrappedRefresh.__schoolwideArchiveVisibilityWrapped=true;
+    wrappedRefresh.__original=originalRefresh;
+    window.refreshDashboardDailyMetrics=wrappedRefresh;
+  }
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"){
     const substitutionView=$("substitutionView");
