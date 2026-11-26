@@ -90,7 +90,7 @@ function buildReportHtml() {
 }
 
 test("Chromium prints the 9/1 and 9/3 stress reports without horizontal cell overflow", async ({ page }) => {
-  fs.mkdirSync("test-results", { recursive: true });
+  fs.mkdirSync("combined-report-evidence", { recursive: true });
   await page.setViewportSize({ width: 1123, height: 794 });
   await page.setContent(buildReportHtml(), { waitUntil: "load" });
   await page.emulateMedia({ media: "print" });
@@ -154,9 +154,9 @@ test("Chromium prints the 9/1 and 9/3 stress reports without horizontal cell ove
   });
   const pdfText = pdf.toString("latin1");
   const pageCount = (pdfText.match(/\/Type\s*\/Page\b/g) || []).length;
-  fs.writeFileSync("test-results/combined-report-layout-stress.pdf", pdf);
+  fs.writeFileSync("combined-report-evidence/combined-report-layout-stress.pdf", pdf);
   await page.screenshot({
-    path: "test-results/combined-report-layout-stress.png",
+    path: "combined-report-evidence/combined-report-layout-stress.png",
     fullPage: true
   });
   console.log("Combined report PDF page count:", pageCount);
