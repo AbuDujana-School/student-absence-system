@@ -16341,7 +16341,7 @@ window.addEventListener('reserve:muscat-day-changed',()=>{if(current==='edit')vo
 'use strict';
 var modal=null,view='hub',pulse=null;
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function allowed(){return !!activeUser&&activeUser.permissions?.adminRecords===true;}
+function allowed(){return !!activeUser&&(isGeneralAdminUser(activeUser)||activeUser.permissions?.adminRecords===true);}
 function tab(k){return canAccessAdminTab(k,activeUser);}
 function rep(k){return canAccessReport(k,activeUser);}
 function dateKey(k,s){if(s&&s.date)return String(s.date);return String(parseAttendanceKey(k).date||'');}
