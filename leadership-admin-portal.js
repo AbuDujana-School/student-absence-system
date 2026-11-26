@@ -89,11 +89,11 @@
     modal.dataset.adminRecordsPermissionInstalled = '1';
 
     const syncCheckbox = function () {
-      const teacherName = String(document.getElementById('permTeacherName')?.textContent || '').trim();
+      const index = Number(modal.dataset.adminRecordsTeacherIndex);
       let teacher = null;
       try {
-        teacher = typeof db !== 'undefined' && Array.isArray(db.teachers)
-          ? db.teachers.find(item => String(item?.name || '').trim() === teacherName)
+        teacher = Number.isInteger(index) && index >= 0 && typeof db !== 'undefined' && Array.isArray(db.teachers)
+          ? db.teachers[index]
           : null;
       } catch (_) {}
       const checkbox = document.getElementById('perm_p_canViewAdminRecords');
@@ -104,6 +104,7 @@
       const originalOpen = window.openPermissionsModal;
       const wrappedOpen = function (...args) {
         const result = originalOpen.apply(this, args);
+        modal.dataset.adminRecordsTeacherIndex = String(args[0]);
         syncCheckbox();
         return result;
       };
@@ -115,13 +116,14 @@
     if (typeof window.saveTeacherPermissions === 'function' && !window.saveTeacherPermissions.__adminRecordsPortalWrapped) {
       const originalSave = window.saveTeacherPermissions;
       const wrappedSave = async function (...args) {
+        const teacherIndex = Number(modal.dataset.adminRecordsTeacherIndex);
         const teacherName = String(document.getElementById('permTeacherName')?.textContent || '').trim();
         const checkbox = document.getElementById('perm_p_canViewAdminRecords');
         const checked = checkbox?.checked === true;
         let teacher = null;
         try {
-          teacher = typeof db !== 'undefined' && Array.isArray(db.teachers)
-            ? db.teachers.find(item => String(item?.name || '').trim() === teacherName)
+          teacher = Number.isInteger(teacherIndex) && teacherIndex >= 0 && typeof db !== 'undefined' && Array.isArray(db.teachers)
+            ? db.teachers[teacherIndex]
             : null;
         } catch (_) {}
         if (teacher) {
