@@ -86,7 +86,7 @@ function buildReportHtml() {
     classes => classes.sort((a, b) => a.localeCompare(b, "ar")),
     data
   );
-  return html.replace(/<script>window\.addEventListener\("load",[\s\S]*?<\\/script>/, "");
+  return html.replace(/<script>window\.addEventListener\("load",[\s\S]*?<\/script>/, "");
 }
 
 test("Chromium prints the 9/1 and 9/3 stress reports without horizontal cell overflow", async ({ page }) => {
@@ -153,7 +153,7 @@ test("Chromium prints the 9/1 and 9/3 stress reports without horizontal cell ove
     preferCSSPageSize: true
   });
   const pdfText = pdf.toString("latin1");
-  const pageCount = (pdfText.match(/\\/Type\\s*\\/Page\\b/g) || []).length;
+  const pageCount = (pdfText.match(/\/Type\s*\/Page\b/g) || []).length;
   expect(pdf.subarray(0, 4).toString("ascii")).toBe("%PDF");
   expect(pageCount).toBeGreaterThan(0);
   expect(pageCount).toBeLessThanOrEqual(8);
