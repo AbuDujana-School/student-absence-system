@@ -3668,7 +3668,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 text-xs font-bold">
         <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" data-permission="dashboard" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 shadow-sm font-bold text-emerald-800 dark:text-emerald-300 transition-all"><i class="fa-solid fa-house text-emerald-600"></i><span>الرئيسية</span></button>
-        <button onclick="switchAdminTab('studstats')" id="tab-studstats" data-permission="studstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-chart-pie text-emerald-600"></i><span>إحصائيات</span></button>
+        <button onclick="switchAdminTab('studstats')" id="tab-studstats" data-permission="studstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all" style="display:none!important"><i class="fa-solid fa-chart-pie text-emerald-600"></i><span>إحصائيات</span></button>
         <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" data-permission="behaviorstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-scale-balanced text-emerald-600"></i><span>سلوكيات</span></button>
         <button onclick="switchAdminTab('users')" id="tab-users" data-permission="users" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-user-gear text-blue-500"></i><span>الأشخاص</span></button>
         <button onclick="switchAdminTab('beneficiaries')" id="tab-beneficiaries" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-slate-800 dark:to-slate-900 shadow-sm font-black text-slate-800 dark:text-amber-200 hover:border-amber-400 transition-all"><i class="fa-solid fa-users-viewfinder text-amber-600"></i><span>إدارة المستفيدين</span></button>
@@ -3836,8 +3836,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
       </section>
 
-      <div id="sec-studstats" class="space-y-6">
-        <section id="advancedAnalyticsSection" class="space-y-6 mb-8 trend-observatory" dir="rtl" data-theme="light">
+      <div id="sec-studstats" class="hidden" style="display:none!important" aria-hidden="true"></div><div id="advancedAnalyticsParking" class="hidden" aria-hidden="true"><section id="advancedAnalyticsSection" class="space-y-6 mb-8 trend-observatory" dir="rtl" data-theme="light">
   <div class="trend-hero">
     <div class="trend-hero-orb trend-orb-a"></div><div class="trend-hero-orb trend-orb-b"></div>
     <div class="relative z-10 flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
@@ -3890,113 +3889,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <span id="analyticsReserveTrend" class="trend-direction">بانتظار البيانات</span>
   </section>
   <div class="trend-footnote"><i class="fa-solid fa-circle-info"></i><span>الارتفاع والانخفاض يعكسان حجم الحالات المسجلة خلال الفترة، ولا يُفسّران سبب الحالة. عند غياب صلاحية مصدر معيّن، يُعرض تنبيه بدلاً من إظهار قيمة تقديرية.</span></div>
-</section>
-        <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
-          <div><h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> إحصائيات الطلاب</h4><p class="text-xs text-emerald-200 mt-0.5">متابعة الغياب والسلوكيات</p></div>
-          <div class="flex flex-wrap items-center gap-3">
-            <div>
-              <label class="block text-[10px] text-emerald-200 font-bold mb-1">الفترة:</label>
-              <select id="statsPeriodFilter" onchange="onStatsFilterChanged()" class="bg-slate-900/90 text-white text-xs font-bold px-3.5 py-2 rounded-2xl border border-emerald-500/40 outline-none cursor-pointer">
-                <option value="today">اليوم</option><option value="yesterday">أمس</option><option value="week">الأسبوع</option><option value="month">الشهر</option><option value="semester">الفصل</option><option value="custom">مخصص</option>
-              </select>
-            </div>
-            <div id="customDateRangeContainer" class="hidden flex items-center gap-2">
-              <input type="date" id="statsStartDate" onchange="onStatsFilterChanged()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40">
-              <span class="text-xs text-emerald-200">إلى</span>
-              <input type="date" id="statsEndDate" onchange="onStatsFilterChanged()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40">
-            </div>
-            <button onclick="openDailyAdminReportModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md flex items-center gap-2 border border-emerald-500/50"><i class="fa-solid fa-file-lines"></i> <span>التقرير اليومي</span></button>
-          </div>
-        </div>
-        <div class="flex gap-2 bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200">
-          <button onclick="switchStatsSubTab('absence')" id="statsTab-absence" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-user-slash"></i> الغياب</button>
-          <button onclick="switchStatsSubTab('behaviors')" id="statsTab-behaviors" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs bg-transparent text-slate-600 dark:text-slate-300 flex items-center justify-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-600"></i> السلوكيات</button>
-        </div>
-        <div id="statsSubSec-absence" class="space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div onclick="openStatusListModal('absent')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 hover:border-emerald-500 cursor-pointer flex items-center justify-between group hover:shadow-xl transition-all"><div><span class="text-xs font-bold text-slate-400 block mb-1">الغياب</span><h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3></div><div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-user-slash"></i></div></div>
-            <div onclick="openStatusListModal('escape')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 hover:border-red-500 cursor-pointer flex items-center justify-between group hover:shadow-xl transition-all"><div><span class="text-xs font-bold text-slate-400 block mb-1">التسرب</span><h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3></div><div class="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-person-running"></i></div></div>
-            <div onclick="openStatusListModal('late')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 hover:border-orange-500 cursor-pointer flex items-center justify-between group hover:shadow-xl transition-all"><div><span class="text-xs font-bold text-slate-400 block mb-1">التأخير</span><h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3></div><div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div></div>
-            <div onclick="openStatusListModal('outside')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 hover:border-purple-500 cursor-pointer flex items-center justify-between group hover:shadow-xl transition-all"><div><span class="text-xs font-bold text-slate-400 block mb-1">الخروج</span><h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3></div><div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-door-open"></i></div></div>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/80">
-              <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600"></i> توزيع حالات الحضور</h5>
-                <span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-1 rounded-lg font-bold" id="chartDistSummary">—</span>
-              </div>
-              <div class="chart-container h-[280px]"><canvas id="absenceDistChart"></canvas></div>
-            </div>
-            <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/80">
-              <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-column text-teal-600"></i> الغياب حسب الصف</h5>
-              </div>
-              <div class="chart-container h-[280px]"><canvas id="classDistChart"></canvas></div>
-            </div>
-          </div>
-
-          <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3"><h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> يحتاجون متابعة</h5><span id="needsAttentionCountBadge" class="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold px-3 py-1 rounded-2xl border border-amber-200">0</span></div>
-            <div id="needsAttentionContainer" class="overflow-x-auto custom-scrollbar"></div>
-          </div>
-          <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-            <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-2"><h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات حسب الصفوف</h5><select id="classSortOrder" onchange="renderStudentStatsDashboard()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-1.5 rounded-2xl border border-slate-200 font-bold outline-none text-xs"><option value="violationsDesc">الأكثر</option><option value="nameAsc">الاسم</option></select></div>
-            <div id="classStatsTableContainer" class="overflow-x-auto custom-scrollbar"></div>
-          </div>
-          <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-            <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2 border-b pb-3"><i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة التسجيل</h5>
-            <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-          </div>
-          <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-            <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2 border-b pb-3"><i class="fa-solid fa-chalkboard-user text-emerald-600"></i> نشاط المعلمين</h5>
-            <div id="teacherActivityStatsContainer" class="overflow-x-auto custom-scrollbar"></div>
-          </div>
-        </div>
-        <div id="statsSubSec-behaviors" class="hidden space-y-6">
-          <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/80">
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-              <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-simple text-teal-600"></i> توزيع أنواع السلوكيات</h5>
-              <span class="text-[10px] bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 px-2.5 py-1 rounded-lg font-bold" id="behaviorChartSummary">—</span>
-            </div>
-            <div class="chart-container h-[320px]"><canvas id="behaviorDistChart"></canvas></div>
-          </div>
-          <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3"><h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-600"></i> الأكثر ارتكاباً للسلوكيات المخالفة</h5><span id="behaviorTopCountBadge" class="bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 text-xs font-bold px-3 py-1 rounded-2xl border border-teal-200">0</span></div>
-            <div id="behaviorTopStudentsContainer" class="overflow-x-auto custom-scrollbar"><div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات.</div></div>
-          </div>
-        </div>
-        <section id="studentAffairsActivityMonitor" class="hidden glass-card rounded-3xl border border-slate-200/80 p-5 shadow-lg space-y-4" dir="rtl">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-700">
-            <div>
-              <h4 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-clock text-indigo-600"></i> مراقبة أداء معلمي شؤون الطلبة</h4>
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">سجل موثق للدخول والاطلاع على تقارير الغياب والسلوكيات والإنذارات الرسمية</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" onclick="loadStudentAffairsActivityStats()" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200"><i class="fa-solid fa-rotate ml-1"></i> تحديث</button>
-              <button type="button" onclick="printStudentAffairsActivityPdf()" class="rounded-xl bg-indigo-700 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-800"><i class="fa-solid fa-file-pdf ml-1"></i> تصدير التقرير PDF</button>
-            </div>
-          </div>
-          <div class="flex flex-wrap items-end gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-900/60">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">من تاريخ
-              <input id="saActivityFrom" type="date" class="mt-1 block rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-600 dark:bg-slate-800">
-            </label>
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">إلى تاريخ
-              <input id="saActivityTo" type="date" class="mt-1 block rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-600 dark:bg-slate-800">
-            </label>
-            <span class="text-[11px] text-slate-500">يشمل جميع معلمي شؤون الطلبة الحاليين، حتى من لم يسجلوا نشاطاً في الفترة.</span>
-          </div>
-          <div id="saActivitySummary" class="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <p class="col-span-full rounded-xl bg-slate-50 p-4 text-xs text-slate-400 dark:bg-slate-900">اختر الفترة ثم حدّث التقرير.</p>
-          </div>
-          <div id="saActivityTeacherTable" class="overflow-x-auto"></div>
-          <div>
-            <h5 class="mb-2 text-sm font-black text-slate-800 dark:text-white">سجل العمليات بالتاريخ والوقت</h5>
-            <div id="saActivityEventTable" class="overflow-x-auto"></div>
-          </div>
-          <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">ملاحظة توثيقية: يبدأ تسجيل الأنشطة من تاريخ تفعيل هذه الميزة؛ لا يمكن استرجاع زيارات أو عمليات سابقة لم تكن مسجلة في النظام. ويعني سجل الطباعة أن نافذة الطباعة الرسمية فُتحت بعد الاعتماد؛ ولا يستطيع المتصفح تأكيد خروج الورق من الطابعة أو معرفة ما إذا ألغى المستخدم نافذة الطباعة.</p>
-        </section>
-      </div>
+</section></div>
 
       <div id="sec-behaviorstats" class="hidden space-y-6">
         <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
@@ -16872,7 +16765,7 @@ function sync(){var c=document.getElementById('adminRecordsDashboardCard');if(c)
 function open(){if(!allowed()){showToast('لا تملك صلاحية الاطلاع على السجلات الإدارية.','error');return;}ensureModal();document.getElementById('dashboardSelectionView')?.classList.add('hidden');modal.classList.remove('hidden');document.body.style.overflow='hidden';hub();}
 function close(){if(!modal)return;modal.classList.add('hidden');document.body.style.overflow='';document.getElementById('dashboardSelectionView')?.classList.remove('hidden');view='hub';}
 function head(t,s,b,pulseHeader){modal.querySelector('#arcTitle').textContent=t;modal.querySelector('#arcSubtitle').textContent=s;modal.querySelector('#arcBack').classList.toggle('hidden',!b);modal.classList.toggle('arc-pulse-mode',!!pulseHeader);var h=modal.querySelector('.arc-head'),old=h.querySelector('#arcPulseMeta');if(old)old.remove();if(pulseHeader){var tools=document.createElement('div');tools.id='arcPulseMeta';tools.className='arc-pulse-meta';tools.innerHTML='<span class="arc-live"><i></i> بث مباشر</span><span class="arc-date">'+esc(getOmanLocalDate())+'</span><button type="button" class="arc-btn teal" data-arc-action="refresh"><i class="fa-solid fa-rotate"></i> تحديث</button>';h.insertBefore(tools,h.lastElementChild);}}
-function hub(){if(!allowed())return close();view='hub';head('القسم الإداري','مركز القيادة والمتابعة المدرسية',false);modal.querySelector('#arcBody').innerHTML='<div class="mb-6 flex flex-wrap justify-between gap-3"><div><div class="text-[10px] font-black tracking-widest text-teal-700">SCHOOL EXECUTIVE CENTER</div><h3 class="text-2xl font-black mt-1">أهلاً '+esc(activeUser.name||'بك')+'</h3><p class="arc-muted">اختر مساحة العمل؛ كل مساحة تفتح في نافذة مستقلة.</p></div><span class="rounded-xl bg-amber-50 text-amber-900 px-4 py-2 text-xs font-black">'+esc(getOmanLocalDate())+'</span></div><div class="arc-grid"><button class="arc-portal" data-arc-view="pulse"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#183653,#168c85)"><i class="fa-solid fa-heart-pulse"></i></span>←</div><div><h3 class="text-xl font-black">نبض اليوم المدرسي</h3><p class="arc-muted">مؤشرات اليوم والحالات التي تحتاج متابعة.</p></div></button><button class="arc-portal" data-arc-view="reports"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#b88932,#d5a64a)"><i class="fa-solid fa-file-circle-check"></i></span>←</div><div><h3 class="text-xl font-black">مركز التقارير والطباعة</h3><p class="arc-muted">التقارير المصرح بها وقوالب الطباعة الأصلية.</p></div></button><button class="arc-portal" data-arc-view="stats"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#4f46a5,#168c85)"><i class="fa-solid fa-chart-line"></i></span>←</div><div><h3 class="text-xl font-black">مرصد الإحصاء والاتجاهات</h3><p class="arc-muted">مقارنات زمنية وقراءات من البيانات المتاحة.</p></div></button></div><div class="mt-5 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-xs font-bold leading-7 text-teal-900"><i class="fa-solid fa-shield-halved ml-1"></i> صلاحية دخول المركز لا تمنح صلاحيات أخرى؛ كل مؤشر وتقرير يظل خاضعاً لصلاحيته الأصلية.</div>';}
+function hub(){if(!allowed())return close();view='hub';head('القسم الإداري','مركز القيادة والمتابعة المدرسية',false);modal.querySelector('#arcBody').innerHTML='<div class="mb-6 flex flex-wrap justify-between gap-3"><div><div class="text-[10px] font-black tracking-widest text-teal-700">SCHOOL EXECUTIVE CENTER</div><h3 class="text-2xl font-black mt-1">أهلاً '+esc(activeUser.name||'بك')+'</h3><p class="arc-muted">اختر مساحة العمل؛ كل مساحة تفتح في نافذة مستقلة.</p></div><span class="rounded-xl bg-amber-50 text-amber-900 px-4 py-2 text-xs font-black">'+esc(getOmanLocalDate())+'</span></div><div class="arc-grid"><button class="arc-portal" data-arc-view="pulse"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#183653,#168c85)"><i class="fa-solid fa-heart-pulse"></i></span>←</div><div><h3 class="text-xl font-black">نبض اليوم المدرسي</h3><p class="arc-muted">مؤشرات اليوم والحالات التي تحتاج متابعة.</p></div></button><button class="arc-portal" data-arc-view="reports"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#b88932,#d5a64a)"><i class="fa-solid fa-file-circle-check"></i></span>←</div><div><h3 class="text-xl font-black">مركز التقارير والطباعة</h3><p class="arc-muted">التقارير المصرح بها وقوالب الطباعة الأصلية.</p></div></button><button class="arc-portal" data-arc-view="stats"><div class="flex justify-between"><span class="arc-icon" style="background:linear-gradient(145deg,#4f46a5,#168c85)"><i class="fa-solid fa-chart-line"></i></span>←</div><div><h3 class="text-xl font-black">مرصد الإحصاء والاتجاهات</h3><p class="arc-muted">مقارنات زمنية وقراءات من البيانات المتاحة.</p></div></button></div><div class="mt-5 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-xs font-bold leading-7 text-teal-900"><i class="fa-solid fa-shield-halved ml-1"></i> صلاحية دخول المركز لا تمنح صلاحيات أخرى؛ كل مؤشر وتقرير يظل خاضعاً لصلاحيته الأصلية.</div>';var statsPortal=modal.querySelector('[data-arc-view="stats"]');var statsAllowed=canAccessAdminTab('studstats',activeUser);if(statsPortal)statsPortal.classList.toggle('hidden',!statsAllowed);var portalGrid=modal.querySelector('.arc-grid');if(portalGrid)portalGrid.style.gridTemplateColumns='repeat('+(statsAllowed?3:2)+',minmax(0,1fr))';}
 function table(rows,cols){if(!rows.length)return '<div class="arc-muted p-6 text-center border border-dashed rounded-xl">لا توجد سجلات متاحة لهذه الفئة.</div>';return '<div class="arc-table"><table><thead><tr>'+cols.map(function(c){return '<th>'+c[0]+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+esc(r[c[1]]||'—')+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';}
 function pulseData(){if(!allowed())return {date:getOmanLocalDate(),absent:[],escape:[],behavior:[],morning:[],absentTeachers:[],substitutes:[],restricted:true};var d=getOmanLocalDate(),a=new Map(),e=new Map(),b=new Map();if(tab('studstats'))Object.entries(db.attendance||{}).forEach(function(x){var k=x[0],s=x[1];if(!s||!s.records||dateKey(k,s)!==d)return;var p=parseAttendanceKey(k),cl=String(s.className||p.className||'');Object.entries(s.records).forEach(function(r){var st=String(r[1]?.status||r[1]||''),o={name:r[0],className:cl,period:s.period||p.period||'—',teacher:s.teacher||'—'};if(st==='absent')a.set(cl+'|'+r[0],o);if(st==='escape')e.set(cl+'|'+r[0],o);});});if(tab('behaviorstats'))Object.entries(db.behaviors||{}).forEach(function(x){var k=x[0],s=x[1];if(!s||!s.records||dateKey(k,s)!==d)return;var p=parseAttendanceKey(k),cl=String(s.className||p.className||'');Object.entries(s.records).forEach(function(r){var v=r[1];if(v&&typeof v==='object'&&v.type&&v.type!=='normal')b.set(cl+'|'+r[0]+'|'+v.type,{name:r[0],className:cl,type:v.type,note:v.note||''});});});return {date:d,absent:Array.from(a.values()),escape:Array.from(e.values()),behavior:Array.from(b.values()),morning:[],absentTeachers:[],substitutes:[]};}
 function metric(k,t,n,desc,icon,color,access,ready){var status=!access?'غير متاح':ready?(Number(n)>0?'تحتاج متابعة':'مستقر'):'بانتظار الربط';return '<article class="arc-metric arc-pulse-card"><button type="button" data-arc-detail="'+k+'" '+(access?'':'disabled aria-disabled="true"')+' class="w-full text-right"><div class="arc-pulse-card-top"><span class="arc-pulse-card-icon" style="--pulse-tone:'+color+'"><i class="fa-solid '+icon+'"></i></span><span class="arc-pulse-card-arrow"><i class="fa-solid fa-arrow-up-left"></i></span></div><b class="arc-pulse-card-title">'+t+'</b><strong class="arc-value">'+(access&&ready?Number(n).toLocaleString("en-US"):'—')+'</strong><span class="arc-status '+(!access?'muted':ready?'live':'pending')+'">'+status+'</span><p class="arc-pulse-card-desc">'+desc+'</p><span class="arc-pulse-card-link">'+(access?'استعراض التفاصيل':'غير متاح حسب الصلاحية')+' <i class="fa-solid fa-arrow-left-long"></i></span></button></article>';}
@@ -16909,18 +16802,22 @@ else if(k==='sa'&&rep('reportStudentAffairs')){if(typeof repInitStudentAffairsRe
 else if(k==='teachers'&&tab('teachers')){renderTeachersActivity(from,to);printTeachersActivityPDF();}
 else throw Error('الصلاحية غير متاحة أو أن قالب التقرير غير محمّل.');
 }catch(e){delete window.__arcReportRange;if(msg)msg.textContent=e.message||'تعذر فتح التقرير.';showToast(e.message||'تعذر فتح التقرير.','error');}}
-function statsView(){view='stats';head('مرصد الإحصاء والاتجاهات','اتجاهات زمنية من البيانات المحلية المتاحة',true);var days=[],now=getOmanLocalDate(),base=new Date(now+'T12:00:00Z');for(var i=6;i>=0;i--){var dt=new Date(base);dt.setUTCDate(dt.getUTCDate()-i);days.push(dt.toISOString().slice(0,10));}var a=new Map(days.map(function(d){return [d,new Set()];})),b=new Map(days.map(function(d){return [d,0];})),classes=new Map(),students=new Map(),schoolWide=isGeneralAdminUser(activeUser)||isAdminAuthorized();
-if(tab('studstats')&&schoolWide)Object.entries(db.attendance||{}).forEach(function(x){var k=x[0],s=x[1];if(!s||!s.records)return;var d=dateKey(k,s);if(!a.has(d))return;var p=parseAttendanceKey(k),cl=String(s.className||p.className||'');Object.entries(s.records).forEach(function(r){var st=String(r[1]?.status||r[1]||'');if(st==='absent')a.get(d).add(cl+'|'+r[0]);if(['absent','escape','late','outside'].indexOf(st)>=0)classes.set(cl,(classes.get(cl)||0)+1);});});
-if(tab('behaviorstats')&&schoolWide)Object.entries(db.behaviors||{}).forEach(function(x){var k=x[0],s=x[1];if(!s||!s.records)return;var d=dateKey(k,s);if(!b.has(d))return;var p=parseAttendanceKey(k),cl=String(s.className||p.className||'');Object.entries(s.records).forEach(function(r){var v=r[1];if(!v||typeof v!=='object'||!v.type||v.type==='normal')return;b.set(d,b.get(d)+1);var key=cl+'|'+r[0],q=students.get(key)||{name:r[0],className:cl,count:0};q.count++;students.set(key,q);});});
-function bars(map,color){var vals=days.map(function(d){return map.get(d) instanceof Set?map.get(d).size:map.get(d)||0;}),max=Math.max(1,...vals);return '<div class="flex items-end gap-2 h-44 border-b p-2">'+vals.map(function(v,i){return '<div class="flex-1 h-full flex flex-col items-center justify-end gap-1"><b class="text-[10px]">'+v+'</b><span style="height:'+Math.max(3,Math.round(v/max*115))+'px;background:'+color+'" class="w-7 rounded-t-lg"></span><small class="text-[9px]">'+days[i].slice(5)+'</small></div>';}).join('')+'</div>';}
-var html='<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">';if(!schoolWide)html+='<section class="arc-report col-span-full"><h3 class="font-black">نطاق الإحصاء المدرسي</h3><p class="arc-muted mt-2">تتطلب المؤشرات المجمعة صلاحية الإدارة العامة؛ لم نستخدم بيانات الصفوف خارج النطاق المصرح به. يمكنك فتح لوحة الإحصائيات الأصلية لتطبيق نطاق صلاحياتك.</p></section>'; 
-if(tab('studstats')&&schoolWide)html+='<section class="arc-report"><h3 class="font-black">اتجاه الغياب اليومي</h3><p class="arc-muted">طلاب فريدون غابوا في حصة واحدة أو أكثر بكل يوم.</p>'+bars(a,'linear-gradient(#e11d48,#183653)')+'</section>';
-if(tab('behaviorstats')&&schoolWide)html+='<section class="arc-report"><h3 class="font-black">اتجاه السجلات السلوكية</h3><p class="arc-muted">السجلات غير الطبيعية خلال آخر 7 أيام.</p>'+bars(b,'linear-gradient(#d5a64a,#168c85)')+'</section>';
-html+='</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">';
-if(tab('studstats')&&schoolWide)html+='<section class="arc-report"><h3 class="font-black mb-3">الصفوف الأقل في الحالات المسجلة</h3><p class="arc-muted mb-3">ترتيب وصفي بعدد الحالات المسجلة، وليس حكماً مطلقاً على انتظام الصف.</p>'+table(Array.from(classes.entries()).sort(function(x,y){return x[1]-y[1];}).slice(0,8).map(function(x){return {name:x[0],count:x[1]};}),[['الصف','name'],['الحالات','count']])+'</section>';
-if(tab('behaviorstats')&&schoolWide)html+='<section class="arc-report"><h3 class="font-black mb-3">أكثر الطلاب تكراراً في السجلات السلوكية</h3><p class="arc-muted mb-3">ترتيب وصفي للفترة المعروضة.</p>'+table(Array.from(students.values()).sort(function(x,y){return y.count-x.count;}).slice(0,8),[['الطالب','name'],['الصف','className'],['السجلات','count']])+'</section>';
-html+='</div><button class="arc-btn teal mt-5" data-arc-action="existing-stats">فتح لوحة الإحصائيات الأصلية</button>';
-modal.querySelector('#arcBody').innerHTML=html;}
+function statsView(){
+if(!allowed())return close();
+if(!canAccessAdminTab('studstats',activeUser)){head('مرصد الإحصاء والاتجاهات','لا تتوفر لك صلاحية الإحصائيات الحالية.',true);modal.querySelector('#arcBody').innerHTML='<div class="arc-muted p-6 text-center border border-dashed rounded-xl">هذه المساحة متاحة وفق صلاحية الإحصائيات المعتمدة لحسابك.</div>';return;}
+view='stats';
+head('مرصد الإحصاء والاتجاهات','قراءة يومية للاتجاهات من السجلات الفعلية وبالصلاحيات الحالية',true);
+var body=modal.querySelector('#arcBody');
+body.innerHTML='<div class="mb-4 rounded-2xl border border-teal-200 bg-teal-50 p-3 text-xs font-bold leading-6 text-teal-900"><i class="fa-solid fa-shield-halved ml-1"></i> تُعرض المؤشرات وفق صلاحياتك الحالية، ولا تُنشأ بيانات تقديرية عند تعذر تحميل أي سجل.</div>';
+var analytics=window.__abuDujanaAdvancedAnalyticsSection||document.getElementById('advancedAnalyticsSection');
+if(!analytics){body.insertAdjacentHTML('beforeend','<div class="arc-muted p-6 text-center border border-dashed rounded-xl">تعذر العثور على مكونات المرصد.</div>');return;}
+window.__abuDujanaAdvancedAnalyticsSection=analytics;
+analytics.classList.remove('hidden');
+body.appendChild(analytics);
+if(typeof setDefaultAdvancedAnalyticsRange==='function')setDefaultAdvancedAnalyticsRange();
+if(typeof updateAdvancedAnalytics==='function')updateAdvancedAnalytics();
+requestAnimationFrame(function(){Object.values(chartInstances||{}).forEach(function(chart){if(chart&&typeof chart.resize==='function')chart.resize();});});
+}
 function action(e){var v=e.target.closest('[data-arc-view]');if(v){if(v.dataset.arcView==='pulse')pulseView();if(v.dataset.arcView==='reports')reportsView();if(v.dataset.arcView==='stats')statsView();return;}var f=e.target.closest('[data-arc-filter]');if(f){modal.querySelectorAll('[data-arc-filter]').forEach(function(x){x.classList.toggle('is-active',x===f);});filterArcReports();return;}var sh=e.target.closest('[data-arc-date-shortcut]');if(sh){setReportDateShortcut(sh.dataset.arcDateShortcut);return;}var cancel=e.target.closest('[data-arc-date-cancel]');if(cancel){closeReportDateDialog();return;}var confirm=e.target.closest('[data-arc-date-confirm]');if(confirm){var from=modal.querySelector('#arcReportFrom').value,to=modal.querySelector('#arcReportTo').value,err=modal.querySelector('#arcReportDateError');if(!from||!to||from>to){err.textContent='تأكد من إدخال التاريخين وأن تاريخ البداية لا يتجاوز النهاية.';return;}var key=modal.querySelector('#arcReportDateDialog').dataset.reportKey;closeReportDateDialog();reportAction(key,from,to);return;}var d=e.target.closest('[data-arc-detail]');if(d){detail(d.dataset.arcDetail);return;}var r=e.target.closest('[data-arc-report]');if(r){openReportDateDialog(r.dataset.arcReport);return;}var a=e.target.closest('[data-arc-action]');if(!a)return;if(a.dataset.arcAction==='refresh')pulseView();if(a.dataset.arcAction==='existing-stats'){close();if(tab('studstats')||tab('behaviorstats'))openAdminModal().then(function(){switchAdminTab(tab('studstats')?'studstats':'behaviorstats');});}}
 window.openAdminRecordsCenter=open;
 window.closeAdminRecordsCenter=close;
