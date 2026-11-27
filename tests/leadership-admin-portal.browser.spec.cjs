@@ -264,3 +264,40 @@ test("portal-only permission does not grant report or statistics access and keep
   await page.locator('[data-admin-portal-open="stats"]').click();
   await expect(page.locator("#adminPortalModalBody")).toContainText("لا تملك صلاحية الاطلاع على الإحصائيات");
 });
+
+test("morning assembly calm themes and quick/report tabs switch without touching school records", async ({ page }) => {
+  await page.route(/https:\/\/[^/]+\\.supabase\\.co\\/.*/, route => route.abort());
+  await page.route("https://fonts.googleapis.com/**", route => route.abort());
+  await page.route("https://fonts.gstatic.com/**", route => route.abort());
+  await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
+  await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  const view = page.locator("#morningAssemblyLatenessView");
+  await expect(view).toBeAttached();
+  const themes = view.locator(".ma-theme-switcher");
+  await expect(themes).toBeAttached();
+  await themes.locator('[data-ma-theme="dusk"]').click();
+  await expect(view).toHaveClass(/ma-theme-dusk/);
+  await themes.locator('[data-ma-theme="light"]').click();
+  await expect(view).toHaveClass(/ma-theme-light/);
+
+  const tabs = view.locator(".ma-section-tabs");
+  await expect(tabs).toBeAttached();
+  const quick = tabs.locator('[data-ma-tab="quick"]');
+  const report = tabs.locator('[data-ma-tab="report"]');
+  await expect(quick).toHaveAttribute("aria-selected", "true");
+  const classSection = view.locator("#morningAssemblyClassesGrid").locator("xpath=ancestor::section[1]");
+  const studentSection = view.locator("#morningAssemblySearch").locator("xpath=ancestor::section[1]");
+  const reportSection = view.locator("#morningAssemblyReportContainer").locator("xpath=ancestor::section[1]");
+  await expect(classSection).not.toHaveClass(/hidden/);
+  await expect(studentSection).not.toHaveClass(/hidden/);
+  await report.click();
+  await expect(report).toHaveAttribute("aria-selected", "true");
+  await expect(classSection).toHaveClass(/hidden/);
+  await expect(studentSection).toHaveClass(/hidden/);
+  await expect(reportSection).not.toHaveClass(/hidden/);
+  await quick.click();
+  await expect(quick).toHaveAttribute("aria-selected", "true");
+  await expect(classSection).not.toHaveClass(/hidden/);
+});
