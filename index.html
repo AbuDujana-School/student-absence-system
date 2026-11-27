@@ -10583,6 +10583,15 @@ function setAdvancedAnalyticsTheme(theme) {
   section.querySelectorAll('[data-trend-theme]').forEach(button =>
     button.setAttribute('aria-pressed', String(button.dataset.trendTheme === value))
   );
+  const axisColor = value === 'dark' ? '#d7e2ec' : '#526579';
+  ['analyticsAttendanceChart','analyticsBehaviorChart','analyticsGradeChart','analyticsTeacherChart','analyticsReserveChart'].forEach(id => {
+    const chart = chartInstances[id];
+    if (!chart) return;
+    if (chart.options?.scales?.x?.ticks) chart.options.scales.x.ticks.color = axisColor;
+    if (chart.options?.scales?.y?.ticks) chart.options.scales.y.ticks.color = axisColor;
+    if (chart.options?.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = axisColor;
+    chart.update('none');
+  });
 }
 function updateAdvancedAnalyticsTrendBadge(id, values) {
   const node = document.getElementById(id);
@@ -10667,15 +10676,16 @@ async function updateAdvancedAnalytics() {
   const teacherActivity = visibleDates.map(date => daily.get(date).recordedPeriods.size);
   const note = document.getElementById('advancedAnalyticsDataNote');
   if (note) note.textContent = 'الفترة المعروضة: ' + visibleDates[0] + ' إلى ' + visibleDates[visibleDates.length - 1] + ' · ' + visibleDates.length + ' يوماً دراسياً · آخر 15 يوماً كحد أقصى.';
+  const axisColor = section.dataset.theme === 'dark' ? '#d7e2ec' : '#526579';
   const commonOptions = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: chartFont(10) } },
+      legend: { display: true, position: 'bottom', labels: { color: axisColor, usePointStyle: true, boxWidth: 8, padding: 14, font: chartFont(10) } },
       tooltip: { mode: 'index', intersect: false, titleFont: chartFont(12), bodyFont: chartFont(11), padding: 10, cornerRadius: 10 }
     },
     scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.17)' }, ticks: { font: chartFont(10), precision: 0 } },
-      x: { grid: { display: false }, ticks: { font: chartFont(10), maxRotation: 35, minRotation: 0 } }
+      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.17)' }, ticks: { color: axisColor, font: chartFont(10), precision: 0 } },
+      x: { grid: { display: false }, ticks: { color: axisColor, font: chartFont(10), maxRotation: 35, minRotation: 0 } }
     }
   };
   const attendanceConfig = {
@@ -10766,7 +10776,8 @@ async function updateAdvancedAnalytics() {
         if (reserveNote) {
           const total = reserveValues.reduce((sum,value) => sum + value, 0);
           const absentTotal = visibleDates.reduce((sum,date) => sum + daily.get(date).reserveAbsentees.size, 0);
-          reserveNote.textContent = 'من سجل توزيع الاحتياط المعتمد · ' + total + ' تكليفاً خلال الفترة · يشمل الغياب الذي نتجت عنه حصص مسندة فقط.';
+          const substituteTotal = visibleDates.reduce((sum,date) => sum + daily.get(date).reserveSubstitutes.size, 0);
+          reserveNote.textContent = 'من سجل التوزيع المعتمد · ' + total + ' حصة مسندة · ' + absentTotal + ' حالات غياب أثرت في التوزيع · ' + substituteTotal + ' مشاركات لمعلّمين بدلاء.';
         }
       } catch (error) {
         if (reserveNote) reserveNote.textContent = 'تعذر تحميل سجل الاحتياط حالياً؛ لم تُعرض أرقام تقديرية.';
