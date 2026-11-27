@@ -55,3 +55,14 @@ test("the visual layer uses the school brand palette and responsive RTL presenta
   assert.match(styles, /@media/);
   assert.match(styles, /backdrop-filter/);
 });
+
+test("shared calm-glass theme keeps dusk contrast readable and avoids pure black", () => {
+  assert.match(styles, /--school-glass-navy:#2b4157/);
+  assert.match(styles, /#182635/);
+  assert.match(styles, /#223447/);
+  assert.match(styles, /#e2e8f0/);
+  assert.match(styles, /#cbd5e1/);
+  assert.doesNotMatch(styles, /#000(?:000)?\b/i);
+  assert.match(styles, /overflow-x:auto/);
+  assert.match(styles, /min-width:720px/);
+});
