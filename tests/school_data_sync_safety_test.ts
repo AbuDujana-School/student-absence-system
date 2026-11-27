@@ -362,14 +362,16 @@ Deno.test("an empty successful permission-gateway response never falls back to d
 });
 
 
-Deno.test("unauthenticated startup does not fetch protected school tables", () => {
+Deno.test("unauthenticated startup opens the direct PIN gate and never fetches protected school tables", () => {
   const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
-  assert(boot.includes("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"), "Startup may restore only the local snapshot before login");
-  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"), "Session validation must follow local-only restoration");
-  const sessionCheck = boot.indexOf("await checkExistingSession()");
-  const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
-  assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
+  const snapshotRestore = boot.indexOf("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()");
+  const pinGate = boot.indexOf('document.body.classList.add("login-mode")');
+  assert(snapshotRestore >= 0, "Startup may restore only the local snapshot before login");
+  assert(pinGate > snapshotRestore, "The PIN gate must be displayed after local-only snapshot restoration");
+  assert(!boot.includes("await checkExistingSession()"), "Startup must not silently restore a previous principal or bypass the PIN gate");
+  const startupBeforeLogin = boot.slice(0, pinGate);
+  assert(!startupBeforeLogin.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before PIN authentication");
   const noUserGuard = load.indexOf("if (!activeUser)");
   const localOnlyGuard = load.indexOf("if (localOnlySession)", noUserGuard);
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
