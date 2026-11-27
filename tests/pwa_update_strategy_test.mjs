@@ -10,7 +10,7 @@ const logo = readFileSync(new URL('../logo.png', import.meta.url));
 test('installed PWA checks for a fresh service worker immediately on startup', () => {
   const appBuildVersion = html.match(/<meta name="app-build" content="([^"]+)"/)?.[1];
   assert.ok(appBuildVersion, "index.html must declare an app build marker");
-  const workerRegistration = html.match(/navigator\.serviceWorker\.register\("([^"]+)",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
+  const workerRegistration = html.match(/workerContainer\.register\("([^"]+)",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
   assert.ok(workerRegistration, "service worker must register without browser cache");
   const appBuildVersionForWorker = appBuildVersion.replace(/^(\d{4})-(\d{2})-(\d{2})-/, "$1$2$3-");
   assert.equal(new URL(workerRegistration[1], "https://school.example/").searchParams.get("v"), appBuildVersionForWorker);
@@ -19,8 +19,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v61/);
-  assert.match(sw, /abudujana-static-v68/);
+  assert.match(sw, /abudujana-app-v62/);
+  assert.match(sw, /abudujana-static-v69/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
@@ -88,4 +88,61 @@ test('app entry is a direct display-only PIN gate with both school-logo position
  assert.ok(html.includes('document.body.classList.add("login-mode")'));
  assert.equal(manifest.start_url,"./index.html");assert.match(sw,/'\.\/logo\.png'/);
  assert.deepEqual([...logo.subarray(0,8)],[137,80,78,71,13,10,26,10],"school logo must be a valid PNG file");
+});
+
+test('PIN gate responsive layout removes helper text, shows only filled dots, and uses desktop landscape columns', () => {
+  const loginStart = html.indexOf('<div id="loginView"');
+  const loginEnd = html.indexOf('<section id="uiReviewLauncher"', loginStart);
+  const login = html.slice(loginStart, loginEnd);
+  const rendererStart = html.indexOf('function renderSchoolLoginPin()');
+  const rendererEnd = html.indexOf('function setSchoolLoginPin(', rendererStart);
+  const renderer = html.slice(rendererStart, rendererEnd);
+  assert.ok(login.includes('<span>الرقم السري</span>'));
+  assert.ok(!login.includes('schoolLoginShow'));
+  assert.ok(!login.includes('schoolLoginHint'));
+  assert.ok(!login.includes('أدخل الرمز ثم اضغط موافق'));
+  assert.ok(!login.includes('تظهر أربع خانات'));
+  assert.ok(renderer.includes('const count=schoolLoginPinCode.length'));
+  assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
+  assert.ok(!renderer.includes('data-digit'));
+  assert.ok(!renderer.includes('revealed'));
+  assert.ok(html.includes('@media(max-width:600px)'));
+  assert.ok(html.includes('@media(min-width:760px)'));
+  assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+  assert.ok(html.includes('height:100dvh'));
+  const head = html.slice(0, html.indexOf('</head>'));
+  assert.ok(!head.includes('<script src='));
+  const libs = html.indexOf('<script src="https://cdn.tailwindcss.com">');
+  const core = html.indexOf('/* ============ Supabase & Crypto config ============ */');
+  assert.ok(libs > 0 && core > libs);
+  assert.equal(manifest.background_color, '#04121f');
+  assert.equal(manifest.theme_color, '#04121f');
+});
+
+test('PIN gate structure, responsive layout, and masked-dot display remain valid', () => {
+ const head=html.slice(0,html.indexOf('</head>'));
+ assert.equal((head.match(/<style/g)||[]).length,head.split('</style>').length-1,'all head style tags must close before </head>');
+ const bodyStart=html.indexOf('<body');
+ const loginStart=html.indexOf('<div id="loginView"');
+ assert.ok(bodyStart>0&&loginStart>bodyStart);
+ assert.ok(loginStart<html.indexOf('</main>',loginStart));
+ const login=html.slice(loginStart,html.indexOf('<section id="uiReviewLauncher"',loginStart));
+ const renderer=html.slice(html.indexOf('function renderSchoolLoginPin()'),html.indexOf('function setSchoolLoginPin('));
+ assert.ok(login.includes('<span>الرقم السري</span>'));
+ assert.ok(!login.includes('schoolLoginShow'));
+ assert.ok(!login.includes('schoolLoginHint'));
+ assert.ok(!login.includes('أدخل الرمز ثم اضغط موافق'));
+ assert.ok(!login.includes('تظهر أربع خانات'));
+ assert.ok(renderer.includes('const count=schoolLoginPinCode.length'));
+ assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
+ assert.ok(!renderer.includes('data-digit'));
+ assert.ok(!renderer.includes('revealed'));
+ assert.ok(html.includes('@media(max-width:600px)'));
+ assert.ok(html.includes('@media(min-width:760px)'));
+ assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+ assert.ok(html.includes('height:100dvh'));
+ assert.ok(!head.includes('<script src='));
+ assert.equal(manifest.background_color,'#04121f');
+ assert.equal(manifest.theme_color,'#04121f');
+ assert.equal(manifest.orientation,'any');
 });
