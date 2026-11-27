@@ -24,7 +24,7 @@ BEGIN
 END $$;
 
 DROP INDEX IF EXISTS public.morning_assembly_lateness_student_day_uidx;
-CREATE UNIQUE INDEX morning_assembly_lateness_student_day_active_uidx
+CREATE UNIQUE INDEX IF NOT EXISTS morning_assembly_lateness_student_day_active_uidx
   ON public.morning_assembly_lateness (student_id, late_date)
   WHERE cancelled_at IS NULL;
 
