@@ -31,8 +31,9 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes
     WHERE schemaname = 'public'
-      AND indexname = 'morning_assembly_lateness_student_day_uidx'
+      AND indexname = 'morning_assembly_lateness_student_day_active_uidx'
       AND indexdef ILIKE '%UNIQUE%'
+      AND indexdef ILIKE '%WHERE (cancelled_at IS NULL)%'
   ) THEN
     RAISE EXCEPTION 'unique student/day index is missing';
   END IF;
