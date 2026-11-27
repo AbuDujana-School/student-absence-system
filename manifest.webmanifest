@@ -4,7 +4,7 @@
   "description": "النظام الرقمي الذكي لمدرسة ابو دجانة",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#E9EFF5",
+  "background_color": "#061322",
   "theme_color": "#183653",
   "orientation": "portrait",
   "lang": "ar",
@@ -28,5 +28,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "scope": "./"
 }

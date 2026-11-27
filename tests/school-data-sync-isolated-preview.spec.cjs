@@ -876,7 +876,10 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     }
   });
 
-  await page.locator("#userPinInput").fill("7777");
+  // Exercise the same visible keypad used by teachers instead of the removed text input.
+  for (let index = 0; index < 4; index += 1) {
+    await page.locator('#schoolLoginPad button[data-digit="7"]').click();
+  }
   const loginOutcome = await page.evaluate(async () => {
     const consoleLines = [];
     const originalInfo = console.info;

@@ -244,7 +244,7 @@ test("a secondary service 401 cannot clear a valid app session without canonical
 });
 
 
-test("mobile PIN input normalizes Arabic, Persian, and full-width numerals before login", () => {
+test("display-only PIN keypad preserves and normalizes Arabic, Persian, and full-width numerals", () => {
   const helper = section("function normalizeAppPinDigits(value)", "async function handleUserLogin(e)");
   const normalize = runInNewContext(helper + "\nnormalizeAppPinDigits");
   assert.equal(normalize("١٢٣٤"), "1234");
@@ -253,9 +253,15 @@ test("mobile PIN input normalizes Arabic, Persian, and full-width numerals befor
   assert.equal(normalize("1234"), "1234");
   assert.equal(normalize(" ١2۳٤ "), " 1234 ");
 
+  const pinState = section("const SCHOOL_LOGIN_PIN_MIN_LENGTH", "async function handleUserLogin(e)");
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
-  assert.ok(login.includes('normalizeAppPinDigits(pinInput?.value?.trim() || "")'));
-  assert.ok(login.includes("pinInput.value = pin"));
+  assert.ok(pinState.includes('normalizeAppPinDigits(String(value??""))'), "keypad state is normalized as a string");
+  assert.ok(pinState.includes("schoolLoginPinCode+=digit"), "typed digits are appended as strings, retaining a leading zero");
+  assert.ok(login.includes("normalizeAppPinDigits(schoolLoginPinCode.trim())"), "login consumes the display-only keypad state");
+  assert.ok(login.includes("SCHOOL_LOGIN_PIN_MIN_LENGTH"), "minimum PIN length is enforced before server validation");
+  assert.ok(login.includes("appLoginAuthRequest("), "PIN still uses the existing canonical server authentication request");
+  assert.equal(html.includes('id="userPinInput"'), false, "no editable PIN input remains");
+  assert.equal(html.includes("SCHOOL_LOGIN_PIN_MAX_LENGTH=20"), true);
 });
 
 
@@ -384,4 +390,14 @@ test("morning assembly today response is discarded if the Oman date changes duri
   assert.match(loader, /requestedDate !== currentDate/);
   assert.match(loader, /String\(data\.date\) !== currentDate/);
   assert.match(loader, /morningAssemblyLatenessTodayDate = currentDate/);
+});
+
+
+test("a cold app launch always shows the direct PIN gate before any previous session is restored", () => {
+  const boot = section("window.addEventListener('DOMContentLoaded'", "function ");
+  assert.equal(boot.includes("await checkExistingSession();"), false, "cold start must not silently restore an earlier browser session");
+  assert.ok(boot.includes('document.body.classList.add("login-mode")'));
+  assert.ok(boot.includes('document.getElementById("loginView")?.classList.remove("hidden")'));
+  assert.ok(boot.includes('document.getElementById("dashboardSelectionView")?.classList.add("hidden")'));
+  assert.ok(boot.includes("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"));
 });

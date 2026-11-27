@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+const manifest = JSON.parse(readFileSync(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
+const logo = readFileSync(new URL('../logo.png', import.meta.url));
 
 test('installed PWA checks for a fresh service worker immediately on startup', () => {
   const appBuildVersion = html.match(/<meta name="app-build" content="([^"]+)"/)?.[1];
@@ -17,8 +19,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v59/);
-  assert.match(sw, /abudujana-static-v66/);
+  assert.match(sw, /abudujana-app-v61/);
+  assert.match(sw, /abudujana-static-v68/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
@@ -71,4 +73,19 @@ test('supporting department teacher cards recover when the source renderer popul
   assert.ok(reserve.includes('canonicalTeacherObserver.observe(canonicalTeacherSourceHost,{childList:true,subtree:true})'));
   assert.ok(reserve.includes('enhanceCanonicalTeacherCards();'));
   assert.match(reserve, /if\(typeof window\.renderSubstitutionOtherTeacherChoices==="function"\)\s*\{\s*window\.renderSubstitutionOtherTeacherChoices\(\);\s*\}/);
+});
+
+
+test('app entry is a direct display-only PIN gate with both school-logo positions', () => {
+ const start=html.indexOf('<div id="loginView"'),end=html.indexOf('<section id="uiReviewLauncher"',start);
+ assert.ok(start>=0&&end>start);const login=html.slice(start,end);
+ assert.doesNotMatch(html,/id="schoolSplash"|dismissSchoolSplash|function closeSplash/);
+ assert.doesNotMatch(login,/<(?:input|textarea)\b|contenteditable/i);
+ assert.equal((login.match(/src="\.\/logo\.png"/g)||[]).length,2);
+ assert.match(login,/id="schoolLoginPad"/);assert.match(login,/type="submit"[^>]*id="loginSubmitBtn"/);
+ assert.match(html,/SCHOOL_LOGIN_PIN_MIN_LENGTH=4/);assert.match(html,/SCHOOL_LOGIN_PIN_MAX_LENGTH=20/);
+ assert.match(html,/event\.key==="Backspace"/);assert.match(html,/event\.key==="Enter"/);assert.match(html,/Numpad\[0-9\]/);
+ assert.ok(html.includes('document.body.classList.add("login-mode")'));
+ assert.equal(manifest.start_url,"./index.html");assert.match(sw,/'\.\/logo\.png'/);
+ assert.deepEqual([...logo.subarray(0,8)],[137,80,78,71,13,10,26,10],"school logo must be a valid PNG file");
 });

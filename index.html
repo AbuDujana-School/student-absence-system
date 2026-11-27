@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-26-student-affairs-summary-only-1">
+<meta name="app-build" content="2026-11-27-direct-pin-login-2">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -515,7 +515,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   #loginView { background: var(--brand-card) !important; border: 1px solid rgba(24,54,83,.08) !important; box-shadow: 0 24px 60px -24px rgba(24,54,83,.18) !important; }
   #loginView > div:first-child > div:first-child { background: linear-gradient(135deg, var(--brand-turquoise) 0%, var(--brand-turquoise-dk) 100%) !important; box-shadow: 0 12px 28px -8px rgba(22,140,133,.5) !important; }
   #loginSubmitBtn { background: linear-gradient(135deg, var(--brand-turquoise) 0%, var(--brand-turquoise-dk) 100%) !important; box-shadow: 0 12px 28px -10px rgba(22,140,133,.55) !important; }
-  #userPinInput:focus { border-color: var(--brand-turquoise) !important; box-shadow: 0 0 0 4px rgba(22,140,133,.12) !important; }
   #attendanceDashboardCard { background: linear-gradient(135deg, #168C85 0%, #0f6e69 55%, #183653 100%) !important; border-color: rgba(213,166,74,.35) !important; box-shadow: 0 24px 48px -18px rgba(22,140,133,.4) !important; }
   #attendanceDashboardCard:hover { box-shadow: 0 28px 56px -18px rgba(22,140,133,.5) !important; }
   #behaviorDashboardCard { background: linear-gradient(135deg, #234a6b 0%, #183653 55%, #0a1a2a 100%) !important; border-color: rgba(213,166,74,.28) !important; box-shadow: 0 24px 48px -18px rgba(24,54,83,.45) !important; }
@@ -603,36 +602,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 <script>tailwind.config = { darkMode: 'class' }</script>
 
-<style id="abu-dujana-splash-style">
-#schoolSplash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;overflow:hidden;color:#fff;background:radial-gradient(ellipse at 50% 42%,#245b76 0%,#173d5b 38%,#091b30 78%,#061322 100%);isolation:isolate;opacity:1;visibility:visible;transition:opacity .85s ease,visibility .85s ease}
-#schoolSplash.splash-leaving{opacity:0;visibility:hidden;pointer-events:none}
-#schoolSplash .splash-glow{position:absolute;width:min(85vw,620px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(36,205,190,.2),rgba(213,166,74,.09) 42%,transparent 70%);filter:blur(8px);animation:splashBreath 4.5s ease-in-out infinite}
-#schoolSplash .splash-orb{position:absolute;border-radius:50%;filter:blur(1px);opacity:.65;animation:splashFloat 8s ease-in-out infinite}
-#schoolSplash .splash-orb.one{width:190px;height:190px;top:8%;left:-55px;background:radial-gradient(circle at 35% 35%,rgba(53,218,205,.48),rgba(53,218,205,0) 70%)}
-#schoolSplash .splash-orb.two{width:240px;height:240px;right:-90px;bottom:7%;background:radial-gradient(circle at 45% 45%,rgba(224,177,83,.35),rgba(224,177,83,0) 70%);animation-delay:-3s}
-#schoolSplash .splash-orb.three{width:130px;height:130px;right:12%;top:12%;background:radial-gradient(circle,rgba(98,170,230,.28),transparent 70%);animation-delay:-5s}
-#schoolSplash .splash-particles{position:absolute;inset:0;pointer-events:none}
-#schoolSplash .splash-particles i{position:absolute;width:4px;height:4px;border-radius:50%;background:#f5d58d;box-shadow:0 0 12px 3px rgba(245,213,141,.6);animation:splashSpark 3.8s ease-in-out infinite}
-#schoolSplash .splash-particles i:nth-child(1){top:17%;left:18%;animation-delay:-.4s}#schoolSplash .splash-particles i:nth-child(2){top:27%;right:16%;animation-delay:-2s}#schoolSplash .splash-particles i:nth-child(3){top:69%;left:13%;animation-delay:-1.3s}#schoolSplash .splash-particles i:nth-child(4){top:78%;right:22%;animation-delay:-2.7s}#schoolSplash .splash-particles i:nth-child(5){top:48%;left:8%;animation-delay:-.9s}#schoolSplash .splash-particles i:nth-child(6){top:53%;right:9%;animation-delay:-1.8s}#schoolSplash .splash-particles i:nth-child(7){top:11%;left:54%;animation-delay:-3.1s}#schoolSplash .splash-particles i:nth-child(8){top:88%;left:49%;animation-delay:-2.2s}
-#schoolSplash .splash-content{position:relative;z-index:2;width:min(90vw,480px);padding:34px 22px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;animation:splashRise 1.1s cubic-bezier(.2,.8,.2,1) both}
-#schoolSplash .splash-emblem{position:relative;width:154px;height:154px;display:grid;place-items:center;margin-bottom:27px}
-#schoolSplash .splash-ring{position:absolute;inset:0;border:1px solid rgba(231,194,111,.7);border-radius:35%;transform:rotate(45deg);animation:splashSpin 13s linear infinite}
-#schoolSplash .splash-ring:before,#schoolSplash .splash-ring:after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:#f0c56e;box-shadow:0 0 16px #f0c56e}
-#schoolSplash .splash-ring:before{top:8px;left:22px}#schoolSplash .splash-ring:after{bottom:8px;right:22px}
-#schoolSplash .splash-ring.ring-two{inset:10px;border-color:rgba(87,221,208,.6);border-radius:50%;transform:none;animation:splashSpinReverse 18s linear infinite}
-#schoolSplash .splash-logo{width:104px;height:104px;object-fit:contain;border-radius:27px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32));animation:splashLogo 3.4s ease-in-out infinite}
-#schoolSplash .splash-kicker{font-size:11px;font-weight:800;letter-spacing:.28em;color:#8de1d8;margin-bottom:10px;opacity:0;animation:splashTextIn .7s .25s ease forwards}
-#schoolSplash .splash-title{font-size:clamp(27px,7vw,40px);line-height:1.25;font-weight:900;letter-spacing:-.035em;background:linear-gradient(100deg,#fff 10%,#f5d58d 48%,#fff 85%);background-size:220% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:splashShimmer 4s linear infinite,splashTextIn .8s .4s ease both}
-#schoolSplash .splash-subtitle{margin-top:12px;color:rgba(225,241,248,.84);font-size:13px;font-weight:600;letter-spacing:.02em;opacity:0;animation:splashTextIn .7s .7s ease forwards}
-#schoolSplash .splash-motto{margin-top:23px;color:#f1d18e;font-size:12px;font-weight:800;opacity:0;animation:splashTextIn .7s .9s ease forwards}
-#schoolSplash .splash-progress{width:min(220px,65vw);height:3px;border-radius:10px;background:rgba(255,255,255,.17);overflow:hidden;margin-top:27px}
-#schoolSplash .splash-progress span{display:block;width:38%;height:100%;border-radius:10px;background:linear-gradient(90deg,#38c8bd,#f2ce83);box-shadow:0 0 14px rgba(56,200,189,.8);animation:splashProgress 2.6s ease-in-out infinite}
-#schoolSplash .splash-start{margin-top:22px;border:1px solid rgba(245,213,141,.55);border-radius:999px;padding:10px 25px;color:#fff;background:linear-gradient(120deg,rgba(28,143,139,.8),rgba(31,79,105,.8));font:800 12px 'Tajawal',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .2s ease,box-shadow .2s ease;cursor:pointer}
-#schoolSplash .splash-start:active{transform:scale(.96)}#schoolSplash .splash-start:focus-visible{outline:2px solid #f5d58d;outline-offset:4px}
-#schoolSplash .splash-footer{position:absolute;bottom:max(17px,env(safe-area-inset-bottom));font-size:10px;color:rgba(224,238,246,.5);letter-spacing:.12em}
-@keyframes splashSpin{to{transform:rotate(405deg)}}@keyframes splashSpinReverse{to{transform:rotate(-360deg)}}@keyframes splashLogo{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.035)}}@keyframes splashBreath{0%,100%{transform:scale(.88);opacity:.55}50%{transform:scale(1.08);opacity:1}}@keyframes splashFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(22px,-28px,0)}}@keyframes splashSpark{0%,100%{opacity:.15;transform:scale(.65)}50%{opacity:1;transform:scale(1.5)}}@keyframes splashRise{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes splashTextIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes splashShimmer{to{background-position:220% center}}@keyframes splashProgress{0%{transform:translateX(260%)}100%{transform:translateX(-360%)}}
-@media(prefers-reduced-motion:reduce){#schoolSplash *,#schoolSplash *:before,#schoolSplash *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}#schoolSplash{transition-duration:.2s}}
-</style>
 <style>
 /* Responsive PWA install bottom sheet */
 #pwaInstallSheet{box-sizing:border-box;position:fixed;z-index:2147482000;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:auto;max-width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;margin:0 auto;padding:clamp(14px,3.5vw,18px);border:1px solid rgba(226,232,240,.9);border-radius:20px;background:rgba(255,255,255,.98);color:#183653;box-shadow:0 14px 42px rgba(5,24,42,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transform:translate3d(0,calc(100% + 30px),0);opacity:0;visibility:hidden;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease,visibility .3s}
@@ -2458,18 +2427,100 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 </style>
 
 <style id="admin-observatory-single-home">#dashboardMetricsSection,#dashboardUrgentSection{display:none!important}</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Cairo:wght@400;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"></noscript>
+<style id="premium-pin-login-style">
+@property --sl-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+#loginView.school-login{
+--sl-bg1:#04121f;--sl-bg2:#0b2e40;--sl-bg3:#12505a;--sl-text:#f4f1e8;--sl-muted:#b7cbd1;--sl-gold:#e2bd6b;--sl-gold-deep:#a87b24;--sl-gold-light:#fff0c2;--sl-card:rgba(255,255,255,.075);--sl-line:rgba(226,189,107,.30);--sl-key:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.045));--sl-key-shadow:0 6px 16px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.15);
+position:relative;isolation:isolate;display:block;width:min(100%,460px);max-width:460px;margin:0 auto;padding:clamp(8px,2.4vw,16px);color:var(--sl-text);background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;font-family:'Cairo',Tahoma,Arial,sans-serif;direction:rtl;overflow:visible
+}
+#loginView.school-login *{box-sizing:border-box}
+#loginView.school-login button{font-family:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+body.login-mode{background:#04121f!important;color:#f4f1e8!important;overflow-x:hidden}
+body.login-mode>header{display:none!important}
+body.login-mode>main{display:grid;place-items:center;align-content:center;width:100%!important;max-width:none!important;min-height:100vh;min-height:100dvh;margin:0!important;padding:max(12px,env(safe-area-inset-top)) 12px max(18px,env(safe-area-inset-bottom))!important;background:transparent!important;overflow-x:hidden}
+#loginView.school-login[data-theme="light"]{--sl-bg1:#f8f3e6;--sl-bg2:#e4eeec;--sl-bg3:#c5dcda;--sl-text:#14293a;--sl-muted:#47606e;--sl-gold:#9a6f17;--sl-gold-deep:#7d580d;--sl-gold-light:#d9b25c;--sl-card:rgba(255,255,255,.72);--sl-line:rgba(168,123,36,.34);--sl-key:linear-gradient(160deg,#fff,#edf3f2);--sl-key-shadow:0 6px 16px rgba(30,70,80,.13),inset 0 1px 0 #fff}
+#loginView.school-login .sl-background{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:linear-gradient(165deg,var(--sl-bg1),var(--sl-bg2) 55%,var(--sl-bg3))}
+#loginView.school-login .sl-background:before{content:"";position:absolute;inset:0;opacity:.065;background-image:linear-gradient(45deg,transparent 47%,var(--sl-gold) 48%,var(--sl-gold) 49%,transparent 50%),linear-gradient(-45deg,transparent 47%,var(--sl-gold) 48%,var(--sl-gold) 49%,transparent 50%);background-size:74px 74px}
+#loginView.school-login .sl-background canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.72}
+#loginView.school-login .sl-glow{position:absolute;border-radius:50%;filter:blur(58px);opacity:.34;animation:sl-drift 16s ease-in-out infinite alternate}
+#loginView.school-login .sl-glow.a{width:300px;height:300px;top:-100px;right:-90px;background:#1fa38f}
+#loginView.school-login .sl-glow.b{width:280px;height:280px;bottom:-110px;left:-90px;background:#c99a3b;animation-delay:-7s;opacity:.24}
+@keyframes sl-drift{to{transform:translate(32px,42px) scale(1.12)}}
+#loginView.school-login .sl-stage{position:relative;z-index:1;width:100%;max-width:430px;margin:0 auto}
+#loginView.school-login .sl-topbar{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;border-radius:22px;background:var(--sl-card);border:1px solid var(--sl-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 10px 28px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.12)}
+#loginView.school-login .sl-emblem{position:relative;display:grid;place-items:center;flex:0 0 auto;overflow:hidden;border-radius:50%;background:#fff;border:2px solid var(--sl-gold);box-shadow:0 0 0 4px rgba(226,189,107,.10),0 8px 22px rgba(0,0,0,.18)}
+#loginView.school-login .sl-emblem.mini{width:47px;height:47px}
+#loginView.school-login .sl-emblem.hero-logo{position:absolute;inset:11px;width:auto;height:auto;border-width:2px;box-shadow:0 0 32px rgba(226,189,107,.30)}
+#loginView.school-login .sl-emblem img{display:block;width:92%;height:92%;object-fit:contain;flex:0 0 auto}
+#loginView.school-login .sl-logo-fallback{display:none;width:66%;height:66%;color:#183653}
+#loginView.school-login .sl-emblem.logo-fallback .sl-logo-fallback{display:block}
+#loginView.school-login .sl-emblem.logo-fallback img{display:none}
+#loginView.school-login .sl-top-info{flex:1;min-width:0}
+#loginView.school-login .sl-top-info h2{margin:0;font-size:clamp(11px,2.8vw,13px);font-weight:900;line-height:1.65;overflow-wrap:anywhere}
+#loginView.school-login .sl-top-info p{margin:1px 0 0;color:var(--sl-muted);font-size:10px;line-height:1.5}
+#loginView.school-login .sl-theme{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:1px solid var(--sl-line);background:var(--sl-key);color:var(--sl-gold);font-size:19px;cursor:pointer;transition:transform .35s,border-color .25s}
+#loginView.school-login .sl-theme:active{transform:rotate(180deg) scale(.92)}
+#loginView.school-login .sl-card{position:relative;isolation:isolate;overflow:hidden;margin-top:14px;padding:clamp(19px,4.8vw,27px) clamp(14px,4vw,22px) 20px;border:1px solid var(--sl-line);border-radius:31px;text-align:center;background:var(--sl-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 24px 60px rgba(0,0,0,.27),inset 0 1px 0 rgba(255,255,255,.12)}
+#loginView.school-login .sl-card:before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;padding:1.5px;pointer-events:none;background:conic-gradient(from var(--sl-angle),var(--sl-line) 0 64%,var(--sl-gold-light) 77%,var(--sl-line) 92%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:sl-orbit 7s linear infinite}
+@keyframes sl-orbit{to{--sl-angle:360deg}}
+#loginView.school-login .sl-hero{position:relative;width:142px;height:142px;margin:0 auto 10px}
+#loginView.school-login .sl-hero-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(transparent,var(--sl-gold-deep),var(--sl-gold-light),transparent 60%,var(--sl-gold),transparent);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));animation:sl-spin 8s linear infinite}
+@keyframes sl-spin{to{transform:rotate(360deg)}}
+#loginView.school-login .sl-hero-float{position:absolute;inset:0;animation:sl-float 5.2s ease-in-out infinite}
+@keyframes sl-float{50%{transform:translateY(-4px)}}
+#loginView.school-login .sl-title{margin:0;color:var(--sl-text);font-size:clamp(19px,5.3vw,23px);font-weight:900;line-height:1.55}
+#loginView.school-login .sl-slogan{margin:3px 0 0;font-size:clamp(13px,3.8vw,15px);font-weight:800;background:linear-gradient(100deg,var(--sl-gold) 25%,var(--sl-gold-light) 50%,var(--sl-gold) 75%);background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sl-shine 5s linear infinite}
+@keyframes sl-shine{from{background-position:120% 0}to{background-position:-130% 0}}
+#loginView.school-login .sl-motto{display:flex;align-items:center;justify-content:center;gap:10px;margin:7px 0 0;font-size:13px;font-weight:800}
+#loginView.school-login .sl-motto:before,#loginView.school-login .sl-motto:after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,var(--sl-gold),transparent)}
+#loginView.school-login .sl-quote{margin:5px 0 0;color:var(--sl-muted);font:700 clamp(12px,3.4vw,14px)/1.7 'Amiri',serif}
+#loginView.school-login .sl-pin-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 2px 7px;text-align:right;font-size:11px;font-weight:800;color:var(--sl-muted)}
+#loginView.school-login .sl-pin-label strong{color:var(--sl-gold);font-size:10px}
+#loginView.school-login .sl-pin{display:flex;direction:ltr;align-items:center;gap:8px;min-height:64px;padding:8px 10px;border-radius:19px;border:1.5px solid var(--sl-line);background:rgba(0,0,0,.13);transition:border-color .22s,box-shadow .22s}
+#loginView.school-login[data-theme="light"] .sl-pin{background:rgba(255,255,255,.78)}
+#loginView.school-login .sl-pin.active{border-color:var(--sl-gold);box-shadow:0 0 0 4px rgba(226,189,107,.13)}
+#loginView.school-login .sl-show{width:57px;height:38px;flex:0 0 57px;border-radius:12px;border:1px solid var(--sl-line);background:var(--sl-key);color:var(--sl-gold);font-size:11px;font-weight:900;cursor:pointer}
+#loginView.school-login .sl-dots{display:flex;flex:1;min-width:0;max-width:100%;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:3px 2px}
+#loginView.school-login .sl-dot{display:grid;place-items:center;flex:0 0 13px;width:13px;height:28px;position:relative;color:var(--sl-text);font:800 17px/1 'Cairo',sans-serif}
+#loginView.school-login .sl-dot:before{content:"";width:11px;height:11px;border-radius:50%;border:1.5px solid var(--sl-gold);transition:transform .18s,background .18s}
+#loginView.school-login .sl-dot.filled:before{background:var(--sl-gold);box-shadow:0 0 10px rgba(226,189,107,.8);transform:scale(1.04)}
+#loginView.school-login .sl-dot.revealed:before{display:none}
+#loginView.school-login .sl-dot.revealed:after{content:attr(data-digit)}
+#loginView.school-login .sl-dots.long{gap:3px}
+#loginView.school-login .sl-dots.long .sl-dot{flex-basis:9px;width:9px;font-size:12px}
+#loginView.school-login .sl-dots.long .sl-dot:before{width:6px;height:6px;box-shadow:none}
+#loginView.school-login .sl-dots.mid{gap:5px}
+#loginView.school-login .sl-dots.mid .sl-dot{flex-basis:11px;width:11px}
+#loginView.school-login .sl-error{margin-top:9px;padding:9px 11px;border-radius:12px;border:1px solid rgba(239,107,107,.42);background:rgba(150,25,35,.17);color:#ffb8bb;font-size:11px;font-weight:800;line-height:1.6}
+#loginView.school-login[data-theme="light"] .sl-error{background:#fff0f0;color:#a32632}
+#loginView.school-login .sl-pin.shake{animation:sl-shake .42s}
+@keyframes sl-shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+#loginView.school-login .sl-hint{min-height:21px;margin:5px 0 8px;color:var(--sl-muted);font-size:10px;line-height:1.6}
+#loginView.school-login .sl-pad{direction:ltr;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(7px,2.4vw,12px)}
+#loginView.school-login .sl-key{position:relative;display:grid;place-items:center;overflow:hidden;min-width:0;height:66px;border:1px solid var(--sl-line);border-radius:18px;background:var(--sl-key);color:var(--sl-text);box-shadow:var(--sl-key-shadow);font-size:32px;font-weight:900;line-height:1;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .12s,border-color .2s,box-shadow .2s}
+#loginView.school-login .sl-key:hover{border-color:var(--sl-gold)}
+#loginView.school-login .sl-key:active{transform:scale(.955);border-color:var(--sl-gold);box-shadow:0 0 18px rgba(226,189,107,.35)}
+#loginView.school-login .sl-key:focus-visible,#loginView.school-login .sl-show:focus-visible,#loginView.school-login .sl-theme:focus-visible{outline:2px solid var(--sl-gold-light);outline-offset:3px}
+#loginView.school-login .sl-key.delete{font-size:16px;color:var(--sl-gold)}
+#loginView.school-login .sl-key.submit{border-color:#4ac3a8;color:#fff;font-size:17px;background:linear-gradient(145deg,#27a38a,#12665a);box-shadow:0 8px 22px rgba(31,163,143,.36),inset 0 1px 0 rgba(255,255,255,.25)}
+#loginView.school-login .sl-key.submit:after{content:"";position:absolute;top:0;bottom:0;width:34%;left:-60%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.36),transparent);animation:sl-sweep 3.8s infinite}
+@keyframes sl-sweep{45%,100%{left:140%}}
+#loginView.school-login .sl-ripple{position:absolute;width:18px;height:18px;margin:-9px;border-radius:50%;pointer-events:none;background:var(--sl-gold-light);opacity:.42;animation:sl-ripple .55s ease-out forwards}
+@keyframes sl-ripple{to{transform:scale(9);opacity:0}}
+#loginView.school-login .sl-foot{text-align:center;margin:12px 0 0;color:var(--sl-muted);font-size:10px;font-weight:700;letter-spacing:.04em}
+@media(max-width:360px){#loginView.school-login{padding:4px}#loginView.school-login .sl-topbar{gap:8px;padding:9px}#loginView.school-login .sl-emblem.mini{width:42px;height:42px}#loginView.school-login .sl-theme{width:38px;height:38px;flex-basis:38px}#loginView.school-login .sl-card{margin-top:10px;padding:16px 12px 17px;border-radius:25px}#loginView.school-login .sl-hero{width:122px;height:122px}#loginView.school-login .sl-key{height:62px;border-radius:15px;font-size:30px}#loginView.school-login .sl-pad{gap:7px}#loginView.school-login .sl-dots{gap:5px}#loginView.school-login .sl-dots.long{gap:2px}}
+@media(max-height:720px){#loginView.school-login .sl-card{margin-top:9px;padding-top:15px;padding-bottom:14px}#loginView.school-login .sl-hero{width:108px;height:108px;margin-bottom:7px}#loginView.school-login .sl-title{font-size:18px}#loginView.school-login .sl-pin-label{margin-top:10px}#loginView.school-login .sl-key{height:57px}#loginView.school-login .sl-foot{margin-top:8px}}
+@media(prefers-reduced-motion:reduce){#loginView.school-login *,#loginView.school-login *:before,#loginView.school-login *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
+<body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
 
-<div id="schoolSplash" role="status" aria-label="مرحباً بكم في مدرسة ابو دجانة">
-<div class="splash-glow"></div><div class="splash-orb one"></div><div class="splash-orb two"></div><div class="splash-orb three"></div>
-<div class="splash-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-<div class="splash-content"><div class="splash-emblem" aria-hidden="true"><div class="splash-ring"></div><div class="splash-ring ring-two"></div><img class="splash-logo" src="./icons/icon-512.png" alt=""></div>
-<div class="splash-kicker">ABU DUJANA SCHOOL</div><div class="splash-title">مدرسة ابو دجانة</div>
-<div class="splash-subtitle">بوابتك إلى بيئة مدرسية أكثر تميزاً وإبداعاً</div><div class="splash-motto">علمٌ وانضباطٌ وتميّز ✦</div>
-<div class="splash-progress" aria-hidden="true"><span></span></div><button class="splash-start" type="button" onclick="dismissSchoolSplash()">ابدأ الآن <span aria-hidden="true">←</span></button></div>
-<div class="splash-footer">SMART SCHOOL EXPERIENCE</div></div>
 <div id="toastContainer" class="fixed top-5 left-5 z-[999999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4"></div>
 
 <header class="sticky top-0 z-40 bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60">
@@ -2512,30 +2563,30 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 </div>
 <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-  <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80">
-    <div id="isolatedPreviewNotice" class="hidden mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-right text-xs leading-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" dir="rtl">
-      <strong class="block text-sm font-black">هذه نسخة اختبار معزولة</strong>
-      <p class="mt-1">هذه الصفحة تستخدم قاعدة بيانات تجريبية منفصلة؛ حسابات المدرسة وأرقامها السرية الفعلية غير متاحة هنا. لا يعني رفض الرقم أن رقمك السري في النظام الأساسي قد تغيّر.</p>
-      <a class="mt-2 inline-block font-black underline" href="https://student-absence-system.pages.dev/" target="_blank" rel="noopener noreferrer">افتح النظام الأساسي لتسجيل الدخول الفعلي</a>
-      <p class="mt-1 text-[10px]">ملاحظة: النظام الأساسي يعرض الإصدار المنشور حاليًا، وليس إصلاحات هذا الفرع التجريبي.</p>
-    </div>
-    <div class="text-center mb-6">
-      <div class="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg"><i class="fa-solid fa-user-lock"></i></div>
-      <h2 class="text-2xl font-black text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">أدخل الرقم السري للمتابعة</p>
-    </div>
-    <form onsubmit="handleUserLogin(event)" class="space-y-5">
-      <div>
-        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">الرقم السري</label>
-        <input type="password" id="userPinInput" required placeholder="••••" inputmode="numeric" class="w-full text-center text-3xl tracking-widest px-4 py-4 bg-slate-50/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none font-bold">
-      </div>
-      <div id="loginError" class="text-red-600 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200">الرمز السري غير صحيح</div>
-      <button type="submit" id="loginSubmitBtn" class="w-full bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 text-white font-extrabold py-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95">
-        <span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>
-      </button>
-    </form>
-  </div>
-
+  <div id="loginView" class="school-login" data-theme="dark">
+<div class="sl-background" aria-hidden="true"><div class="sl-glow a"></div><div class="sl-glow b"></div><canvas id="schoolLoginSky"></canvas></div>
+<div class="sl-stage">
+<header class="sl-topbar">
+<div class="sl-emblem mini" data-school-logo><img src="./logo.png" alt="" width="42" height="42" decoding="async" fetchpriority="high"><svg class="sl-logo-fallback" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20 78 34v34L50 82 22 68V34z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M50 37c-9-7-18-6-25-3v25c9-3 17-2 25 5 8-7 16-8 25-5V34c-7-3-16-4-25 3v27" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M50 22v14m-5-7h10" stroke="#c99a3b" stroke-width="4" stroke-linecap="round"/></svg></div>
+<div class="sl-top-info"><h2>مدرسة أبو دجانة الأنصاري للبنين (9-12)</h2><p>بوابة المتابعة والإحصاء المدرسي</p></div>
+<button type="button" class="sl-theme" id="schoolLoginTheme" aria-label="تبديل المظهر" title="تبديل المظهر">🌙</button>
+</header>
+<section class="sl-card" aria-label="بوابة تسجيل الدخول">
+<div class="sl-hero"><div class="sl-hero-ring" aria-hidden="true"></div><div class="sl-hero-float">
+<div class="sl-emblem hero-logo" data-school-logo><img src="./logo.png" alt="شعار مدرسة أبو دجانة الأنصاري" width="120" height="120" decoding="async" fetchpriority="high"><svg class="sl-logo-fallback" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20 78 34v34L50 82 22 68V34z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M50 37c-9-7-18-6-25-3v25c9-3 17-2 25 5 8-7 16-8 25-5V34c-7-3-16-4-25 3v27" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M50 22v14m-5-7h10" stroke="#c99a3b" stroke-width="4" stroke-linecap="round"/></svg></div>
+</div></div>
+<h1 class="sl-title">تطبيق مدرسة أبو دجانة الأنصاري</h1><p class="sl-slogan">بوابتك إلى بيئة مدرسية أكثر تميزاً وإبداعاً</p><p class="sl-motto">علم وانضباط وتميز</p><p class="sl-quote">«هنيئاً لمن يبني العقول ويغرس القيم في نفوس أبنائنا»</p>
+<form id="schoolLoginForm" class="sl-form" onsubmit="handleUserLogin(event)" autocomplete="off">
+<div class="sl-pin-label"><span>الرقم السري</span><strong>أدخل الرمز ثم اضغط موافق</strong></div>
+<div class="sl-pin" id="schoolLoginPinBox" role="group" aria-label="عرض الرمز السري"><button type="button" class="sl-show" id="schoolLoginShow">إظهار</button><div class="sl-dots" id="schoolLoginDots" aria-live="polite" aria-label="الرمز السري"></div></div>
+<div id="loginError" class="sl-error hidden" role="alert">الرمز السري غير صحيح</div>
+<p class="sl-hint" id="schoolLoginHint" role="status" aria-live="polite">تظهر أربع خانات أولاً، وتزداد تلقائياً حسب طول رمزك</p>
+<div class="sl-pad" id="schoolLoginPad" aria-label="لوحة إدخال الأرقام">
+<button type="button" class="sl-key" data-digit="1">1</button><button type="button" class="sl-key" data-digit="2">2</button><button type="button" class="sl-key" data-digit="3">3</button>
+<button type="button" class="sl-key" data-digit="4">4</button><button type="button" class="sl-key" data-digit="5">5</button><button type="button" class="sl-key" data-digit="6">6</button>
+<button type="button" class="sl-key" data-digit="7">7</button><button type="button" class="sl-key" data-digit="8">8</button><button type="button" class="sl-key" data-digit="9">9</button>
+<button type="button" class="sl-key delete" data-pin-action="delete">تعديل</button><button type="button" class="sl-key" data-digit="0">0</button><button type="submit" class="sl-key submit" id="loginSubmitBtn">موافق</button>
+</div></form></section><p class="sl-foot">✦ علم وانضباط وتميز ✦</p></div></div>
   <section id="uiReviewLauncher" class="hidden max-w-3xl mx-auto my-10 rounded-3xl border border-teal-200 bg-white p-6 shadow-xl dark:border-teal-900 dark:bg-slate-900" dir="rtl">
     <div class="flex items-center gap-3"><span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200"><i class="fa-solid fa-eye text-xl"></i></span><div><h2 class="text-lg font-black text-slate-900 dark:text-white">معاينة واجهات شؤون الطلبة</h2><p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-300">نسخة عرض منفصلة. لا تتصل ببيانات المدرسة ولا تحفظ أي تعديل.</p></div></div>
     <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -7238,7 +7289,9 @@ function populateCategoryDropdowns() {
 /* ============ Init ============ */
 window.addEventListener('DOMContentLoaded', async () => {
   initDarkMode(); setCurrentDate();
+  initSchoolLoginPad();
   if(IS_UI_REVIEW_PREVIEW){
+    document.body.classList.remove("login-mode");
     document.getElementById("loginView")?.classList.add("hidden");
     document.getElementById("uiReviewLauncher")?.classList.remove("hidden");
     document.getElementById("uiReviewBar")?.classList.remove("hidden");
@@ -7254,8 +7307,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored();
   syncServerTime();
   // Authentication/session restoration now precedes every protected cloud-table read.
-  await checkExistingSession();
-  document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
+  // Every fresh app launch begins at the PIN gate. The previous browser session is not silently reused.
+  document.body.classList.add("login-mode");
+  document.getElementById("loginView")?.classList.remove("hidden");
+  document.getElementById("dashboardSelectionView")?.classList.add("hidden");
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
   if (!dutyRefreshInterval) dutyRefreshInterval = setInterval(() => { if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); } }, 30000);
   setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60*60*1000) await syncServerTime(); }, 15*60*1000);
@@ -8197,6 +8252,64 @@ function normalizeAppPinDigits(value) {
   });
 }
 
+
+const SCHOOL_LOGIN_PIN_MIN_LENGTH=4;
+const SCHOOL_LOGIN_PIN_MAX_LENGTH=20;
+let schoolLoginPinCode="";
+let schoolLoginPinVisible=false;
+let schoolLoginKeyboardBound=false;
+function renderSchoolLoginPin(){
+ const dots=document.getElementById("schoolLoginDots"),box=document.getElementById("schoolLoginPinBox"),show=document.getElementById("schoolLoginShow");
+ if(!dots||!box||!show)return;
+ const count=Math.max(SCHOOL_LOGIN_PIN_MIN_LENGTH,schoolLoginPinCode.length);
+ dots.replaceChildren();dots.classList.toggle("mid",count>6&&count<=10);dots.classList.toggle("long",count>10);
+ for(let i=0;i<count;i++){const d=document.createElement("span");d.className="sl-dot"+(i<schoolLoginPinCode.length?" filled":"")+(schoolLoginPinVisible&&i<schoolLoginPinCode.length?" revealed":"");if(i<schoolLoginPinCode.length)d.dataset.digit=schoolLoginPinCode[i];d.setAttribute("aria-hidden","true");dots.appendChild(d);}
+ box.classList.toggle("active",schoolLoginPinCode.length>0);show.textContent=schoolLoginPinVisible?"إخفاء":"إظهار";
+ const hint=document.getElementById("schoolLoginHint");if(hint)hint.textContent=schoolLoginPinCode.length?"عدد الأرقام المدخلة: "+schoolLoginPinCode.length+" — اضغط موافق عند الانتهاء":"تظهر أربع خانات أولاً، وتزداد تلقائياً حسب طول رمزك";
+}
+function setSchoolLoginPin(value){schoolLoginPinCode=normalizeAppPinDigits(String(value??"")).slice(0,SCHOOL_LOGIN_PIN_MAX_LENGTH);renderSchoolLoginPin();}
+function appendSchoolLoginDigit(value){
+ const digit=normalizeAppPinDigits(String(value??""));
+ if(!/^[0-9]$/.test(digit)||appLoginInProgress||schoolLoginPinCode.length>=SCHOOL_LOGIN_PIN_MAX_LENGTH)return;
+ schoolLoginPinCode+=digit;document.getElementById("loginError")?.classList.add("hidden");document.getElementById("schoolLoginPinBox")?.classList.remove("shake");renderSchoolLoginPin();
+}
+function deleteSchoolLoginDigit(){if(appLoginInProgress)return;schoolLoginPinCode=schoolLoginPinCode.slice(0,-1);document.getElementById("loginError")?.classList.add("hidden");renderSchoolLoginPin();}
+function initSchoolLoginTheme(){
+ const view=document.getElementById("loginView"),button=document.getElementById("schoolLoginTheme");if(!view||!button)return;
+ let theme="dark";try{theme=localStorage.getItem("abuDujana_loginTheme")==="light"?"light":"dark";}catch(error){}
+ const apply=t=>{view.dataset.theme=t;button.textContent=t==="dark"?"🌙":"☀️";button.setAttribute("aria-label",t==="dark"?"التبديل إلى الوضع النهاري":"التبديل إلى الوضع الليلي");try{localStorage.setItem("abuDujana_loginTheme",t);}catch(error){}};
+ apply(theme);if(!button.dataset.bound){button.dataset.bound="1";button.addEventListener("click",()=>apply(view.dataset.theme==="dark"?"light":"dark"));}
+}
+function initSchoolLoginLogoFallbacks(){
+ document.querySelectorAll("#loginView [data-school-logo]").forEach(frame=>{const img=frame.querySelector("img");if(!img||img.dataset.fallbackBound)return;img.dataset.fallbackBound="1";const fallback=()=>frame.classList.add("logo-fallback");img.addEventListener("error",fallback,{once:true});if(img.complete&&!img.naturalWidth)fallback();});
+}
+function initSchoolLoginSky(){
+ const canvas=document.getElementById("schoolLoginSky"),ctx=canvas?.getContext?.("2d");if(!canvas||!ctx||canvas.dataset.bound)return;canvas.dataset.bound="1";
+ const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;let w=0,h=0,stars=[],meteor=null,next=0,frame=0;
+ const resize=()=>{const d=Math.min(window.devicePixelRatio||1,1.5);w=innerWidth;h=innerHeight;canvas.width=Math.max(1,Math.floor(w*d));canvas.height=Math.max(1,Math.floor(h*d));ctx.setTransform(d,0,0,d,0,0);stars=Array.from({length:Math.min(82,Math.max(28,Math.round(w*h/7200)))},(_,i)=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.25+.35,p:Math.random()*6.28,s:Math.random()*.0014+.0005,drift:Math.random()*.035+.008,bright:i%11===0}));};
+ const draw=t=>{ctx.clearRect(0,0,w,h);const light=document.getElementById("loginView")?.dataset.theme==="light",rgb=light?"139,112,52":"255,236,190";
+  for(const star of stars){const a=.18+.72*Math.abs(Math.sin(t*star.s+star.p));ctx.fillStyle="rgba("+rgb+","+a+")";ctx.beginPath();if(star.bright){const r=2.5+2.8*a;ctx.moveTo(star.x,star.y-r);ctx.lineTo(star.x+r*.32,star.y-r*.32);ctx.lineTo(star.x+r,star.y);ctx.lineTo(star.x+r*.32,star.y+r*.32);ctx.lineTo(star.x,star.y+r);ctx.lineTo(star.x-r*.32,star.y+r*.32);ctx.lineTo(star.x-r,star.y);ctx.lineTo(star.x-r*.32,star.y-r*.32);ctx.closePath();}else ctx.arc(star.x,star.y,star.r,0,Math.PI*2);ctx.fill();if(!reduced){star.y-=star.drift;if(star.y< -4)star.y=h+4;}}
+  if(!reduced&&t>next){meteor={x:w*(.45+Math.random()*.5),y:Math.random()*h*.3,life:1};next=t+5000+Math.random()*7000;}
+  if(meteor){const g=ctx.createLinearGradient(meteor.x,meteor.y,meteor.x+70,meteor.y-40);g.addColorStop(0,"rgba("+rgb+","+meteor.life+")");g.addColorStop(1,"rgba("+rgb+",0)");ctx.strokeStyle=g;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(meteor.x,meteor.y);ctx.lineTo(meteor.x+70,meteor.y-40);ctx.stroke();meteor.x-=4.6;meteor.y+=2.5;meteor.life-=.026;if(meteor.life<=0)meteor=null;}
+  if(!reduced&&!document.hidden)frame=requestAnimationFrame(draw);
+ };
+ resize();window.addEventListener("resize",resize,{passive:true});document.addEventListener("visibilitychange",()=>{if(document.hidden)cancelAnimationFrame(frame);else if(!reduced)frame=requestAnimationFrame(draw);});if(!reduced)frame=requestAnimationFrame(draw);else draw(1000);
+}
+function initSchoolLoginPad(){
+ const view=document.getElementById("loginView"),pad=document.getElementById("schoolLoginPad"),form=document.getElementById("schoolLoginForm");if(!view||!pad||!form)return;
+ initSchoolLoginTheme();initSchoolLoginLogoFallbacks();initSchoolLoginSky();renderSchoolLoginPin();
+ if(!pad.dataset.bound){pad.dataset.bound="1";pad.addEventListener("click",event=>{const button=event.target.closest("button.sl-key");if(!button||button.disabled)return;const r=button.getBoundingClientRect(),rip=document.createElement("span");rip.className="sl-ripple";rip.style.left=(event.clientX?event.clientX-r.left:r.width/2)+"px";rip.style.top=(event.clientY?event.clientY-r.top:r.height/2)+"px";button.appendChild(rip);window.setTimeout(()=>rip.remove(),620);if(button.dataset.pinAction==="delete")deleteSchoolLoginDigit();else if(button.dataset.digit)appendSchoolLoginDigit(button.dataset.digit);});}
+ const show=document.getElementById("schoolLoginShow");if(show&&!show.dataset.bound){show.dataset.bound="1";show.addEventListener("click",()=>{schoolLoginPinVisible=!schoolLoginPinVisible;renderSchoolLoginPin();});}
+ if(!schoolLoginKeyboardBound){schoolLoginKeyboardBound=true;document.addEventListener("keydown",event=>{
+  if(view.classList.contains("hidden")||!document.body.classList.contains("login-mode"))return;if(event.ctrlKey||event.metaKey||event.altKey)return;
+  if(event.target?.matches?.("input,textarea,select,[contenteditable='true']"))return;
+  if(event.key==="Backspace"){event.preventDefault();deleteSchoolLoginDigit();return;}
+  if(event.key==="Enter"){event.preventDefault();if(!appLoginInProgress)form.requestSubmit();return;}
+  const raw=/^[0-9]$/.test(event.key)?event.key:/^Numpad[0-9]$/.test(event.code)?event.code.slice(-1):event.key;
+  const digit=normalizeAppPinDigits(raw);if(/^[0-9]$/.test(digit)){event.preventDefault();appendSchoolLoginDigit(digit);}
+ });}
+}
+
 async function handleUserLogin(e) {
   e.preventDefault();
   if (appLoginInProgress) {
@@ -8205,16 +8318,15 @@ async function handleUserLogin(e) {
   }
   const now = Date.now();
   if (now < loginLockedUntil) { const wait = Math.ceil((loginLockedUntil - now) / 1000); showToast("محاولات كثيرة. انتظر " + wait + " ثانية.", "error"); return; }
-  const pinInput = document.getElementById("userPinInput");
-  const pin = normalizeAppPinDigits(pinInput?.value?.trim() || "");
+  const pin = normalizeAppPinDigits(schoolLoginPinCode.trim());
   if (!pin) return;
+  if(pin.length<SCHOOL_LOGIN_PIN_MIN_LENGTH){const errorEl=document.getElementById("loginError");if(errorEl){errorEl.textContent="الرمز السري يجب ألا يقل عن "+SCHOOL_LOGIN_PIN_MIN_LENGTH+" أرقام.";errorEl.classList.remove("hidden");}document.getElementById("schoolLoginPinBox")?.classList.add("shake");return;}
   appLoginInProgress = true;
   const loginGeneration = ++appLoginGeneration;
   const loginController = new AbortController();
   let loginTimeoutId = null;
   let loginTimedOut = false;
   let authenticatedLoginCommitted = false;
-  if (pinInput) pinInput.value = pin;
   const btn = document.getElementById("loginSubmitBtn");
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
   document.getElementById("loginError").classList.add("hidden");
@@ -8260,6 +8372,7 @@ async function handleUserLogin(e) {
       cloudDataLoadState = 'not-started';
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
+      document.body.classList.remove("login-mode");
       authenticatedLoginCommitted = true;
       renderAuthenticatedDashboardShell();
       console.info("[AUTH_TRACE] login:authenticated-shell-shown", {
@@ -8300,6 +8413,7 @@ async function handleUserLogin(e) {
         return;
       }
       activeUser = found.user;
+      document.body.classList.remove("login-mode");
       loginAttempts = 0; loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
@@ -8339,7 +8453,7 @@ async function handleUserLogin(e) {
     // Its reports, competition and supervision queries must never run during
     // the primary app login or compete with the first dashboard paint.
     showToast("أهلاً بك: " + activeUser.name, "success");
-    document.getElementById("userPinInput").value = "";
+    setSchoolLoginPin("");
   } catch(error) {
     if (error?.status === 401 || error?.status === 429) {
       if (error.status === 429) showToast(error.message || "محاولات كثيرة. حاول لاحقاً.", "error");
@@ -8355,7 +8469,7 @@ async function handleUserLogin(e) {
       document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
     }
     btn.disabled = false;
-    btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>';
+    btn.innerHTML = '<span>موافق</span> <i class="fa-solid fa-check"></i>';
   }
 }
 
@@ -8835,7 +8949,8 @@ function _performLogout() {
   attendanceDirty = false; behaviorDirty = false;
   attendanceUndoStack = []; behaviorUndoStack = [];
   clearSession(); try { localStorage.removeItem('abuDujana_activeUser'); } catch(e) {}
-  document.getElementById('userPinInput').value = '';
+  setSchoolLoginPin("");
+  document.body.classList.add("login-mode");
   
   // إخفاء زر لوحة التحكم عند تسجيل الخروج
   const adminBtn = document.getElementById('adminPanelBtn');
@@ -12655,20 +12770,7 @@ function exportDutyReportsCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
   showToast('تم التنزيل.', 'success');
 }
-</script>
-<script>
-(function(){
- const started=Date.now();let done=false;
- function closeSplash(skip){
-  if(done)return;done=true;const el=document.getElementById('schoolSplash');if(!el)return;
-  const hide=()=>{el.classList.add('splash-leaving');window.setTimeout(()=>el.remove(),950)};
-  if(skip)hide();else window.setTimeout(hide,Math.max(0,2100-(Date.now()-started)));
- }
- window.dismissSchoolSplash=()=>closeSplash(true);
- if(document.readyState==='complete')closeSplash(false);else window.addEventListener('load',()=>closeSplash(false),{once:true});
- window.setTimeout(()=>closeSplash(false),6500);
-})();
-</script>
+</script> 
 <script>
 // PWA shell registration and controlled refresh after an installed-app update.
 if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
@@ -12706,7 +12808,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261126-student-affairs-summary-only-1", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261127-direct-pin-login-2", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
