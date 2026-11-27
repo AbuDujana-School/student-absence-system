@@ -559,6 +559,11 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
 test("Student Affairs four navigation cards render as actual squares on desktop and mobile and switch one pane only", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
   await page.evaluate(() => {
+    // This test opens a post-authentication screen directly. Mirror the real
+    // successful-login transition so the temporary PIN-gate viewport rules
+    // are no longer active while measuring the Student Affairs dashboard.
+    document.body.classList.remove("login-mode");
+    document.getElementById("loginView")?.classList.add("hidden");
     let node = document.getElementById("studentAffairsView");
     while (node && node !== document.body) {
       node.classList.remove("hidden");
