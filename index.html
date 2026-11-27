@@ -9014,7 +9014,7 @@ const morningAssemblyBulkSelection = new Map();
 
 function setMorningAssemblyTheme(theme){const view=document.getElementById('morningAssemblyLatenessView');if(!view)return;const night=theme==='night';view.dataset.maTheme=night?'night':'day';document.getElementById('morningAssemblyDayTheme')?.classList.toggle('active',!night);document.getElementById('morningAssemblyNightTheme')?.classList.toggle('active',night);}
 function setMorningAssemblyTab(tab){const canQuick=canUseMorningAssemblyLateness(),canReport=canViewMorningAssemblyLatenessReport();const quickTab=document.getElementById('morningAssemblyQuickTab'),reportTab=document.getElementById('morningAssemblyReportTab');quickTab?.classList.toggle('hidden',!canQuick);reportTab?.classList.toggle('hidden',!canReport);const report=tab==='report'&&canReport;document.getElementById('morningAssemblyQuickPanel')?.classList.toggle('hidden',report||!canQuick);document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden',!report);quickTab?.classList.toggle('active',!report&&canQuick);reportTab?.classList.toggle('active',report);if(report)void loadMorningAssemblyLatenessReport();}
-function updateMorningAssemblyVisualCounts(){const count=morningAssemblyLatenessToday?.size||0;['morningAssemblyTodayCount','morningAssemblyTodayCountSecondary','morningAssemblyReportBadge'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=count.toLocaleString('en-US');});}
+function updateMorningAssemblyVisualCounts(){const count=morningAssemblyLatenessToday?.size||0;['morningAssemblyTodayCount','morningAssemblyTodayCountSecondary'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=count.toLocaleString('en-US');});}
 
 function renderMorningAssemblyClasses() {
   const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
@@ -9171,7 +9171,7 @@ async function commitMorningAssemblyBulkSelection() {
     document.getElementById('morningAssemblyBulkBar')?.classList.add('hidden');
     const toggle = document.getElementById('morningAssemblyMultiSelectToggle');
     if (toggle) { toggle.textContent='اختر معاً'; toggle.className='rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800'; }
-    renderMorningAssemblyStudents(); renderMorningAssemblySearch();
+    renderMorningAssemblyStudents(); renderMorningAssemblySearch(); renderMorningAssemblyClasses(); updateMorningAssemblyVisualCounts();
     const dashboardLateCount = document.getElementById('dashMorningAssemblyLateCount');
     if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
     showToast('تم تسجيل التأخر لـ ' + saved + ' طالب بنجاح.','success');
