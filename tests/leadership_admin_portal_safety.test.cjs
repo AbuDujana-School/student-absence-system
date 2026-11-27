@@ -74,6 +74,6 @@ test("morning assembly exposes explicit local calm-light and calm-dusk controls"
   assert.match(portal, /applyTheme\('light'\)/);
   assert.match(styles, /#morningAssemblyLatenessView\.ma-theme-light/);
   assert.match(styles, /#morningAssemblyLatenessView\.ma-theme-dusk/);
-  assert.match(styles, /نور الصباح الهادئ/);
-  assert.match(styles, /ضباب الغسق الهادئ/);
+  assert.match(portal, /نور الصباح الهادئ/);
+  assert.match(portal, /ضباب الغسق الهادئ/);
 });
