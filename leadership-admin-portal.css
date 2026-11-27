@@ -222,3 +222,175 @@ body.admin-portal-lock { overflow:hidden; }
 .admin-portal-original-stats-button { display:inline-flex;align-items:center;justify-content:center;gap:.5rem;margin:0 0 .9rem;padding:.72rem 1rem;border:1px solid rgba(213,166,74,.62);border-radius:14px;background:linear-gradient(120deg,#183653,#168c85);color:#fff;font-size:.76rem;font-weight:900;box-shadow:0 8px 20px rgba(24,54,83,.15);transition:transform .2s ease,box-shadow .2s ease; }
 .admin-portal-original-stats-button:hover { transform:translateY(-2px);box-shadow:0 12px 25px rgba(24,54,83,.22); }
 .admin-portal-original-stats-button:focus-visible { outline:3px solid rgba(213,166,74,.8);outline-offset:3px; }
+
+
+/* Shared calm-glass school identity: نور الصباح الهادئ / ضباب الغسق الهادئ.
+   Presentation-only overrides; existing IDs, handlers, data flow and permissions remain untouched. */
+:root {
+  --school-glass-navy:#2b4157;
+  --school-glass-slate:#354c63;
+  --school-glass-indigo:#5b6ee1;
+  --school-glass-gold:#c89d4c;
+  --school-glass-text:#1e293b;
+  --school-glass-muted:#475569;
+  --school-glass-border:rgba(53,76,99,.18);
+  --school-glass-surface:rgba(255,255,255,.78);
+}
+body:not(.dark) .glass-card,
+body:not(.dark) #adminSectionView .admin-portal-card,
+body:not(.dark) #adminRecordsCenterModal .arc-v2-card,
+body:not(.dark) #adminRecordsCenterModal .arc-v2-tools,
+body:not(.dark) #adminRecordsCenterModal .arc-v2-date-dialog,
+body:not(.dark) .rounded-3xl.border,
+body:not(.dark) .rounded-2xl.border {
+  background:var(--school-glass-surface);
+  border-color:var(--school-glass-border);
+  box-shadow:0 14px 34px -20px rgba(36,56,76,.28);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  backdrop-filter:blur(16px) saturate(140%);
+}
+body:not(.dark) .rounded-3xl.border,
+body:not(.dark) .rounded-2xl.border { color:var(--school-glass-text); }
+body:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+body:not(.dark) select,
+body:not(.dark) textarea {
+  color:#1e293b;
+  background:rgba(248,250,252,.94);
+  border-color:rgba(71,85,105,.28);
+}
+body:not(.dark) input:focus,
+body:not(.dark) select:focus,
+body:not(.dark) textarea:focus {
+  outline:0;
+  border-color:#5b6ee1;
+  box-shadow:0 0 0 3px rgba(91,110,225,.14);
+}
+body.dark {
+  color:#e2e8f0;
+  background-color:#182635;
+}
+body.dark .glass-card,
+body.dark #adminSectionView .admin-portal-card,
+body.dark #adminRecordsCenterModal .arc-v2-card,
+body.dark #adminRecordsCenterModal .arc-v2-tools,
+body.dark #adminRecordsCenterModal .arc-v2-date-dialog,
+body.dark .rounded-3xl.border,
+body.dark .rounded-2xl.border {
+  color:#e2e8f0;
+  background:rgba(34,52,71,.86);
+  border-color:rgba(148,163,184,.22);
+  box-shadow:0 16px 36px -22px rgba(8,20,32,.52);
+  -webkit-backdrop-filter:blur(18px) saturate(125%);
+  backdrop-filter:blur(18px) saturate(125%);
+}
+body.dark input:not([type="checkbox"]):not([type="radio"]),
+body.dark select,
+body.dark textarea {
+  color:#e2e8f0;
+  background:rgba(24,38,53,.94);
+  border-color:rgba(148,163,184,.3);
+}
+body.dark input::placeholder,
+body.dark textarea::placeholder { color:#aebdca; opacity:1; }
+body.dark input:focus,
+body.dark select:focus,
+body.dark textarea:focus {
+  outline:0;
+  border-color:#a9b4ff;
+  box-shadow:0 0 0 3px rgba(169,180,255,.16);
+}
+body.dark .text-slate-900,
+body.dark .text-slate-800,
+body.dark .text-gray-900,
+body.dark .text-gray-800 { color:#e2e8f0; }
+body.dark .text-slate-600,
+body.dark .text-slate-500,
+body.dark .text-gray-600,
+body.dark .text-gray-500 { color:#cbd5e1; }
+body.dark .bg-white,
+body.dark .bg-slate-50,
+body.dark .bg-slate-100 { background-color:#223447; }
+body.dark .border-slate-100,
+body.dark .border-slate-200,
+body.dark .border-gray-100,
+body.dark .border-gray-200 { border-color:rgba(148,163,184,.22); }
+
+/* Administrative portal and reports center: consistent card rhythm and touch targets. */
+#adminSectionView .admin-portal-card,
+#adminRecordsCenterModal .arc-v2-card {
+  min-width:0;
+  border-radius:22px;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+#adminSectionView .admin-portal-card:focus-visible,
+#adminRecordsCenterModal button:focus-visible {
+  outline:3px solid rgba(91,110,225,.55);
+  outline-offset:3px;
+}
+#adminRecordsCenterModal .arc-v2-grid {
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));
+  gap:14px;
+}
+#adminRecordsCenterModal .arc-v2-tools { gap:10px; }
+#adminRecordsCenterModal .arc-v2-filters {
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:thin;
+}
+#adminRecordsCenterModal .arc-v2-filter {
+  flex:0 0 auto;
+  min-height:42px;
+}
+#adminRecordsCenterModal table,
+#adminSectionView table,
+#morningAssemblyLatenessView table {
+  border-collapse:separate;
+  border-spacing:0;
+}
+#adminRecordsCenterModal .overflow-x-auto,
+#adminSectionView .overflow-x-auto,
+#morningAssemblyLatenessView .overflow-x-auto {
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+}
+#adminRecordsCenterModal table,
+#adminSectionView table,
+#morningAssemblyLatenessView table {
+  min-width:720px;
+}
+#adminRecordsCenterModal th,
+#adminSectionView th,
+#morningAssemblyLatenessView th {
+  white-space:nowrap;
+  background:#2b4157;
+  color:#f8fafc;
+}
+#adminRecordsCenterModal td,
+#adminSectionView td,
+#morningAssemblyLatenessView td {
+  overflow-wrap:normal;
+  word-break:normal;
+}
+@media(max-width:640px) {
+  #adminRecordsCenterModal .arc-v2-grid { grid-template-columns:1fr; }
+  #adminRecordsCenterModal .arc-v2-card { min-height:148px; }
+  #adminSectionView .admin-portal-grid { grid-template-columns:1fr; }
+  #adminRecordsCenterModal .arc-v2-tools { align-items:stretch; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #adminSectionView *,
+  #adminRecordsCenterModal * {
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    transition-duration:.01ms!important;
+  }
+}
+@media print {
+  #adminSectionView,
+  #adminRecordsCenterModal { color:#172033!important; }
+  #adminSectionView table,
+  #adminRecordsCenterModal table { min-width:0!important; }
+}
