@@ -3116,7 +3116,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
     </section>
     <section class="rounded-3xl border border-violet-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span></div>
+      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة أو فعّل التحديد الجماعي</p></div><div class="flex items-center gap-2"><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-[#354c63]/10 text-[#354c63] border border-[#354c63]/20 px-3 py-2 font-black">اختر صفاً</span><button type="button" id="morningAssemblyMultiSelectToggle" onclick="toggleMorningAssemblyMultiSelect()" class="rounded-xl border border-[#5b6ee1]/30 bg-[#5b6ee1]/10 px-3 py-2 text-[11px] font-black text-[#475569]">اختر معاً</button></div></div>
+      <div id="morningAssemblyMultiSelectBar" class="hidden flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#5b6ee1]/25 bg-[#5b6ee1]/10 p-3"><span id="morningAssemblyMultiSelectedCount" class="text-xs font-black text-[#354c63]">تم تحديد 0 طالب</span><div class="flex gap-2"><button type="button" onclick="clearMorningAssemblyMultiSelection()" class="rounded-xl px-3 py-2 text-[11px] font-bold text-[#475569]">إلغاء التحديد</button><button type="button" id="morningAssemblyMultiCommit" onclick="commitMorningAssemblyMultiSelection()" class="rounded-xl bg-[#354c63] px-4 py-2 text-[11px] font-black text-white">رصد المحددين</button></div></div>
       <label class="block relative"><i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-violet-400"></i><input id="morningAssemblySearch" oninput="renderMorningAssemblySearch()" type="search" autocomplete="off" placeholder="بحث ذكي باسم الطالب من جميع الصفوف..." class="w-full rounded-2xl border border-violet-100 dark:border-slate-700 bg-violet-50/50 dark:bg-slate-950 py-3.5 pr-11 pl-4 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-violet-300"></label>
       <div id="morningAssemblyStudentsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       <div id="morningAssemblySearchResults" class="space-y-2"></div>
@@ -8876,6 +8877,9 @@ async function saveAttendanceSession() {
 /* ============ Morning Assembly Lateness ============ */
 let morningAssemblySelectedClass = null;
 let morningAssemblyGradeFilter = 'all';
+let morningAssemblyMultiSelectMode = false;
+let morningAssemblyMultiSubmitting = false;
+const morningAssemblyMultiSelected = new Map();
 let morningAssemblyLatenessToday = new Set();
 let morningAssemblyLatenessTodayLoaded = false;
 let morningAssemblyLatenessTodayDate = '';
@@ -9013,21 +9017,92 @@ function setMorningAssemblyStudentButtonState(button,name,className) {
   button.classList.toggle('border-emerald-200', recorded);
   button.classList.toggle('bg-emerald-50', recorded);
   button.classList.toggle('dark:bg-emerald-950/30', recorded);
-  const actionText = recorded ? 'إلغاء التأخر' : 'تسجيل متأخر';
-  const actionClass = recorded
-    ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-200'
-    : 'bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-200';
-  const icon = recorded ? 'fa-minus' : 'fa-plus';
-  button.innerHTML = '<span class="font-extrabold text-xs text-slate-800 dark:text-white">' + escapeHtml(name) + '<small class="block text-[10px] text-slate-400 mt-1">صف ' + escapeHtml(formatClassName(className)) + '</small><small class="block text-[10px] mt-1 ' + (recorded ? 'text-rose-700 dark:text-rose-300' : 'text-slate-500') + '">' + actionText + '</small></span><span class="w-9 h-9 shrink-0 rounded-xl ' + actionClass + ' flex items-center justify-center"><i class="fa-solid ' + icon + '"></i></span>';
+  const key = morningAssemblyStudentKey(className,name);
+  const selected = morningAssemblyMultiSelected.has(key);
+  const actionText = morningAssemblyMultiSelectMode ? (recorded ? 'مرصود اليوم' : selected ? 'تم التحديد' : 'إضافة للتحديد') : recorded ? 'إلغاء التأخر' : 'تسجيل متأخر';
+  const actionClass = morningAssemblyMultiSelectMode
+    ? (selected ? 'bg-[#5b6ee1] text-white' : 'bg-[#354c63]/10 text-[#354c63]')
+    : recorded ? 'bg-[#c89d4c]/15 text-[#8a682b]' : 'bg-[#354c63] text-white';
+  const icon = morningAssemblyMultiSelectMode ? (selected ? 'fa-check' : recorded ? 'fa-check-circle' : 'fa-plus') : recorded ? 'fa-minus' : 'fa-plus';
+  button.disabled = !morningAssemblyLatenessTodayLoaded || (morningAssemblyMultiSelectMode && recorded);
+  button.innerHTML = '<span class="font-extrabold text-xs text-slate-800 dark:text-white">' + escapeHtml(name) + '<small class="block text-[10px] text-slate-500 mt-1">صف ' + escapeHtml(formatClassName(className)) + '</small><small class="block text-[10px] mt-1 text-[#475569]">' + actionText + '</small></span><span class="w-9 h-9 shrink-0 rounded-xl ' + actionClass + ' flex items-center justify-center"><i class="fa-solid ' + icon + '"></i></span>';
 }
 function createMorningAssemblyStudentButton(name,className) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-fuchsia-300 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/30 p-3 text-right transition-all active:scale-[.99]';
   setMorningAssemblyStudentButtonState(btn,name,className);
-  btn.onclick = () => recordMorningAssemblyLateness(className,name,btn);
+  btn.onclick = () => morningAssemblyMultiSelectMode ? toggleMorningAssemblyMultiSelection(className,name) : recordMorningAssemblyLateness(className,name,btn);
   return btn;
 }
+function toggleMorningAssemblyMultiSelect() {
+  morningAssemblyMultiSelectMode = !morningAssemblyMultiSelectMode;
+  if (!morningAssemblyMultiSelectMode) morningAssemblyMultiSelected.clear();
+  const button = document.getElementById('morningAssemblyMultiSelectToggle');
+  const bar = document.getElementById('morningAssemblyMultiSelectBar');
+  if (button) {
+    button.textContent = morningAssemblyMultiSelectMode ? 'إيقاف الاختيار' : 'اختر معاً';
+    button.classList.toggle('is-active',morningAssemblyMultiSelectMode);
+  }
+  bar?.classList.toggle('hidden',!morningAssemblyMultiSelectMode);
+  updateMorningAssemblyMultiCount();
+  renderMorningAssemblyStudents();
+  renderMorningAssemblySearch();
+}
+function toggleMorningAssemblyMultiSelection(className,name) {
+  if (!morningAssemblyMultiSelectMode || morningAssemblyLatenessToday.has(morningAssemblyStudentKey(className,name))) return;
+  const key = morningAssemblyStudentKey(className,name);
+  if (morningAssemblyMultiSelected.has(key)) morningAssemblyMultiSelected.delete(key);
+  else morningAssemblyMultiSelected.set(key,{className,studentName:name});
+  updateMorningAssemblyMultiCount();
+  renderMorningAssemblyStudents();
+  renderMorningAssemblySearch();
+}
+function updateMorningAssemblyMultiCount() {
+  const count = document.getElementById('morningAssemblyMultiSelectedCount');
+  if (count) count.textContent = 'تم تحديد ' + morningAssemblyMultiSelected.size + ' طالب';
+  const commit = document.getElementById('morningAssemblyMultiCommit');
+  if (commit) commit.disabled = morningAssemblyMultiSubmitting || morningAssemblyMultiSelected.size === 0;
+}
+function clearMorningAssemblyMultiSelection() {
+  morningAssemblyMultiSelected.clear();
+  updateMorningAssemblyMultiCount();
+  renderMorningAssemblyStudents();
+  renderMorningAssemblySearch();
+}
+async function commitMorningAssemblyMultiSelection() {
+  if (morningAssemblyMultiSubmitting || !morningAssemblyMultiSelected.size) return;
+  if (!canUseMorningAssemblyLateness() || !morningAssemblyLatenessTodayLoaded) {
+    showToast('تعذر الرصد الجماعي: تحقق من صلاحية التسجيل واكتمال تحميل سجلات اليوم.','error');
+    return;
+  }
+  morningAssemblyMultiSubmitting = true;
+  updateMorningAssemblyMultiCount();
+  const selected = Array.from(morningAssemblyMultiSelected.values());
+  let completed = 0;
+  try {
+    for (const item of selected) {
+      await callMorningAssemblyLatenessApi({action:'toggle',class_name:item.className,student_name:item.studentName});
+      morningAssemblyLatenessToday.add(morningAssemblyStudentKey(item.className,item.studentName));
+      completed++;
+    }
+    morningAssemblyMultiSelected.clear();
+    morningAssemblyMultiSelectMode = false;
+    document.getElementById('morningAssemblyMultiSelectBar')?.classList.add('hidden');
+    const toggle = document.getElementById('morningAssemblyMultiSelectToggle');
+    if (toggle) toggle.textContent = 'اختر معاً';
+    showToast('تم تسجيل التأخر لـ ' + completed + ' طالب بنجاح.','success');
+  } catch (error) {
+    showToast('تم تنفيذ ' + completed + ' من ' + selected.length + ' عملية؛ جارٍ مطابقة الحالة مع السجل المعتمد. ' + (error.message || ''),'error');
+    await loadMorningAssemblyLatenessToday();
+  } finally {
+    morningAssemblyMultiSubmitting = false;
+    updateMorningAssemblyMultiCount();
+    renderMorningAssemblyStudents();
+    renderMorningAssemblySearch();
+  }
+}
+
 function renderMorningAssemblySearch() {
   const target = document.getElementById('morningAssemblySearchResults'); if (!target) return;
   const query = document.getElementById('morningAssemblySearch')?.value || '';
