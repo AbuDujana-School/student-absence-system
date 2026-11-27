@@ -107,7 +107,7 @@ async function handle(req:Request) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
-    if (!/^[0-9]{4}\\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
+    if (!/^[0-9]{4}\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
     const fromDate = String(body?.from_date || "");
     const toDate = String(body?.to_date || "");
     const hasDateRange = Boolean(fromDate || toDate);
