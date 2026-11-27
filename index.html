@@ -9030,7 +9030,7 @@ function setMorningAssemblyStudentButtonState(button,name,className) {
 function createMorningAssemblyStudentButton(name,className) {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-fuchsia-300 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/30 p-3 text-right transition-all active:scale-[.99]';
+  btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-[#354c63]/15 bg-white/80 dark:bg-[#2b4157]/75 hover:border-[#5b6ee1] hover:bg-[#eef3f8] dark:hover:bg-[#354c63] p-3 text-right transition-all active:scale-[.99]';
   setMorningAssemblyStudentButtonState(btn,name,className);
   btn.onclick = () => morningAssemblyMultiSelectMode ? toggleMorningAssemblyMultiSelection(className,name) : recordMorningAssemblyLateness(className,name,btn);
   return btn;
@@ -9113,7 +9113,7 @@ function renderMorningAssemblySearch() {
     if (score > 0) matches.push({name,className,score});
   }));
   matches.sort((a,b) => b.score-a.score || String(a.name).localeCompare(String(b.name),'ar'));
-  target.innerHTML = '<div class="text-[10px] font-black text-violet-700 dark:text-violet-300 px-1">نتائج البحث (' + matches.length + ')</div>';
+  target.innerHTML = '<div class="text-[10px] font-black text-[#354c63] dark:text-slate-200 px-1">نتائج البحث (' + matches.length + ')</div>';
   if (!matches.length) { target.innerHTML += '<div class="text-center text-xs text-slate-400 py-4">لا توجد نتائج مطابقة</div>'; return; }
   matches.slice(0,30).forEach(item => target.appendChild(createMorningAssemblyStudentButton(item.name,item.className)));
 }
@@ -16490,6 +16490,7 @@ s.textContent+="\n#adminRecordsCenterModal .arc-report-grid-lux{display:grid;gri
 #morningAssemblyLatenessView .morning-lateness-row.tier-red{background:#fee2e2!important;color:#7f1d1d!important}
 #morningAssemblyLatenessView .morning-lateness-row.tier-yellow{background:#fef3c7!important;color:#713f12!important}
 #morningAssemblyLatenessView .morning-lateness-row.tier-white{background:#fff!important;color:#24384c!important}
+#adminRecordsCenterModal .arc-head{background:linear-gradient(125deg,#354c63,#475569 58%,#5b6ee1)!important}
 #adminRecordsCenterModal .arc-reports-hero{background:linear-gradient(125deg,#354c63,#475569 58%,#5b6ee1)!important}
 #adminRecordsCenterModal .arc-report-date-backdrop{background:rgba(36,56,76,.66)!important}
 #adminRecordsCenterModal .arc-report-date-dialog{background:#f7fafe;border-color:rgba(200,157,76,.48)}
@@ -16497,6 +16498,21 @@ s.textContent+="\n#adminRecordsCenterModal .arc-report-grid-lux{display:grid;gri
 #adminRecordsCenterModal .arc-report-filters button.is-active{background:#354c63!important}
 #adminRecordsCenterModal .arc-report-card{background:linear-gradient(155deg,#fff,#f0f5f9)!important}
 #adminRecordsCenterModal .arc-report-card>strong{color:#24384c!important}
+.dark #adminRecordsCenterModal .arc-report-card{background:linear-gradient(155deg,rgba(53,76,99,.96),rgba(36,56,76,.96))!important;border-color:rgba(200,157,76,.22)!important}
+.dark #adminRecordsCenterModal .arc-report-card>strong{color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-description{color:#d0dce7!important}
+.dark #adminRecordsCenterModal .arc-report-toolbar{background:rgba(43,65,87,.86)!important;border-color:rgba(200,157,76,.2)!important}
+.dark #adminRecordsCenterModal .arc-report-search{background:rgba(31,48,66,.92)!important;color:#dbe7f1!important}
+.dark #adminRecordsCenterModal .arc-report-search input{color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-filters button{background:#354c63!important;color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-filters button.is-active{background:#6d5dfc!important;color:#fff!important}
+.dark #adminRecordsCenterModal .arc-report-date-dialog{background:#2b4157!important;border-color:rgba(200,157,76,.35)!important;color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-date-dialog>header{color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-date-fields label{color:#eef4fa!important}
+.dark #adminRecordsCenterModal .arc-report-date-fields input{background:#1f3042!important;color:#eef4fa!important;border-color:#647b91!important}
+#morningAssemblyLatenessView #morningAssemblyMultiSelectToggle.is-active{background:#354c63!important;color:#fff!important;border-color:#354c63!important}
+#morningAssemblyLatenessView #morningAssemblyMultiCommit:disabled{opacity:.45;cursor:not-allowed}
+#morningAssemblyLatenessView #morningAssemblyLatenessReportPanel h3 i{color:#c89d4c!important}
 #adminRecordsCenterModal .arc-report-card-foot{color:#475569!important}
 @media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px}}
 `;
@@ -16522,6 +16538,7 @@ function reportCatalog(){return [
 {key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
 
 {key:'late',title:'متابعة التأخر عن الحصص',desc:'كشف حالات التأخر بين الحصص من السجلات الفعلية.',category:'students',label:'شؤون الطلاب',icon:'fa-clock',tone:'#0284c7',allowed:rep('reportClassLatenessFollowup')},
+{key:'morning',title:'تقرير التأخر عن الطابور الصباحي',desc:'كشف التأخر التراكمي ضمن الفترة المختارة وفق سجل الطابور المعتمد.',category:'students',label:'شؤون الطلاب',icon:'fa-person-circle-exclamation',tone:'#5b6ee1',allowed:rep('reportMorningAssemblyLateness')},
 {key:'reserve',title:'توزيع حصص الاحتياط',desc:'سجل التوزيعات وتغطية الغياب وفق قالب الاحتياط الأصلي.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-arrows-rotate',tone:'#168c85',allowed:rep('reportSubstitutionDistribution')},
 {key:'sa',title:'تقارير شؤون الطلبة',desc:'تقارير الغياب والسلوك وفق الصفوف والصلاحيات المسندة.',category:'students',label:'شؤون الطلاب',icon:'fa-people-group',tone:'#475569',allowed:rep('reportStudentAffairs')},
 {key:'teachers',title:'نشاط المعلمين',desc:'ملخص نشاط الرصد للمعلمين خلال الفترة المختارة.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-chart-column',tone:'#b88932',allowed:tab('teachers')}
