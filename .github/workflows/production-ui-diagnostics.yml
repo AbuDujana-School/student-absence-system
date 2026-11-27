@@ -1,6 +1,11 @@
 name: Production login visual diagnostics
 
 on:
+  push:
+    branches: [diagnostics/ui-style-regression-20261127]
+    paths:
+      - ".github/workflows/production-ui-diagnostics.yml"
+      - "tests/production-ui-diagnostics.cjs"
   pull_request:
     branches: [main]
     paths:
