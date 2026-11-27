@@ -2220,6 +2220,16 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyLatenessView.ma-dusk .border-fuchsia-100,#morningAssemblyLatenessView.ma-dusk .border-fuchsia-200,#morningAssemblyLatenessView.ma-dusk .border-violet-100,#morningAssemblyLatenessView.ma-dusk .border-rose-200,#morningAssemblyLatenessView.ma-dusk .border-amber-200{border-color:#52677d!important}
 #morningAssemblyLatenessView.ma-dusk #morningAssemblyStudentsList button{background:#263b50!important;border-color:#52677d!important;color:#e2e8f0!important}
 #morningAssemblyLatenessView.ma-dusk #morningAssemblySearchResults button{background:#263b50!important;border-color:#52677d!important;color:#e2e8f0!important}
+
+/* Calm slate/navy school header shared with the morning assembly workspace */
+body>header{background:linear-gradient(115deg,#354c63 0%,#24384c 58%,#2b4157 100%)!important;border-color:rgba(148,163,184,.22)!important}
+body>header [class*="bg-emerald-"]{background:rgba(255,255,255,.1)!important;color:#e2e8f0!important;border-color:rgba(255,255,255,.17)!important}
+body>header [class*="text-emerald-"]{color:#dbe5ef!important}
+body>header [class*="bg-blue-800"],body>header [class*="bg-cyan-800"]{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important}
+body>header [class*="text-blue-"],body>header [class*="text-cyan-"]{color:#dbe5ef!important}
+/* Keep class tiles compact on phones and breathable on larger screens */
+@media(min-width:640px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1024px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
