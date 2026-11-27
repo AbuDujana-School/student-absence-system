@@ -3837,59 +3837,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
       </section>
 
-      <div id="sec-studstats" class="hidden" style="display:none!important" aria-hidden="true"></div><div id="advancedAnalyticsParking" class="hidden" aria-hidden="true"><section id="advancedAnalyticsSection" class="space-y-6 mb-8 trend-observatory" dir="rtl" data-theme="light">
-  <div class="trend-hero">
-    <div class="trend-hero-orb trend-orb-a"></div><div class="trend-hero-orb trend-orb-b"></div>
-    <div class="relative z-10 flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
-      <div class="max-w-2xl">
-        <div class="trend-eyebrow"><span class="trend-live-dot"></span> مرصد القيادة المدرسية · قراءة يومية للاتجاهات</div>
-        <h2 class="trend-main-title">مرآة الإحصائيات <span>ومرصد الاتجاهات</span></h2>
-        <p class="trend-hero-copy">صورة تحليلية متجددة تكشف مسار الانضباط، والسلوك، والطابور، ونشاط الكادر، مع مؤشر مساعد لضغط الاحتياط من واقع السجلات الفعلية.</p>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="trend-mode-switch" role="group" aria-label="مظهر المرصد">
-          <button type="button" data-trend-theme="light" aria-pressed="true" onclick="setAdvancedAnalyticsTheme('light')">☀️ نور الصباح الهادئ</button>
-          <button type="button" data-trend-theme="dark" aria-pressed="false" onclick="setAdvancedAnalyticsTheme('dark')">🌙 ضباب الغسق الهادئ</button>
-        </div>
-        <div class="trend-date-control">
-          <label for="analyticsStartDate">من</label><input type="date" id="analyticsStartDate">
-          <label for="analyticsEndDate">إلى</label><input type="date" id="analyticsEndDate">
-          <button type="button" onclick="applyAdvancedAnalyticsDateFilter()">تحديث المرصد <i class="fa-solid fa-arrows-rotate"></i></button>
-        </div>
-      </div>
-    </div>
-    <div class="trend-hero-foot"><span><i class="fa-solid fa-calendar-check"></i> أيام الدراسة فقط · الأحد إلى الخميس</span><span><i class="fa-solid fa-shield-halved"></i> مؤشرات من السجلات المعتمدة والصلاحيات الحالية</span></div>
-  </div>
-  <div class="trend-section-heading"><div><span class="trend-section-kicker">لوحة المؤشرات الأربعة</span><h3>اتجاهات اليوم الدراسي</h3></div><span class="trend-period-chip" id="advancedAnalyticsDataNote">تُعرض البيانات المسجلة فعلياً فقط.</span></div>
-  <div class="trend-chart-grid">
-    <article class="trend-chart-card trend-chart-feature">
-      <div class="trend-card-head"><div class="trend-icon trend-icon-absence"><i class="fa-solid fa-scale-balanced"></i></div><div class="min-w-0"><span class="trend-index">01 · الطلاب</span><h4>الانضباط في الحضور والغياب</h4><p>مقارنة الغياب والتسرب يومياً دون إدخال التأخر أو الخروج</p></div><span id="analyticsAttendanceTrend" class="trend-direction">—</span></div>
-      <div class="trend-legend"><span><i class="trend-dot dot-absence"></i> الغياب</span><span><i class="trend-dot dot-escape"></i> التسرب</span></div>
-      <div class="trend-chart-canvas"><canvas id="analyticsAttendanceChart"></canvas></div>
-      <p class="trend-chart-note">يُحتسب الطالب مرة واحدة لكل حالة في اليوم، حتى لو تكرر تسجيله في حصص متعددة.</p>
-    </article>
-    <article class="trend-chart-card">
-      <div class="trend-card-head"><div class="trend-icon trend-icon-behavior"><i class="fa-solid fa-brain"></i></div><div class="min-w-0"><span class="trend-index">02 · الطلاب</span><h4>نبض السلوكيات</h4><p>المجمل اليومي للسلوكيات المسجلة واتجاه ارتفاعها أو انخفاضها</p></div><span id="analyticsBehaviorTrend" class="trend-direction">—</span></div>
-      <div class="trend-chart-canvas"><canvas id="analyticsBehaviorChart"></canvas></div>
-      <p class="trend-chart-note">إجمالي السجلات السلوكية غير الطبيعية يومياً دون تقسيم الأنواع الفرعية.</p>
-    </article>
-    <article class="trend-chart-card">
-      <div class="trend-card-head"><div class="trend-icon trend-icon-morning"><i class="fa-solid fa-sun"></i></div><div class="min-w-0"><span class="trend-index">03 · الطلاب</span><h4>مؤشر تأخر الطابور الصباحي</h4><p>تغير عدد حالات التأخر المسجلة عبر أيام الدراسة</p></div><span id="analyticsMorningTrend" class="trend-direction">—</span></div>
-      <div class="trend-chart-canvas"><canvas id="analyticsGradeChart"></canvas></div>
-      <p id="analyticsGradeDataNote" class="trend-chart-note">يرتبط بسجل الطابور الصباحي، وتُحترم صلاحية الاطلاع على تقريره.</p>
-    </article>
-    <article class="trend-chart-card">
-      <div class="trend-card-head"><div class="trend-icon trend-icon-teacher"><i class="fa-solid fa-chalkboard-user"></i></div><div class="min-w-0"><span class="trend-index">04 · المعلمون</span><h4>مؤشر تفاعل المعلمين</h4><p>حجم حصص الرصد المسجلة في الحضور والسلوكيات</p></div><span id="analyticsTeacherTrend" class="trend-direction">—</span></div>
-      <div class="trend-chart-canvas"><canvas id="analyticsTeacherChart"></canvas></div>
-      <p class="trend-chart-note">يقيس جلسات الرصد الفعلية، وليس مجرد عدد مرات تسجيل الدخول.</p>
-    </article>
-  </div>
-  <section class="trend-reserve-kpi" aria-label="مؤشر مساعد لضغط الاحتياط">
-    <div class="trend-reserve-kpi-icon"><i class="fa-solid fa-people-arrows-left-right"></i></div>
-    <div class="trend-reserve-kpi-copy"><span>مؤشر مساعد · ضغط الاحتياط على المعلمين</span><strong id="analyticsReserveTotal">—</strong><p id="analyticsReserveDataNote">يُحتسب التكليف الفعلي فقط؛ وتُستبعد حالات الغياب التي لا تنتج عنها حصص احتياط.</p></div>
-    <span id="analyticsReserveTrend" class="trend-direction">بانتظار البيانات</span>
-  </section>
-  <div class="trend-footnote"><i class="fa-solid fa-circle-info"></i><span>الارتفاع والانخفاض يعكسان حجم الحالات المسجلة خلال الفترة، ولا يُفسّران سبب الحالة. عند غياب صلاحية مصدر معيّن، يُعرض تنبيه بدلاً من إظهار قيمة تقديرية.</span></div>
+      
 </section></div>
 
       <div id="sec-behaviorstats" class="hidden space-y-6">
@@ -17144,5 +17092,60 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 @media(max-width:390px){#adminRecordsCenterModal .arc-pulse-grid{grid-template-columns:1fr}#adminRecordsCenterModal .arc-pulse-card button{min-height:185px}}
 @media(prefers-reduced-motion:reduce){#adminRecordsCenterModal .arc-pulse-card{transition:none}#adminRecordsCenterModal .arc-pulse-card:hover{transform:none}}
 </style>
+
+<!-- The executive observatory is hosted outside the control-panel tabs and mounted only inside the administrative center. -->
+<div id="advancedAnalyticsParking" class="hidden" aria-hidden="true"><section id="advancedAnalyticsSection" class="space-y-6 mb-8 trend-observatory" dir="rtl" data-theme="light">
+  <div class="trend-hero">
+    <div class="trend-hero-orb trend-orb-a"></div><div class="trend-hero-orb trend-orb-b"></div>
+    <div class="relative z-10 flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+      <div class="max-w-2xl">
+        <div class="trend-eyebrow"><span class="trend-live-dot"></span> مرصد القيادة المدرسية · قراءة يومية للاتجاهات</div>
+        <h2 class="trend-main-title">مرآة الإحصائيات <span>ومرصد الاتجاهات</span></h2>
+        <p class="trend-hero-copy">صورة تحليلية متجددة تكشف مسار الانضباط، والسلوك، والطابور، ونشاط الكادر، مع مؤشر مساعد لضغط الاحتياط من واقع السجلات الفعلية.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="trend-mode-switch" role="group" aria-label="مظهر المرصد">
+          <button type="button" data-trend-theme="light" aria-pressed="true" onclick="setAdvancedAnalyticsTheme('light')">☀️ نور الصباح الهادئ</button>
+          <button type="button" data-trend-theme="dark" aria-pressed="false" onclick="setAdvancedAnalyticsTheme('dark')">🌙 ضباب الغسق الهادئ</button>
+        </div>
+        <div class="trend-date-control">
+          <label for="analyticsStartDate">من</label><input type="date" id="analyticsStartDate">
+          <label for="analyticsEndDate">إلى</label><input type="date" id="analyticsEndDate">
+          <button type="button" onclick="applyAdvancedAnalyticsDateFilter()">تحديث المرصد <i class="fa-solid fa-arrows-rotate"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="trend-hero-foot"><span><i class="fa-solid fa-calendar-check"></i> أيام الدراسة فقط · الأحد إلى الخميس</span><span><i class="fa-solid fa-shield-halved"></i> مؤشرات من السجلات المعتمدة والصلاحيات الحالية</span></div>
+  </div>
+  <div class="trend-section-heading"><div><span class="trend-section-kicker">لوحة المؤشرات الأربعة</span><h3>اتجاهات اليوم الدراسي</h3></div><span class="trend-period-chip" id="advancedAnalyticsDataNote">تُعرض البيانات المسجلة فعلياً فقط.</span></div>
+  <div class="trend-chart-grid">
+    <article class="trend-chart-card trend-chart-feature">
+      <div class="trend-card-head"><div class="trend-icon trend-icon-absence"><i class="fa-solid fa-scale-balanced"></i></div><div class="min-w-0"><span class="trend-index">01 · الطلاب</span><h4>الانضباط في الحضور والغياب</h4><p>مقارنة الغياب والتسرب يومياً دون إدخال التأخر أو الخروج</p></div><span id="analyticsAttendanceTrend" class="trend-direction">—</span></div>
+      <div class="trend-legend"><span><i class="trend-dot dot-absence"></i> الغياب</span><span><i class="trend-dot dot-escape"></i> التسرب</span></div>
+      <div class="trend-chart-canvas"><canvas id="analyticsAttendanceChart"></canvas></div>
+      <p class="trend-chart-note">يُحتسب الطالب مرة واحدة لكل حالة في اليوم، حتى لو تكرر تسجيله في حصص متعددة.</p>
+    </article>
+    <article class="trend-chart-card">
+      <div class="trend-card-head"><div class="trend-icon trend-icon-behavior"><i class="fa-solid fa-brain"></i></div><div class="min-w-0"><span class="trend-index">02 · الطلاب</span><h4>نبض السلوكيات</h4><p>المجمل اليومي للسلوكيات المسجلة واتجاه ارتفاعها أو انخفاضها</p></div><span id="analyticsBehaviorTrend" class="trend-direction">—</span></div>
+      <div class="trend-chart-canvas"><canvas id="analyticsBehaviorChart"></canvas></div>
+      <p class="trend-chart-note">إجمالي السجلات السلوكية غير الطبيعية يومياً دون تقسيم الأنواع الفرعية.</p>
+    </article>
+    <article class="trend-chart-card">
+      <div class="trend-card-head"><div class="trend-icon trend-icon-morning"><i class="fa-solid fa-sun"></i></div><div class="min-w-0"><span class="trend-index">03 · الطلاب</span><h4>مؤشر تأخر الطابور الصباحي</h4><p>تغير عدد حالات التأخر المسجلة عبر أيام الدراسة</p></div><span id="analyticsMorningTrend" class="trend-direction">—</span></div>
+      <div class="trend-chart-canvas"><canvas id="analyticsGradeChart"></canvas></div>
+      <p id="analyticsGradeDataNote" class="trend-chart-note">يرتبط بسجل الطابور الصباحي، وتُحترم صلاحية الاطلاع على تقريره.</p>
+    </article>
+    <article class="trend-chart-card">
+      <div class="trend-card-head"><div class="trend-icon trend-icon-teacher"><i class="fa-solid fa-chalkboard-user"></i></div><div class="min-w-0"><span class="trend-index">04 · المعلمون</span><h4>مؤشر تفاعل المعلمين</h4><p>حجم حصص الرصد المسجلة في الحضور والسلوكيات</p></div><span id="analyticsTeacherTrend" class="trend-direction">—</span></div>
+      <div class="trend-chart-canvas"><canvas id="analyticsTeacherChart"></canvas></div>
+      <p class="trend-chart-note">يقيس جلسات الرصد الفعلية، وليس مجرد عدد مرات تسجيل الدخول.</p>
+    </article>
+  </div>
+  <section class="trend-reserve-kpi" aria-label="مؤشر مساعد لضغط الاحتياط">
+    <div class="trend-reserve-kpi-icon"><i class="fa-solid fa-people-arrows-left-right"></i></div>
+    <div class="trend-reserve-kpi-copy"><span>مؤشر مساعد · ضغط الاحتياط على المعلمين</span><strong id="analyticsReserveTotal">—</strong><p id="analyticsReserveDataNote">يُحتسب التكليف الفعلي فقط؛ وتُستبعد حالات الغياب التي لا تنتج عنها حصص احتياط.</p></div>
+    <span id="analyticsReserveTrend" class="trend-direction">بانتظار البيانات</span>
+  </section>
+  <div class="trend-footnote"><i class="fa-solid fa-circle-info"></i><span>الارتفاع والانخفاض يعكسان حجم الحالات المسجلة خلال الفترة، ولا يُفسّران سبب الحالة. عند غياب صلاحية مصدر معيّن، يُعرض تنبيه بدلاً من إظهار قيمة تقديرية.</span></div>
 </body>
 </html>
