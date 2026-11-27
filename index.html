@@ -11,10 +11,16 @@ body.login-mode{min-height:100dvh;background:#04121f!important;overflow:hidden}
 body.login-mode>header{display:none!important}
 body.login-mode>main{display:grid;place-items:center;align-content:center;width:100%!important;height:100dvh;min-height:100svh;min-height:100dvh;margin:0!important;padding:max(4px,env(safe-area-inset-top)) 8px max(4px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:hidden}
 </style>
+<script>tailwind.config = { darkMode: 'class' }</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#04121f">
 <meta name="app-build" content="2026-11-27-direct-pin-login-3">
 <title>مدرسة ابو دجانة</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./timetable-pdf-import.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 
 
@@ -4573,12 +4579,12 @@ function saSwitchMainSection(secNumber){
 }
 </script>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="./timetable-pdf-import.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>tailwind.config = { darkMode: 'class' }</script>
+
+
+
+
+
+
 <script>
 /* ============ Supabase & Crypto config ============ */
 // Cloudflare branch previews must never point at the live school database.
