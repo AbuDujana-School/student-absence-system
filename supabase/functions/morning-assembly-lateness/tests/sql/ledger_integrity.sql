@@ -18,8 +18,14 @@ BEGIN
      OR NOT has_table_privilege('service_role', 'public.morning_assembly_lateness', 'INSERT')
      OR has_table_privilege('service_role', 'public.morning_assembly_lateness', 'UPDATE')
      OR has_table_privilege('service_role', 'public.morning_assembly_lateness', 'DELETE')
-     OR has_table_privilege('service_role', 'public.morning_assembly_lateness', 'TRUNCATE') THEN
-    RAISE EXCEPTION 'lateness ledger is not append-only for service_role';
+     OR has_table_privilege('service_role', 'public.morning_assembly_lateness', 'TRUNCATE')
+     OR NOT has_column_privilege('service_role', 'public.morning_assembly_lateness', 'cancelled_at', 'UPDATE')
+     OR NOT has_column_privilege('service_role', 'public.morning_assembly_lateness', 'cancelled_by', 'UPDATE')
+     OR NOT has_column_privilege('service_role', 'public.morning_assembly_lateness', 'cancelled_by_type', 'UPDATE')
+     OR has_column_privilege('service_role', 'public.morning_assembly_lateness', 'student_id', 'UPDATE')
+     OR has_column_privilege('service_role', 'public.morning_assembly_lateness', 'late_date', 'UPDATE')
+     OR has_column_privilege('service_role', 'public.morning_assembly_lateness', 'student_name_snapshot', 'UPDATE') THEN
+    RAISE EXCEPTION 'lateness ledger cancellation metadata permissions are not narrowly scoped';
   END IF;
 
   IF NOT EXISTS (
@@ -59,6 +65,24 @@ BEGIN
   END;
   IF NOT v_duplicate_blocked THEN
     RAISE EXCEPTION 'duplicate student/day record was not blocked';
+  END IF;
+
+  -- Cancellation is an audited metadata update; the original event remains immutable.
+  UPDATE public.morning_assembly_lateness
+  SET cancelled_at = now(), cancelled_by = 'Synthetic Test', cancelled_by_type = 'admin'
+  WHERE student_id = 987654321 AND late_date = DATE '2026-11-18' AND cancelled_at IS NULL;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'active lateness record could not be cancelled';
+  END IF;
+
+  INSERT INTO public.morning_assembly_lateness
+    (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
+  VALUES
+    (987654321, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2027');
+
+  IF (SELECT count(*) FROM public.morning_assembly_lateness WHERE student_id = 987654321 AND late_date = DATE '2026-11-18') <> 2
+     OR (SELECT count(*) FROM public.morning_assembly_lateness WHERE student_id = 987654321 AND late_date = DATE '2026-11-18' AND cancelled_at IS NULL) <> 1 THEN
+    RAISE EXCEPTION 're-recording after audited cancellation did not preserve history and one active record';
   END IF;
 
   BEGIN
