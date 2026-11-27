@@ -66,3 +66,14 @@ test("shared calm-glass theme keeps dusk contrast readable and avoids pure black
   assert.match(styles, /overflow-x:auto/);
   assert.match(styles, /min-width:720px/);
 });
+
+test("morning assembly exposes explicit local calm-light and calm-dusk controls", () => {
+  assert.match(portal, /function installMorningAssemblyThemeControls\(\)/);
+  assert.match(portal, /data-ma-theme="light"/);
+  assert.match(portal, /data-ma-theme="dusk"/);
+  assert.match(portal, /applyTheme\('light'\)/);
+  assert.match(styles, /#morningAssemblyLatenessView\.ma-theme-light/);
+  assert.match(styles, /#morningAssemblyLatenessView\.ma-theme-dusk/);
+  assert.match(styles, /نور الصباح الهادئ/);
+  assert.match(styles, /ضباب الغسق الهادئ/);
+});
