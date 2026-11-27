@@ -2457,6 +2457,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyLatenessView.ma-dusk .ma-grade-today-count{background:rgba(200,157,76,.2);color:#f3dfb5}
 </style>
 
+<style id="admin-observatory-single-home">#dashboardMetricsSection,#dashboardUrgentSection{display:none!important}</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -13100,7 +13101,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 
 
-<style id="admin-observatory-single-home">#dashboardMetricsSection,#dashboardUrgentSection{display:none!important}</style>
+
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
