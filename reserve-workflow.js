@@ -2588,10 +2588,13 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     // This mount is reserved for the canonical editor and archive cards only.
     // Legacy administration/reset panels are intentionally not created or moved here.
     function mountCanonicalPanel(){
-      const panel=$("timetableSubstitutionPanel");
+      // The unified workspace is rendered inside #substitutionView. The legacy
+      // #timetableSubstitutionPanel is no longer part of index.html and must
+      // never be a prerequisite for opening the canonical editor/archive.
+      const editHost=$("subxEditMountArea");
       const archiveHost=$("subxArchiveMountArea");
-      if(!panel||!$("subxEditMountArea")||!archiveHost)return false;
-      panel.classList.add("hidden");
+      if(!root||!editHost||!archiveHost)return false;
+      $("timetableSubstitutionPanel")?.classList.add("hidden");
       $("timetableDailyActivePanel")?.classList.add("hidden");
       $("timetableDailyArchivePanel")?.classList.add("hidden");
       return true;
