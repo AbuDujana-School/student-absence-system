@@ -19,7 +19,7 @@ test("canonical reserve workspace does not require the removed legacy timetable 
 
 test("the current unified reserve screen provides the canonical editor and archive hosts", () => {
   assert.match(html, /<section id="substitutionView"/);
-  assert.match(html, /id='subxEditMountArea'/);
+  assert.match(html, /id="subxEditMountArea"/);
   assert.match(html, /id="subxArchiveMountArea"/);
   assert.doesNotMatch(html, /id="timetableSubstitutionPanel"/);
 });
