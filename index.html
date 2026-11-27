@@ -2126,6 +2126,31 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="morning-assembly-calm-glass-overrides">
+#morningAssemblyLatenessView{--ma-slate:#354c63;--ma-slate-deep:#2b4157;--ma-indigo:#5b6ee1;--ma-gold:#c89d4c}
+#morningAssemblyLatenessView .glass-card,
+#morningAssemblyLatenessView>section{background:rgba(255,255,255,.78)!important;backdrop-filter:blur(18px) saturate(145%)!important;-webkit-backdrop-filter:blur(18px) saturate(145%)!important;border-color:rgba(53,76,99,.18)!important;box-shadow:0 14px 34px -18px rgba(36,56,76,.22)!important}
+.dark #morningAssemblyLatenessView .glass-card,.dark #morningAssemblyLatenessView>section{background:rgba(46,68,91,.82)!important;border-color:rgba(200,157,76,.22)!important}
+#morningAssemblyLatenessView .text-fuchsia-800,#morningAssemblyLatenessView .text-fuchsia-700,#morningAssemblyLatenessView .text-fuchsia-600{color:#475569!important}
+#morningAssemblyLatenessView .bg-fuchsia-700,#morningAssemblyLatenessView .hover\\:bg-fuchsia-800:hover{background:#354c63!important}
+#morningAssemblyLatenessView .bg-fuchsia-50,#morningAssemblyLatenessView .bg-violet-50{background:rgba(91,110,225,.09)!important}
+#morningAssemblyLatenessView .border-fuchsia-100,#morningAssemblyLatenessView .border-fuchsia-200,#morningAssemblyLatenessView .border-violet-100{border-color:rgba(53,76,99,.2)!important}
+#morningAssemblyLatenessView input{background:rgba(241,245,249,.92)!important;border-color:rgba(71,85,105,.25)!important;color:#1e293b!important}
+.dark #morningAssemblyLatenessView input{background:rgba(31,48,66,.9)!important;color:#eef4fa!important}
+#morningAssemblyLatenessView input:focus{border-color:#5b6ee1!important;box-shadow:0 0 0 3px rgba(91,110,225,.15)!important}
+#morningAssemblyLatenessView #morningAssemblyReportMeta>div>div{background:rgba(255,255,255,.72)!important;border-color:rgba(53,76,99,.18)!important}
+#morningAssemblyLatenessView #morningAssemblyReportMeta b{color:#2b4157!important}
+#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important;width:100%;table-layout:auto}
+#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:#2b4157!important;color:#fff!important;white-space:nowrap}
+#morningAssemblyLatenessView #morningAssemblyReportContainer td{white-space:normal;overflow-wrap:normal;word-break:normal}
+#morningAssemblyLatenessView .tier-black{background:#354c63!important;color:#fff!important}
+#morningAssemblyLatenessView .tier-black td{color:#fff!important}
+#morningAssemblyLatenessView .tier-red{background:#fee2e2!important;color:#991b1b!important}
+#morningAssemblyLatenessView .tier-yellow{background:#fef3c7!important;color:#713f12!important}
+#morningAssemblyLatenessView .tier-white{background:rgba(255,255,255,.94)!important;color:#24384c!important}
+#morningAssemblyGradeFilters button{min-width:62px}
+@media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important}#morningAssemblyLatenessView>section{padding:1rem!important}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -3106,7 +3131,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
     <section class="rounded-3xl border border-fuchsia-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
       <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700 text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-users"></i></div><div><h3 class="font-black text-slate-800 dark:text-white">اختر الصف</h3><p class="text-[11px] text-slate-500">تظهر الصفوف والطلاب من سجلات المدرسة الحالية</p></div></div>
-      <div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+      <div id="morningAssemblyGradeFilters" class="flex flex-wrap gap-2" aria-label="تصفية الصفوف"></div><div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
     </section>
     <section class="rounded-3xl border border-violet-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span></div>
@@ -8945,15 +8970,42 @@ function closeMorningAssemblyLateness() {
   document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
   refreshDutyDashboardCard();
 }
+let morningAssemblyGradeFilter = 'all';
 function renderMorningAssemblyClasses() {
   const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
+  const allClasses = sortClassesList(db.classes);
+  const gradeOf = value => {
+    const match = String(value || '').match(/(?:^|\\/)\\s*(9|10|11|12)\\s*$/);
+    return match ? match[1] : '';
+  };
+  const grades = ['all','9','10','11','12'];
+  const filters = document.getElementById('morningAssemblyGradeFilters');
+  if (filters) {
+    filters.innerHTML = grades.map(grade => {
+      const active = morningAssemblyGradeFilter === grade;
+      const label = grade === 'all' ? 'الكل' : 'الصف ' + grade;
+      return '<button type="button" data-morning-grade="' + grade + '" aria-pressed="' + active + '" class="rounded-xl border px-4 py-2 text-xs font-extrabold transition-all ' +
+        (active ? 'bg-[#354c63] text-white border-[#354c63] shadow-sm' : 'bg-white/80 dark:bg-slate-700/70 text-slate-700 dark:text-slate-100 border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1]') + '">' + label + '</button>';
+    }).join('');
+    filters.querySelectorAll('[data-morning-grade]').forEach(button => {
+      button.addEventListener('click', () => {
+        morningAssemblyGradeFilter = button.dataset.morningGrade || 'all';
+        renderMorningAssemblyClasses();
+      });
+    });
+  }
+  const visibleClasses = morningAssemblyGradeFilter === 'all'
+    ? allClasses
+    : allClasses.filter(className => gradeOf(className) === morningAssemblyGradeFilter);
   grid.innerHTML = '';
-  sortClassesList(db.classes).forEach(className => {
+  visibleClasses.forEach(className => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'rounded-2xl border p-3 text-center font-black text-sm transition-all ' +
-      (morningAssemblySelectedClass === className ? 'bg-fuchsia-700 text-white border-fuchsia-700 shadow-lg' : 'bg-fuchsia-50 dark:bg-slate-800 text-slate-800 dark:text-white border-fuchsia-100 dark:border-slate-700 hover:border-fuchsia-400');
-    btn.innerHTML = '<span class="block text-[10px] opacity-70 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
+      (morningAssemblySelectedClass === className
+        ? 'bg-[#354c63] text-white border-[#354c63] shadow-lg'
+        : 'bg-white/85 dark:bg-slate-700/80 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1] hover:bg-indigo-50/70 dark:hover:bg-slate-600');
+    btn.innerHTML = '<span class="block text-[10px] opacity-75 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
     btn.onclick = () => { morningAssemblySelectedClass = className; renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); };
     grid.appendChild(btn);
   });
