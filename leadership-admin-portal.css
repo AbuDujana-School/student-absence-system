@@ -619,3 +619,32 @@ body.dark #morningAssemblyLatenessView .ma-report-count {
     font-size:10px;
   }
 }
+
+
+#morningAssemblyLatenessView .ma-today-summary {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  width:max-content;
+  max-width:100%;
+  margin:10px 0 12px;
+  padding:8px 13px;
+  border:1px solid rgba(200,157,76,.36);
+  border-radius:999px;
+  background:rgba(200,157,76,.14);
+  color:#715522;
+  font-size:11px;
+  font-weight:900;
+}
+#morningAssemblyLatenessView .ma-today-summary strong {
+  color:#354c63;
+  font-size:14px;
+  font-variant-numeric:tabular-nums;
+}
+body.dark #morningAssemblyLatenessView .ma-today-summary {
+  color:#f1d69b;
+  background:rgba(200,157,76,.16);
+  border-color:rgba(200,157,76,.3);
+}
+body.dark #morningAssemblyLatenessView .ma-today-summary strong { color:#f8fafc; }
