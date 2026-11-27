@@ -978,12 +978,10 @@
       sectionFor('morningAssemblyStudentsList'),
       sectionFor('morningAssemblySearchResults')
     ]);
-    const reportRefresh = view.querySelector('[onclick*="loadMorningAssemblyLatenessReport"]');
     const reportSections = unique([
       sectionFor('morningAssemblyReportYear'),
       sectionFor('morningAssemblyReportMeta'),
-      sectionFor('morningAssemblyReportContainer'),
-      reportRefresh && (reportRefresh.closest('section') || reportRefresh.parentElement)
+      sectionFor('morningAssemblyReportContainer')
     ]);
 
     if (classSection && studentSection && classSection !== studentSection &&
