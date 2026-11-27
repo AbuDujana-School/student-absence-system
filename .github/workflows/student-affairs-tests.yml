@@ -27,6 +27,7 @@ on:
       - "test/app-data-gateway-handler-20261119"
     paths:
       - "supabase/functions/student-affairs/**"
+      - "supabase/functions/morning-assembly-lateness/**"
       - "supabase/functions/timetable-management/**"
       - "supabase/migrations/**"
       - "supabase/config.toml"
