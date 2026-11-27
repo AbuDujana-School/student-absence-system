@@ -10,7 +10,7 @@ const logo = readFileSync(new URL('../logo.png', import.meta.url));
 test('installed PWA checks for a fresh service worker immediately on startup', () => {
   const appBuildVersion = html.match(/<meta name="app-build" content="([^"]+)"/)?.[1];
   assert.ok(appBuildVersion, "index.html must declare an app build marker");
-  const workerRegistration = html.match(/navigator\.serviceWorker\.register\("([^"]+)",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
+  const workerRegistration = html.match(/workerContainer\.register\("([^"]+)",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
   assert.ok(workerRegistration, "service worker must register without browser cache");
   const appBuildVersionForWorker = appBuildVersion.replace(/^(\d{4})-(\d{2})-(\d{2})-/, "$1$2$3-");
   assert.equal(new URL(workerRegistration[1], "https://school.example/").searchParams.get("v"), appBuildVersionForWorker);
