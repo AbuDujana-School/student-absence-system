@@ -7473,7 +7473,8 @@ function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_d
 function toggleDarkMode() { const isDark = document.documentElement.classList.toggle('dark'); try { localStorage.setItem('abuDujana_darkMode', isDark); } catch(e) {} document.getElementById('darkModeIcon').className = isDark ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm'; }
 function setCurrentDate() {
   const today = getOmanLocalDate();
-  document.getElementById('currentDateDisplay').textContent = 'تاريخ اليوم: ' + today;
+  const currentDateDisplay = document.getElementById('currentDateDisplay');
+  if (currentDateDisplay) currentDateDisplay.textContent = 'تاريخ اليوم: ' + today;
   const rdp = document.getElementById('reportDatePicker'); if (rdp) rdp.value = today;
   const brdp = document.getElementById('behaviorReportDatePicker'); if (brdp) brdp.value = today;
   const asdl = document.getElementById('activeSessionDateLabel'); if (asdl) asdl.textContent = today;
