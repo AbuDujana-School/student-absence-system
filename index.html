@@ -8945,6 +8945,8 @@ function refreshMorningAssemblyLatenessCard() {
   if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
 }
 function openMorningAssemblyLateness() {
+  morningAssemblyBulkMode = false; morningAssemblyBulkSelection.clear();
+  document.getElementById('morningAssemblyBulkBar')?.classList.add('hidden');
   const canRecord = canUseMorningAssemblyLateness();
   const canViewReport = canViewMorningAssemblyLatenessReport();
   if (!canRecord && !canViewReport) { showToast('لا تملك صلاحية دخول قسم الطابور الصباحي.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
@@ -8966,6 +8968,7 @@ function openMorningAssemblyLateness() {
 }
 function closeMorningAssemblyLateness() {
   morningAssemblySelectedClass = null;
+  morningAssemblyBulkMode = false; morningAssemblyBulkSelection.clear();
   document.getElementById('morningAssemblyLatenessView')?.classList.add('hidden');
   document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
   refreshDutyDashboardCard();
