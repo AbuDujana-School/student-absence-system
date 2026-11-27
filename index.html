@@ -2126,6 +2126,31 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="morning-assembly-calm-glass-overrides">
+#morningAssemblyLatenessView{--ma-slate:#354c63;--ma-slate-deep:#2b4157;--ma-indigo:#5b6ee1;--ma-gold:#c89d4c}
+#morningAssemblyLatenessView .glass-card,
+#morningAssemblyLatenessView>section{background:rgba(255,255,255,.78)!important;backdrop-filter:blur(18px) saturate(145%)!important;-webkit-backdrop-filter:blur(18px) saturate(145%)!important;border-color:rgba(53,76,99,.18)!important;box-shadow:0 14px 34px -18px rgba(36,56,76,.22)!important}
+.dark #morningAssemblyLatenessView .glass-card,.dark #morningAssemblyLatenessView>section{background:rgba(46,68,91,.82)!important;border-color:rgba(200,157,76,.22)!important}
+#morningAssemblyLatenessView .text-fuchsia-800,#morningAssemblyLatenessView .text-fuchsia-700,#morningAssemblyLatenessView .text-fuchsia-600{color:#475569!important}
+#morningAssemblyLatenessView .bg-fuchsia-700,#morningAssemblyLatenessView [class~="hover:bg-fuchsia-800"]:hover{background:#354c63!important}
+#morningAssemblyLatenessView .bg-fuchsia-50,#morningAssemblyLatenessView .bg-violet-50{background:rgba(91,110,225,.09)!important}
+#morningAssemblyLatenessView .border-fuchsia-100,#morningAssemblyLatenessView .border-fuchsia-200,#morningAssemblyLatenessView .border-violet-100{border-color:rgba(53,76,99,.2)!important}
+#morningAssemblyLatenessView input{background:rgba(241,245,249,.92)!important;border-color:rgba(71,85,105,.25)!important;color:#1e293b!important}
+.dark #morningAssemblyLatenessView input{background:rgba(31,48,66,.9)!important;color:#eef4fa!important}
+#morningAssemblyLatenessView input:focus{border-color:#5b6ee1!important;box-shadow:0 0 0 3px rgba(91,110,225,.15)!important}
+#morningAssemblyLatenessView #morningAssemblyReportMeta>div>div{background:rgba(255,255,255,.72)!important;border-color:rgba(53,76,99,.18)!important}
+#morningAssemblyLatenessView #morningAssemblyReportMeta b{color:#2b4157!important}
+#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important;width:100%;table-layout:auto}
+#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:#2b4157!important;color:#fff!important;white-space:nowrap}
+#morningAssemblyLatenessView #morningAssemblyReportContainer td{white-space:normal;overflow-wrap:normal;word-break:normal}
+#morningAssemblyLatenessView .tier-black{background:#354c63!important;color:#fff!important}
+#morningAssemblyLatenessView .tier-black td{color:#fff!important}
+#morningAssemblyLatenessView .tier-red{background:#fee2e2!important;color:#991b1b!important}
+#morningAssemblyLatenessView .tier-yellow{background:#fef3c7!important;color:#713f12!important}
+#morningAssemblyLatenessView .tier-white{background:rgba(255,255,255,.94)!important;color:#24384c!important}
+#morningAssemblyGradeFilters button{min-width:62px}
+@media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important}#morningAssemblyLatenessView>section{padding:1rem!important}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -3106,10 +3131,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
     <section class="rounded-3xl border border-fuchsia-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
       <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700 text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-users"></i></div><div><h3 class="font-black text-slate-800 dark:text-white">اختر الصف</h3><p class="text-[11px] text-slate-500">تظهر الصفوف والطلاب من سجلات المدرسة الحالية</p></div></div>
-      <div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+      <div id="morningAssemblyGradeFilters" class="flex flex-wrap gap-2" aria-label="تصفية الصفوف"></div><div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
     </section>
     <section class="rounded-3xl border border-violet-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span></div>
+      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><div class="flex items-center gap-2"><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span><button id="morningAssemblyMultiSelectToggle" type="button" onclick="toggleMorningAssemblyBulkMode()" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800">اختر معاً</button></div></div><div id="morningAssemblyBulkBar" class="hidden rounded-2xl border border-indigo-200 bg-indigo-50/80 p-3 flex flex-wrap items-center justify-between gap-2"><span id="morningAssemblyBulkCount" class="text-xs font-extrabold text-slate-700">تم تحديد 0 طالب</span><div class="flex gap-2"><button type="button" onclick="clearMorningAssemblyBulkSelection()" class="rounded-xl px-3 py-2 text-xs font-bold text-slate-600">إلغاء التحديد</button><button type="button" onclick="commitMorningAssemblyBulkSelection()" class="rounded-xl bg-[#354c63] px-4 py-2 text-xs font-extrabold text-white">رصد المحددين</button></div></div>
       <label class="block relative"><i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-violet-400"></i><input id="morningAssemblySearch" oninput="renderMorningAssemblySearch()" type="search" autocomplete="off" placeholder="بحث ذكي باسم الطالب من جميع الصفوف..." class="w-full rounded-2xl border border-violet-100 dark:border-slate-700 bg-violet-50/50 dark:bg-slate-950 py-3.5 pr-11 pl-4 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-violet-300"></label>
       <div id="morningAssemblyStudentsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       <div id="morningAssemblySearchResults" class="space-y-2"></div>
@@ -8920,6 +8945,8 @@ function refreshMorningAssemblyLatenessCard() {
   if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
 }
 function openMorningAssemblyLateness() {
+  morningAssemblyBulkMode = false; morningAssemblyBulkSelection.clear();
+  document.getElementById('morningAssemblyBulkBar')?.classList.add('hidden');
   const canRecord = canUseMorningAssemblyLateness();
   const canViewReport = canViewMorningAssemblyLatenessReport();
   if (!canRecord && !canViewReport) { showToast('لا تملك صلاحية دخول قسم الطابور الصباحي.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
@@ -8941,19 +8968,49 @@ function openMorningAssemblyLateness() {
 }
 function closeMorningAssemblyLateness() {
   morningAssemblySelectedClass = null;
+  morningAssemblyBulkMode = false; morningAssemblyBulkSelection.clear();
   document.getElementById('morningAssemblyLatenessView')?.classList.add('hidden');
   document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
   refreshDutyDashboardCard();
 }
+let morningAssemblyGradeFilter = 'all';
+let morningAssemblyBulkMode = false;
+const morningAssemblyBulkSelection = new Map();
 function renderMorningAssemblyClasses() {
   const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
+  const allClasses = sortClassesList(db.classes);
+  const gradeOf = value => {
+    const match = String(value || '').match(/(?:^|\/)\s*(9|10|11|12)\s*$/);
+    return match ? match[1] : '';
+  };
+  const grades = ['all','9','10','11','12'];
+  const filters = document.getElementById('morningAssemblyGradeFilters');
+  if (filters) {
+    filters.innerHTML = grades.map(grade => {
+      const active = morningAssemblyGradeFilter === grade;
+      const label = grade === 'all' ? 'الكل' : 'الصف ' + grade;
+      return '<button type="button" data-morning-grade="' + grade + '" aria-pressed="' + active + '" class="rounded-xl border px-4 py-2 text-xs font-extrabold transition-all ' +
+        (active ? 'bg-[#354c63] text-white border-[#354c63] shadow-sm' : 'bg-white/80 dark:bg-slate-700/70 text-slate-700 dark:text-slate-100 border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1]') + '">' + label + '</button>';
+    }).join('');
+    filters.querySelectorAll('[data-morning-grade]').forEach(button => {
+      button.addEventListener('click', () => {
+        morningAssemblyGradeFilter = button.dataset.morningGrade || 'all';
+        renderMorningAssemblyClasses();
+      });
+    });
+  }
+  const visibleClasses = morningAssemblyGradeFilter === 'all'
+    ? allClasses
+    : allClasses.filter(className => gradeOf(className) === morningAssemblyGradeFilter);
   grid.innerHTML = '';
-  sortClassesList(db.classes).forEach(className => {
+  visibleClasses.forEach(className => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'rounded-2xl border p-3 text-center font-black text-sm transition-all ' +
-      (morningAssemblySelectedClass === className ? 'bg-fuchsia-700 text-white border-fuchsia-700 shadow-lg' : 'bg-fuchsia-50 dark:bg-slate-800 text-slate-800 dark:text-white border-fuchsia-100 dark:border-slate-700 hover:border-fuchsia-400');
-    btn.innerHTML = '<span class="block text-[10px] opacity-70 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
+      (morningAssemblySelectedClass === className
+        ? 'bg-[#354c63] text-white border-[#354c63] shadow-lg'
+        : 'bg-white/85 dark:bg-slate-700/80 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1] hover:bg-indigo-50/70 dark:hover:bg-slate-600');
+    btn.innerHTML = '<span class="block text-[10px] opacity-75 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
     btn.onclick = () => { morningAssemblySelectedClass = className; renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); };
     grid.appendChild(btn);
   });
@@ -9005,8 +9062,82 @@ function createMorningAssemblyStudentButton(name,className) {
   btn.type = 'button';
   btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-fuchsia-300 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/30 p-3 text-right transition-all active:scale-[.99]';
   setMorningAssemblyStudentButtonState(btn,name,className);
-  btn.onclick = () => recordMorningAssemblyLateness(className,name,btn);
+  const key = morningAssemblyStudentKey(className,name);
+  if (morningAssemblyBulkSelection.has(key)) btn.classList.add('ring-2','ring-indigo-400','border-indigo-300');
+  btn.onclick = () => {
+    if (morningAssemblyBulkMode) { toggleMorningAssemblyBulkSelection(className,name,btn); return; }
+    recordMorningAssemblyLateness(className,name,btn);
+  };
   return btn;
+}
+function toggleMorningAssemblyBulkMode() {
+  morningAssemblyBulkMode = !morningAssemblyBulkMode;
+  const button = document.getElementById('morningAssemblyMultiSelectToggle');
+  const bar = document.getElementById('morningAssemblyBulkBar');
+  if (button) {
+    button.textContent = morningAssemblyBulkMode ? 'إيقاف الاختيار' : 'اختر معاً';
+    button.className = morningAssemblyBulkMode
+      ? 'rounded-xl border border-[#354c63] bg-[#354c63] px-3 py-2 text-xs font-extrabold text-white'
+      : 'rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800';
+  }
+  if (!morningAssemblyBulkMode) morningAssemblyBulkSelection.clear();
+  bar?.classList.toggle('hidden',!morningAssemblyBulkMode);
+  updateMorningAssemblyBulkCount();
+  renderMorningAssemblyStudents();
+  renderMorningAssemblySearch();
+}
+function toggleMorningAssemblyBulkSelection(className,name,button) {
+  const key = morningAssemblyStudentKey(className,name);
+  if (morningAssemblyLatenessToday.has(key)) { showToast('الطالب مسجل تأخره اليوم بالفعل.','info'); return; }
+  if (morningAssemblyBulkSelection.has(key)) morningAssemblyBulkSelection.delete(key);
+  else morningAssemblyBulkSelection.set(key,{className,name});
+  button?.classList.toggle('ring-2',morningAssemblyBulkSelection.has(key));
+  button?.classList.toggle('ring-indigo-400',morningAssemblyBulkSelection.has(key));
+  button?.classList.toggle('border-indigo-300',morningAssemblyBulkSelection.has(key));
+  updateMorningAssemblyBulkCount();
+}
+function updateMorningAssemblyBulkCount() {
+  const count = document.getElementById('morningAssemblyBulkCount');
+  if (count) count.textContent = 'تم تحديد ' + morningAssemblyBulkSelection.size + ' طالب';
+}
+function clearMorningAssemblyBulkSelection() {
+  morningAssemblyBulkSelection.clear();
+  updateMorningAssemblyBulkCount();
+  renderMorningAssemblyStudents();
+  renderMorningAssemblySearch();
+}
+async function commitMorningAssemblyBulkSelection() {
+  if (!canUseMorningAssemblyLateness()) { showToast('لا تملك صلاحية التسجيل حالياً.','error'); return; }
+  if (!morningAssemblyLatenessTodayLoaded) { showToast('انتظر حتى يكتمل تحميل تسجيلات اليوم.','info'); return; }
+  const pending = [...morningAssemblyBulkSelection.values()].filter(item =>
+    !morningAssemblyLatenessToday.has(morningAssemblyStudentKey(item.className,item.name)));
+  if (!pending.length) { showToast('حدد طالباً واحداً على الأقل لم يُسجل اليوم.','info'); return; }
+  const saveButton = document.querySelector('#morningAssemblyBulkBar button[onclick="commitMorningAssemblyBulkSelection()"]');
+  if (saveButton) saveButton.disabled = true;
+  let saved = 0;
+  try {
+    for (const item of pending) {
+      const result = await callMorningAssemblyLatenessApi({action:'toggle',class_name:item.className,student_name:item.name});
+      if (result.action === 'removed') throw new Error('تغيرت حالة أحد الطلاب أثناء الحفظ؛ أعد تحميل تسجيلات اليوم.');
+      morningAssemblyLatenessToday.add(morningAssemblyStudentKey(item.className,item.name));
+      saved++;
+    }
+    morningAssemblyBulkSelection.clear();
+    morningAssemblyBulkMode = false;
+    document.getElementById('morningAssemblyBulkBar')?.classList.add('hidden');
+    const toggle = document.getElementById('morningAssemblyMultiSelectToggle');
+    if (toggle) { toggle.textContent='اختر معاً'; toggle.className='rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800'; }
+    renderMorningAssemblyStudents(); renderMorningAssemblySearch();
+    const dashboardLateCount = document.getElementById('dashMorningAssemblyLateCount');
+    if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
+    showToast('تم تسجيل التأخر لـ ' + saved + ' طالب بنجاح.','success');
+  } catch(error) {
+    showToast(error.message || 'تعذر إكمال الرصد الجماعي.','error');
+    await loadMorningAssemblyLatenessToday();
+  } finally {
+    if (saveButton) saveButton.disabled = false;
+    updateMorningAssemblyBulkCount();
+  }
 }
 function renderMorningAssemblySearch() {
   const target = document.getElementById('morningAssemblySearchResults'); if (!target) return;
@@ -9150,7 +9281,7 @@ function printMorningAssemblyLatenessReport() {
   if(!filtered.length){showToast('لا توجد حالات تأخر مسجلة في الفترة المحددة.','info');return;}
   const rows=filtered.map(function(item,index){const tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';return '<tr class="'+tier+'"><td>'+(index+1)+'</td><td><strong>'+escapeHtml(item.name)+'</strong><small>الصف '+escapeHtml(formatClassName(item.className))+'</small></td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(function(e){return escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—');}).join('<br>')+'</td></tr>';}).join('');
   const w=window.open('','_blank');if(!w){showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error');return;}
-  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:18px;color:#172033}h1{text-align:center;font-size:22px;margin:0 0 6px}p{text-align:center;color:#555;font-size:12px;margin:0 0 14px}.summary{display:flex;gap:8px;margin:10px 0 14px}.summary span{flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:right;vertical-align:top}th{background:#183653;color:#fff}.tier-white{background:#fff;color:#172033}.tier-yellow{background:#fef3c7;color:#713f12}.tier-red{background:#fee2e2;color:#991b1b;font-weight:bold}.tier-black{background:#111827;color:#fff;font-weight:bold}.tier-black td{color:#fff}.tier-yellow td,.tier-red td{color:inherit}td small{display:block;font-size:9px;margin-top:4px;font-weight:bold}@media print{body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · العام الدراسي '+escapeHtml(document.getElementById('morningAssemblyReportYear')?.value||'')+' · الفترة: '+'من سبتمبر إلى يونيو'+' · كل 4 تأخيرات = يوم غياب مستقل</p><div class="summary"><span>الطلاب: '+filtered.length+'</span><span>مرات التأخر: '+filtered.reduce((s,x)=>s+x.count,0)+'</span><span>أيام الغياب: '+filtered.reduce((s,x)=>s+x.absenceDays,0)+'</span></div><table><thead><tr><th>#</th><th>اسم الطالب / الصف</th><th>مرات التأخر</th><th>أيام الغياب</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:18px;color:#172033}h1{text-align:center;font-size:22px;margin:0 0 6px}p{text-align:center;color:#555;font-size:12px;margin:0 0 14px}.summary{display:flex;gap:8px;margin:10px 0 14px}.summary span{flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:right;vertical-align:top}th{background:#2b4157;color:#fff}.tier-white{background:#fff;color:#24384c}.tier-yellow{background:#fef3c7;color:#713f12}.tier-red{background:#fee2e2;color:#991b1b;font-weight:bold}.tier-black{background:#354c63;color:#fff;font-weight:bold}.tier-black td{color:#fff}.tier-yellow td,.tier-red td{color:inherit}td small{display:block;font-size:9px;margin-top:4px;font-weight:bold}@media print{body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · العام الدراسي '+escapeHtml(document.getElementById('morningAssemblyReportYear')?.value||'')+' · الفترة: '+'من سبتمبر إلى يونيو'+' · كل 4 تأخيرات = يوم غياب مستقل</p><div class="summary"><span>الطلاب: '+filtered.length+'</span><span>مرات التأخر: '+filtered.reduce((s,x)=>s+x.count,0)+'</span><span>أيام الغياب: '+filtered.reduce((s,x)=>s+x.absenceDays,0)+'</span></div><table><thead><tr><th>#</th><th>اسم الطالب / الصف</th><th>مرات التأخر</th><th>أيام الغياب</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
   w.document.close();
 }
 function renderBehaviorClassesGrid() {
