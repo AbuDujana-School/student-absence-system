@@ -978,26 +978,13 @@
       sectionFor('morningAssemblyStudentsList'),
       sectionFor('morningAssemblySearchResults')
     ]);
-    const reportSections = unique([
-      sectionFor('morningAssemblyReportYear'),
-      sectionFor('morningAssemblyReportMeta'),
-      sectionFor('morningAssemblyReportContainer')
-    ]);
 
+    if (!quickSections.length) return;
     if (classSection && studentSection && classSection !== studentSection &&
         classSection.parentNode === studentSection.parentNode &&
         (classSection.compareDocumentPosition(studentSection) & 4)) {
       classSection.parentNode.insertBefore(studentSection, classSection);
     }
-
-    const sectionsOverlap = reportSections.some(reportSection =>
-      quickSections.some(quickSection =>
-        reportSection === quickSection ||
-        reportSection.contains(quickSection) ||
-        quickSection.contains(reportSection)
-      )
-    );
-    if (!quickSections.length || !reportSections.length || sectionsOverlap) return;
 
     view.dataset.calmNavigationInstalled = '1';
 
@@ -1018,15 +1005,15 @@
     } catch (_) {}
 
     if (classGrid) {
-      const classSection = classGrid.closest('section') || classGrid.parentElement;
-      const classIntro = classSection?.querySelector('p');
+      const classIntro = (classGrid.closest('section') || classGrid.parentElement)?.querySelector('p');
       if (classIntro) classIntro.textContent = 'انقر على أي شعبة لفتح قائمة طلابها ورصد التأخر فوراً';
-      if (classSection && !classSection.querySelector('[data-ma-today-summary]')) {
+      const classSectionNode = classGrid.closest('section') || classGrid.parentElement;
+      if (classSectionNode && !classSectionNode.querySelector('[data-ma-today-summary]')) {
         const summary = document.createElement('div');
         summary.className = 'ma-today-summary';
         summary.setAttribute('data-ma-today-summary', '');
         summary.innerHTML = '<i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>مرصود اليوم:</span><strong data-ma-today-count>0</strong><span>طالب</span>';
-        classSection.insertBefore(summary, classGrid);
+        classSectionNode.insertBefore(summary, classGrid);
       }
     }
 
@@ -1057,8 +1044,7 @@
       '<button type="button" role="tab" data-ma-tab="quick" aria-selected="true"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>الرصد السريع للطابور</span></button>' +
       '<button type="button" role="tab" data-ma-tab="report" aria-selected="false"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>تقرير وتفاصيل الطابور</span><b class="ma-report-count" data-ma-report-count>0</b></button>';
 
-    const orderedSections = quickSections.concat(reportSections);
-    const firstContent = orderedSections.find(section => section.parentNode);
+    const firstContent = quickSections.find(section => section.parentNode);
     if (firstContent) firstContent.parentNode.insertBefore(tabs, firstContent);
     else view.appendChild(tabs);
 
@@ -1070,33 +1056,63 @@
         }
       } catch (_) {}
       if (!count) {
-        count = reportSections.reduce((sum, section) => sum + section.querySelectorAll('tbody tr').length, 0);
+        const reportContainer = document.getElementById('morningAssemblyReportContainer');
+        count = reportContainer?.querySelectorAll('tbody tr').length || 0;
       }
       const badge = tabs.querySelector('[data-ma-report-count]');
       if (badge) badge.textContent = count.toLocaleString('en-US');
     }
 
-    function selectTab(mode) {
-      const reportMode = mode === 'report';
-      quickSections.forEach(section => section.classList.toggle('hidden', reportMode));
-      reportSections.forEach(section => section.classList.toggle('hidden', !reportMode));
+    function setActiveTab(mode) {
       tabs.querySelectorAll('[data-ma-tab]').forEach(button => {
-        const active = button.dataset.maTab === (reportMode ? 'report' : 'quick');
+        const active = button.dataset.maTab === mode;
         button.classList.toggle('is-active', active);
         button.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       updateReportCount();
     }
 
+    async function openExistingReportPanel() {
+      if (typeof canAccessReport === 'function' && !canAccessReport('reportMorningAssemblyLateness')) {
+        if (typeof showToast === 'function') showToast('لا تملك صلاحية الاطلاع على تقرير التأخر عن الطابور.', 'error');
+        setActiveTab('quick');
+        return;
+      }
+      if (typeof openAdminModal !== 'function' || typeof switchAdminTab !== 'function') {
+        if (typeof showToast === 'function') showToast('تعذر فتح مركز التقارير حالياً.', 'error');
+        setActiveTab('quick');
+        return;
+      }
+      await openAdminModal();
+      switchAdminTab('reports');
+      const reportPanel = document.getElementById('morningAssemblyLatenessReportPanel');
+      if (reportPanel && !reportPanel.classList.contains('hidden')) {
+        reportPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (typeof loadMorningAssemblyLatenessReport === 'function') {
+          await loadMorningAssemblyLatenessReport();
+        }
+      } else {
+        setActiveTab('quick');
+      }
+    }
+
     tabs.addEventListener('click', event => {
       const button = event.target.closest('[data-ma-tab]');
       if (!button || !tabs.contains(button)) return;
-      selectTab(button.dataset.maTab);
+      const mode = button.dataset.maTab;
+      setActiveTab(mode);
+      if (mode === 'report') {
+        openExistingReportPanel().catch(() => {
+          if (typeof showToast === 'function') showToast('تعذر تحميل تقرير التأخر عن الطابور. حاول مرة أخرى.', 'error');
+          setActiveTab('quick');
+        });
+      }
     });
 
     const reportObserver = new MutationObserver(updateReportCount);
-    reportSections.forEach(section => reportObserver.observe(section, { childList: true, subtree: true }));
-    selectTab('quick');
+    const reportContainer = document.getElementById('morningAssemblyReportContainer');
+    if (reportContainer) reportObserver.observe(reportContainer, { childList: true, subtree: true });
+    setActiveTab('quick');
   }
 
   function install() {
