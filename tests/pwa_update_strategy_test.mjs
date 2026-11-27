@@ -19,8 +19,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v61/);
-  assert.match(sw, /abudujana-static-v68/);
+  assert.match(sw, /abudujana-app-v62/);
+  assert.match(sw, /abudujana-static-v69/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
@@ -88,4 +88,33 @@ test('app entry is a direct display-only PIN gate with both school-logo position
  assert.ok(html.includes('document.body.classList.add("login-mode")'));
  assert.equal(manifest.start_url,"./index.html");assert.match(sw,/'\.\/logo\.png'/);
  assert.deepEqual([...logo.subarray(0,8)],[137,80,78,71,13,10,26,10],"school logo must be a valid PNG file");
+});
+
+test('PIN gate responsive layout removes helper text, shows only filled dots, and uses desktop landscape columns', () => {
+  const loginStart = html.indexOf('<div id="loginView"');
+  const loginEnd = html.indexOf('<section id="uiReviewLauncher"', loginStart);
+  const login = html.slice(loginStart, loginEnd);
+  const rendererStart = html.indexOf('function renderSchoolLoginPin()');
+  const rendererEnd = html.indexOf('function setSchoolLoginPin(', rendererStart);
+  const renderer = html.slice(rendererStart, rendererEnd);
+  assert.ok(login.includes('<span>الرقم السري</span>'));
+  assert.ok(!login.includes('schoolLoginShow'));
+  assert.ok(!login.includes('schoolLoginHint'));
+  assert.ok(!login.includes('أدخل الرمز ثم اضغط موافق'));
+  assert.ok(!login.includes('تظهر أربع خانات'));
+  assert.ok(renderer.includes('const count=schoolLoginPinCode.length'));
+  assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
+  assert.ok(!renderer.includes('data-digit'));
+  assert.ok(!renderer.includes('revealed'));
+  assert.ok(html.includes('@media(max-width:600px)'));
+  assert.ok(html.includes('@media(min-width:760px)'));
+  assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+  assert.ok(html.includes('height:100dvh'));
+  const head = html.slice(0, html.indexOf('</head>'));
+  assert.ok(!head.includes('<script src='));
+  const libs = html.indexOf('<script src="https://cdn.tailwindcss.com">');
+  const core = html.indexOf('/* ============ Supabase & Crypto config ============ */');
+  assert.ok(libs > 0 && core > libs);
+  assert.equal(JSON.parse(manifest).background_color, '#04121f');
+  assert.equal(JSON.parse(manifest).theme_color, '#04121f');
 });
