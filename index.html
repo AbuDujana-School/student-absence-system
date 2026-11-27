@@ -2151,6 +2151,36 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyGradeFilters button{min-width:62px}
 @media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important}#morningAssemblyLatenessView>section{padding:1rem!important}}
 </style>
+<style id="morning-assembly-calm-ui-v2">
+#morningAssemblyLatenessView{--ma-bg:#f1f5f9;--ma-card:rgba(255,255,255,.88);--ma-border:rgba(71,85,105,.2);--ma-ink:#1e293b;--ma-muted:#475569;--ma-soft:rgba(226,232,240,.8);color:var(--ma-ink)}
+#morningAssemblyLatenessView[data-ma-theme="night"]{--ma-bg:#182635;--ma-card:rgba(34,52,71,.96);--ma-border:rgba(203,213,225,.2);--ma-ink:#e2e8f0;--ma-muted:#cbd5e1;--ma-soft:rgba(51,65,85,.8)}
+#morningAssemblyLatenessView .ma-hero{background:linear-gradient(125deg,#354c63,#2b4157 58%,#40556b);border:1px solid rgba(255,255,255,.2)}
+#morningAssemblyLatenessView .ma-school-mark{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:rgba(255,255,255,.16);color:#fff;font-size:20px}
+#morningAssemblyLatenessView .ma-sync-pill{font-size:10px;font-weight:900;color:#e2e8f0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:7px 10px;border-radius:999px}
+#morningAssemblyLatenessView .ma-hero-quiet,#morningAssemblyLatenessView .ma-theme-btn{border:1px solid rgba(255,255,255,.25);background:rgba(15,23,42,.2);color:#f1f5f9;border-radius:999px;padding:9px 13px;font-size:11px;font-weight:900}
+#morningAssemblyLatenessView .ma-theme-btn.active{background:#f8fafc;color:#1e293b;border-color:#f8fafc}
+#morningAssemblyLatenessView .ma-tabs{background:var(--ma-card);border:1px solid var(--ma-border);box-shadow:0 8px 24px rgba(36,56,76,.08);backdrop-filter:blur(16px)}
+#morningAssemblyLatenessView .ma-tab{min-height:48px;border-radius:14px;padding:9px 6px;font-size:11px;font-weight:900;color:var(--ma-muted);background:transparent;border:1px solid transparent}
+#morningAssemblyLatenessView .ma-tab.active{background:#2b4157;color:#fff;border-color:#2b4157}
+#morningAssemblyLatenessView .ma-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 7px;border-radius:999px;background:#e8d8b5;color:#594728;font-size:10px;font-weight:900}
+#morningAssemblyLatenessView .ma-card{background:var(--ma-card);border:1px solid var(--ma-border);box-shadow:0 12px 30px rgba(36,56,76,.07);backdrop-filter:blur(18px) saturate(140%)}
+#morningAssemblyLatenessView .ma-primary-text{color:var(--ma-ink)}#morningAssemblyLatenessView .ma-secondary-text{color:var(--ma-muted)}
+#morningAssemblyLatenessView .ma-icon-tile{width:44px;height:44px;flex:none;border-radius:15px;display:grid;place-items:center;background:linear-gradient(140deg,#dbeafe,#e2e8f0);color:#2b4157;font-size:18px}
+#morningAssemblyLatenessView .ma-soft-action{border:1px solid var(--ma-border);background:var(--ma-soft);color:var(--ma-ink);border-radius:999px;padding:8px 13px;font-size:11px;font-weight:900}
+#morningAssemblyLatenessView .ma-summary-pill{border:1px solid rgba(200,157,76,.4);background:rgba(232,216,181,.35);color:var(--ma-ink);border-radius:999px;padding:7px 12px;font-size:10px;font-weight:900}
+#morningAssemblyLatenessView .ma-search{background:var(--ma-bg);border:1px solid var(--ma-border);color:var(--ma-ink)}
+#morningAssemblyLatenessView .ma-bulk-bar,#morningAssemblyLatenessView .ma-students-panel{background:var(--ma-soft);border:1px solid var(--ma-border);color:var(--ma-ink)}
+#morningAssemblyLatenessView .ma-primary-action{border:1px solid #2b4157;background:#2b4157;color:#fff;border-radius:13px;padding:10px 15px;font-size:11px;font-weight:900}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid>button{min-height:102px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:19px;border:1px solid var(--ma-border);background:var(--ma-card);color:var(--ma-ink)}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid>button .ma-class-label{font-size:10px;color:var(--ma-muted);font-weight:800}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid>button .ma-class-number{font-size:23px;font-weight:900;color:var(--ma-ink)}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid>button .ma-class-count{font-size:10px;font-weight:900;color:#80663a;background:rgba(232,216,181,.45);border-radius:999px;padding:4px 9px}
+#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:820px;width:100%;table-layout:auto}
+#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:#2b4157!important;color:#f8fafc!important}
+#morningAssemblyLatenessView[data-ma-theme="night"] #morningAssemblyReportContainer td{background:rgba(24,38,53,.7);color:#e2e8f0}
+@media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(2,minmax(0,1fr))}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:820px}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -8950,6 +8980,8 @@ function openMorningAssemblyLateness() {
   document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden', !canViewReport);
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
+  setMorningAssemblyTheme('day');
+  setMorningAssemblyTab(canRecord ? 'quick' : 'report');
   morningAssemblyLatenessToday = new Set();
   morningAssemblyLatenessTodayLoaded = false;
   morningAssemblyLatenessTodayDate = '';
@@ -8971,6 +9003,11 @@ function closeMorningAssemblyLateness() {
 let morningAssemblyGradeFilter = 'all';
 let morningAssemblyBulkMode = false;
 const morningAssemblyBulkSelection = new Map();
+
+function setMorningAssemblyTheme(theme){const view=document.getElementById('morningAssemblyLatenessView');if(!view)return;const night=theme==='night';view.dataset.maTheme=night?'night':'day';document.getElementById('morningAssemblyDayTheme')?.classList.toggle('active',!night);document.getElementById('morningAssemblyNightTheme')?.classList.toggle('active',night);}
+function setMorningAssemblyTab(tab){const report=tab==='report';document.getElementById('morningAssemblyQuickPanel')?.classList.toggle('hidden',report);document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden',!report);document.getElementById('morningAssemblyQuickTab')?.classList.toggle('active',!report);document.getElementById('morningAssemblyReportTab')?.classList.toggle('active',report);if(report&&canViewMorningAssemblyLatenessReport())void loadMorningAssemblyLatenessReport();}
+function updateMorningAssemblyVisualCounts(){const count=morningAssemblyLatenessToday?.size||0;['morningAssemblyTodayCount','morningAssemblyTodayCountSecondary','morningAssemblyReportBadge'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=count.toLocaleString('en-US');});}
+
 function renderMorningAssemblyClasses() {
   const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
   const allClasses = sortClassesList(db.classes);
@@ -8997,6 +9034,8 @@ function renderMorningAssemblyClasses() {
   const visibleClasses = morningAssemblyGradeFilter === 'all'
     ? allClasses
     : allClasses.filter(className => gradeOf(className) === morningAssemblyGradeFilter);
+  const allFilter=filters?.querySelector('[data-morning-grade="all"]');if(allFilter)allFilter.textContent='الكل ('+allClasses.length+')';
+  updateMorningAssemblyVisualCounts();
   grid.innerHTML = '';
   visibleClasses.forEach(className => {
     const btn = document.createElement('button');
@@ -9005,7 +9044,8 @@ function renderMorningAssemblyClasses() {
       (morningAssemblySelectedClass === className
         ? 'bg-[#354c63] text-white border-[#354c63] shadow-lg'
         : 'bg-white/85 dark:bg-slate-700/80 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1] hover:bg-indigo-50/70 dark:hover:bg-slate-600');
-    btn.innerHTML = '<span class="block text-[10px] opacity-75 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
+    const lateCount=[...morningAssemblyLatenessToday].filter(key=>key.startsWith(String(className)+'|')).length;
+    btn.innerHTML = '<span class="ma-class-label">الصف</span><span class="ma-class-number" dir="ltr">' + escapeHtml(formatClassName(className)) + '</span><span class="ma-class-count">' + (lateCount ? lateCount+' اليوم' : 'منتظم') + '</span>';
     btn.onclick = () => { morningAssemblySelectedClass = className; renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); };
     grid.appendChild(btn);
   });
