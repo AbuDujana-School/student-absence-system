@@ -89,6 +89,11 @@ test("vibrant glass themes are isolated to the morning assembly workspace", asyn
   expect(light.bodyDark).toBe(false);
   expect(light.htmlDark).toBe(false);
 
+  await page.locator("#morningAssemblyLatenessView").screenshot({
+    path: "test-results/morning-assembly-vibrant-theme-morning.png",
+    animations: "disabled"
+  });
+
   await page.locator("#morningAssemblyLatenessView").evaluate(el => el.classList.add("ma-dusk"));
   const dusk = await page.evaluate(() => ({
     root: getComputedStyle(document.querySelector("#morningAssemblyLatenessView")).backgroundImage,
