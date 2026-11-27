@@ -996,6 +996,55 @@
         reportSections.some(section => quickSections.includes(section))) return;
 
     view.dataset.calmNavigationInstalled = '1';
+
+    const studentHeading = view.querySelector('#morningAssemblySelectedClassTitle');
+    if (studentHeading) {
+      if (studentHeading.textContent.trim() === 'تسجيل طالب') studentHeading.textContent = 'تسجيل طالب متأخر';
+      const intro = studentHeading.parentElement?.querySelector('p');
+      if (intro) intro.textContent = 'ابحث باسم الطالب من جميع الصفوف لرصد التأخر بلمسة واحدة';
+    }
+    const searchInput = view.querySelector('#morningAssemblySearch');
+    if (searchInput) searchInput.placeholder = 'بحث ذكي باسم الطالب أو الصف من جميع الصفوف...';
+
+    const classGrid = view.querySelector('#morningAssemblyClassesGrid');
+    const allFilter = view.querySelector('[data-morning-grade="all"]');
+    try {
+      const classCount = typeof db !== 'undefined' && Array.isArray(db.classes) ? db.classes.length : 0;
+      if (allFilter && classCount) allFilter.textContent = 'الكل (' + classCount.toLocaleString('en-US') + ')';
+    } catch (_) {}
+
+    if (classGrid) {
+      const classSection = classGrid.closest('section') || classGrid.parentElement;
+      const classIntro = classSection?.querySelector('p');
+      if (classIntro) classIntro.textContent = 'انقر على أي شعبة لفتح قائمة طلابها ورصد التأخر فوراً';
+      if (classSection && !classSection.querySelector('[data-ma-today-summary]')) {
+        const summary = document.createElement('div');
+        summary.className = 'ma-today-summary';
+        summary.setAttribute('data-ma-today-summary', '');
+        summary.innerHTML = '<i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>مرصود اليوم:</span><strong data-ma-today-count>0</strong><span>طالب</span>';
+        classSection.insertBefore(summary, classGrid);
+      }
+    }
+
+    function updateTodaySummary() {
+      let count = 0;
+      try {
+        if (typeof morningAssemblyLatenessToday !== 'undefined' &&
+            morningAssemblyLatenessToday && typeof morningAssemblyLatenessToday.size === 'number') {
+          count = morningAssemblyLatenessToday.size;
+        }
+      } catch (_) {}
+      const badge = view.querySelector('[data-ma-today-count]');
+      if (badge) badge.textContent = count.toLocaleString('en-US');
+    }
+    const studentList = view.querySelector('#morningAssemblyStudentsList');
+    const searchResults = view.querySelector('#morningAssemblySearchResults');
+    const todayObserver = new MutationObserver(updateTodaySummary);
+    [studentList, searchResults].filter(Boolean).forEach(node => {
+      todayObserver.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled'] });
+    });
+    updateTodaySummary();
+
     const tabs = document.createElement('div');
     tabs.className = 'ma-section-tabs';
     tabs.setAttribute('role', 'tablist');
