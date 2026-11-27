@@ -9084,6 +9084,8 @@ function openMorningAssemblyLateness() {
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   document.getElementById('morningAssemblyQuickPanel')?.classList.toggle('hidden',!canRecord);
+  document.getElementById('morningAssemblyQuickTab')?.classList.toggle('hidden',!canRecord);
+  document.getElementById('morningAssemblyReportTab')?.classList.toggle('hidden',!canViewReport);
   document.getElementById('morningAssemblyClassesCard')?.classList.toggle('hidden',!canRecord);
   document.getElementById('morningAssemblyStudentsCard')?.classList.add('hidden');
   document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden',!canViewReport);
@@ -9285,7 +9287,7 @@ async function commitMorningAssemblyBulkSelection() {
     document.getElementById('morningAssemblyBulkBar')?.classList.add('hidden');
     const toggle = document.getElementById('morningAssemblyMultiSelectToggle');
     if (toggle) { toggle.textContent='اختر معاً'; toggle.className='rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800'; }
-    renderMorningAssemblyStudents(); renderMorningAssemblySearch();
+    renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); renderMorningAssemblySearch(); updateMorningAssemblySummary();
     const dashboardLateCount = document.getElementById('dashMorningAssemblyLateCount');
     if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
     showToast('تم تسجيل التأخر لـ ' + saved + ' طالب بنجاح.','success');
