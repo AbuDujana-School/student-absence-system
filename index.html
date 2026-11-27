@@ -16711,8 +16711,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if(!view||view.dataset.calmGlassReady==='1')return;
     var legacyHeader=view.firstElementChild;
     if(legacyHeader)legacyHeader.classList.add('hidden');
-    view.dataset.maWasBodyDark=String(document.body.classList.contains('dark'));
-    view.dataset.maWasHtmlDark=String(document.documentElement.classList.contains('dark'));
     view.dataset.calmGlassReady='1';
     var classSection=document.getElementById('morningAssemblyClassesGrid')?.closest('section');
     var studentsSection=document.getElementById('morningAssemblyStudentsList')?.closest('section');
@@ -16828,8 +16826,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       updateCounts();
     }
     hero.querySelector('#maCalmBack')?.addEventListener('click',function(){if(typeof closeMorningAssemblyLateness==='function')closeMorningAssemblyLateness();
-      document.body.classList.toggle('dark',view.dataset.maWasBodyDark==='true');
-      document.documentElement.classList.toggle('dark',view.dataset.maWasHtmlDark==='true');});
+});
     hero.querySelectorAll('[data-ma-theme]').forEach(function(button){button.addEventListener('click',function(){setTheme(button.dataset.maTheme);});});
     tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.addEventListener('click',function(){setTab(button.dataset.maTab);});});
     dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.addEventListener('click',function(){activeDay=button.dataset.maDay||'all';renderFilteredReport();});});
