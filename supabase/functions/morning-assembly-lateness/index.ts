@@ -107,7 +107,22 @@ async function handle(req:Request) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
-    if (!/^[0-9]{4}\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
+    if (!/^[0-9]{4}\\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
+    const fromDate = String(body?.from_date || "");
+    const toDate = String(body?.to_date || "");
+    const hasDateRange = Boolean(fromDate || toDate);
+    if (hasDateRange) {
+      const validDate = (value:string) => {
+        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)) return false;
+        const parsed = new Date(value + "T00:00:00Z");
+        return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0,10) === value;
+      };
+      if (!validDate(fromDate) || !validDate(toDate) || fromDate > toDate) {
+        return reply(400,{error:"الفترة الزمنية المحددة غير صالحة."});
+      }
+      const spanDays = Math.floor((Date.parse(toDate + "T00:00:00Z") - Date.parse(fromDate + "T00:00:00Z")) / 86400000) + 1;
+      if (spanDays > 370) return reply(400,{error:"الفترة المحددة تتجاوز 370 يوماً. قلّص الفترة حتى لا يصدر الكشف ناقصاً."});
+    }
     const yearRows:any[] = [];
     for (let from=0; ; from+=1000) {
       const {data,error}=await db.from("morning_assembly_lateness")
@@ -122,9 +137,12 @@ async function handle(req:Request) {
     const selectedYear = years.includes(requestedYear) || requestedYear===ctx.academicYear ? requestedYear : (years[0] || ctx.academicYear);
     const reportRows:any[] = [];
     for (let from=0; ; from+=1000) {
-      const {data,error}=await db.from("morning_assembly_lateness")
-        .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year")
-        .eq("academic_year",selectedYear)
+      let reportQuery = db.from("morning_assembly_lateness")
+        .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year");
+      reportQuery = hasDateRange
+        ? reportQuery.gte("late_date",fromDate).lte("late_date",toDate)
+        : reportQuery.eq("academic_year",selectedYear);
+      const {data,error}=await reportQuery
         .is("cancelled_at",null)
         .order("late_date",{ascending:false}).order("recorded_at",{ascending:false})
         .range(from,from+999);
@@ -132,7 +150,7 @@ async function handle(req:Request) {
       reportRows.push(...(data||[]));
       if (!data || data.length<1000) break;
     }
-    return reply(200,{academic_year:selectedYear,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:reportRows});
+    return reply(200,{academic_year:selectedYear,from_date:hasDateRange?fromDate:null,to_date:hasDateRange?toDate:null,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:reportRows});
   }
   if (action !== "today" && action !== "record" && action !== "toggle") return reply(400,{error:"طلب غير معروف."});
   const localMonth = Number(ctx.date.slice(5,7));
