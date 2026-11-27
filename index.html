@@ -8870,6 +8870,7 @@ async function saveAttendanceSession() {
 let morningAssemblySelectedClass = null;
 let morningAssemblyLatenessToday = new Set();
 let morningAssemblyLatenessTodayLoaded = false;
+let morningAssemblyLatenessTodayDate = '';
 let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
@@ -8893,6 +8894,20 @@ function canViewMorningAssemblyLatenessCard() {
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
   if (!card) return;
+  const latenessView = document.getElementById('morningAssemblyLatenessView');
+  const currentOmanDate = getOmanLocalDate();
+  if (latenessView && !latenessView.classList.contains('hidden') && canUseMorningAssemblyLateness()
+      && morningAssemblyLatenessTodayLoaded && morningAssemblyLatenessTodayDate
+      && morningAssemblyLatenessTodayDate !== currentOmanDate) {
+    morningAssemblyLatenessToday = new Set();
+    morningAssemblyLatenessTodayLoaded = false;
+    morningAssemblyLatenessTodayDate = '';
+    const todayStatus = document.getElementById('morningAssemblyTodayStatus');
+    if (todayStatus) todayStatus.textContent = 'بدأ يوم دراسي جديد · جارٍ تحديث تسجيلات اليوم...';
+    renderMorningAssemblyStudents();
+    renderMorningAssemblySearch();
+    void loadMorningAssemblyLatenessToday();
+  }
   const show = canViewMorningAssemblyLatenessCard() && !distronDashboardStagePending(5000);
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
@@ -8915,6 +8930,7 @@ function openMorningAssemblyLateness() {
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   morningAssemblyLatenessToday = new Set();
   morningAssemblyLatenessTodayLoaded = false;
+  morningAssemblyLatenessTodayDate = '';
   if (canRecord) {
     document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · جارٍ تحميل حالة تسجيل الطلاب...';
     renderMorningAssemblyClasses(); renderMorningAssemblySearch(); void loadMorningAssemblyLatenessToday();
@@ -9018,16 +9034,33 @@ async function callMorningAssemblyLatenessApi(body) {
   return data;
 }
 async function loadMorningAssemblyLatenessToday() {
+  const requestedDate = getOmanLocalDate();
   try {
     const data = await callMorningAssemblyLatenessApi({action:'today'});
+    const currentDate = getOmanLocalDate();
+    // Never paint yesterday's response as today's state if midnight passed during the request.
+    if (requestedDate !== currentDate) {
+      morningAssemblyLatenessToday = new Set();
+      morningAssemblyLatenessTodayLoaded = false;
+      morningAssemblyLatenessTodayDate = '';
+      const status = document.getElementById('morningAssemblyTodayStatus');
+      if (status) status.textContent = 'تغيّر التاريخ أثناء التحديث · جارٍ تحميل سجلات اليوم الجديد...';
+      void loadMorningAssemblyLatenessToday();
+      return;
+    }
+    if (data.date && String(data.date) !== currentDate) {
+      throw new Error('تاريخ الخادم لا يطابق تاريخ عُمان الحالي. أعد المحاولة بعد تحديث الصفحة.');
+    }
     morningAssemblyLatenessToday = new Set((data.rows || []).map(row => morningAssemblyStudentKey(row.class_name_snapshot,row.student_name_snapshot)));
+    morningAssemblyLatenessTodayDate = currentDate;
     morningAssemblyLatenessTodayLoaded = true;
     const status = document.getElementById('morningAssemblyTodayStatus');
-    if (status) status.textContent = 'اليوم: ' + getOmanLocalDate() + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
+    if (status) status.textContent = 'اليوم: ' + currentDate + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
     renderMorningAssemblyStudents();
     renderMorningAssemblySearch();
   } catch (error) {
     morningAssemblyLatenessTodayLoaded = false;
+    morningAssemblyLatenessTodayDate = '';
     const status = document.getElementById('morningAssemblyTodayStatus');
     if (status) status.textContent = 'تعذر تحميل حالة الطلاب. أعد فتح القسم للتحقق من السجلات.';
     showToast(error.message || 'تعذر تحميل سجلات التأخر لهذا اليوم.', 'error');
