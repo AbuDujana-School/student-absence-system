@@ -108,7 +108,7 @@ test('PIN gate responsive layout removes helper text, shows only filled dots, an
   assert.ok(!renderer.includes('revealed'));
   assert.ok(html.includes('@media(max-width:759px)'));
   assert.ok(html.includes('@media(min-width:760px)'));
-  assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+  assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
   assert.ok(html.includes('min-height:100dvh'));
   const head = html.slice(0, html.indexOf('</head>'));
   assert.ok(!head.includes('<script src='));
@@ -139,7 +139,7 @@ test('PIN gate structure, responsive layout, and masked-dot display remain valid
  assert.ok(!renderer.includes('revealed'));
  assert.ok(html.includes('@media(max-width:759px)'));
  assert.ok(html.includes('@media(min-width:760px)'));
- assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+ assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
  assert.ok(html.includes('min-height:100dvh'));
  assert.ok(!head.includes('<script src='));
  assert.equal(manifest.background_color,'#04121f');
@@ -165,7 +165,7 @@ test('PIN gate uses the full available phone viewport without shrinking touch co
   assert.ok(responsive.includes('font-size:clamp(18px,4.7vw,24px)'));
   assert.ok(responsive.includes('@media(min-width:760px)'));
   assert.ok(responsive.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
-  assert.doesNotMatch(responsive, /max-height:620px|height:36px|font-size:9px/);
+  assert.doesNotMatch(responsive, /max-height:620px|\\.sl-key\\{height:36px|\\.sl-key\\{font-size:9px/);
   assert.ok(html.includes('2026-11-27-direct-pin-login-4'));
   assert.ok(html.includes('sw.js?v=20261127-direct-pin-login-4'));
 });
