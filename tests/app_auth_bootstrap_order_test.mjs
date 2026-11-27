@@ -367,3 +367,21 @@ getSupabasePublicDataHeaders()`,
   assert.ok(tableReader.includes("Object.entries(getSupabasePublicDataHeaders())"));
   assert.ok(!tableReader.includes("request.setRequestHeader('Authorization'"));
 });
+
+
+test("morning assembly registration state rolls over to the new Oman day while the panel stays open", () => {
+  const refresh = section("function refreshMorningAssemblyLatenessCard()", "function openMorningAssemblyLateness()");
+  assert.match(refresh, /morningAssemblyLatenessTodayDate !== currentOmanDate/);
+  assert.match(refresh, /morningAssemblyLatenessToday = new Set\(\)/);
+  assert.match(refresh, /void loadMorningAssemblyLatenessToday\(\)/);
+  const open = section("function openMorningAssemblyLateness()", "function closeMorningAssemblyLateness()");
+  assert.match(open, /morningAssemblyLatenessTodayDate = ''/);
+});
+
+test("morning assembly today response is discarded if the Oman date changes during the request", () => {
+  const loader = section("async function loadMorningAssemblyLatenessToday()", "async function recordMorningAssemblyLateness(");
+  assert.match(loader, /const requestedDate = getOmanLocalDate\(\)/);
+  assert.match(loader, /requestedDate !== currentDate/);
+  assert.match(loader, /String\(data\.date\) !== currentDate/);
+  assert.match(loader, /morningAssemblyLatenessTodayDate = currentDate/);
+});
