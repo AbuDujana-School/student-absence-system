@@ -924,6 +924,41 @@
     });
   }
 
+  function installMorningAssemblyThemeControls() {
+    const view = document.getElementById('morningAssemblyLatenessView');
+    if (!view || view.dataset.calmThemeControlsInstalled === '1') return;
+    view.dataset.calmThemeControlsInstalled = '1';
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'ma-theme-switcher';
+    toolbar.setAttribute('role', 'group');
+    toolbar.setAttribute('aria-label', 'مظهر شاشة التأخر عن الطابور');
+    toolbar.innerHTML =
+      '<button type="button" data-ma-theme="light" aria-pressed="true"><i class="fa-solid fa-sun" aria-hidden="true"></i><span>نور الصباح الهادئ</span></button>' +
+      '<button type="button" data-ma-theme="dusk" aria-pressed="false"><i class="fa-solid fa-moon" aria-hidden="true"></i><span>ضباب الغسق الهادئ</span></button>';
+
+    view.insertBefore(toolbar, view.firstElementChild || null);
+
+    function applyTheme(mode) {
+      const selected = mode === 'dusk' ? 'dusk' : 'light';
+      view.classList.toggle('ma-theme-dusk', selected === 'dusk');
+      view.classList.toggle('ma-theme-light', selected === 'light');
+      toolbar.querySelectorAll('[data-ma-theme]').forEach(button => {
+        const active = button.dataset.maTheme === selected;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    toolbar.addEventListener('click', event => {
+      const button = event.target.closest('[data-ma-theme]');
+      if (!button || !toolbar.contains(button)) return;
+      applyTheme(button.dataset.maTheme);
+    });
+
+    applyTheme('light');
+  }
+
   function install() {
     const dashboardView = document.getElementById('dashboardSelectionView');
     if (!dashboardView || document.documentElement.dataset.adminLeadershipPortalInstalled === '1') return;
@@ -934,6 +969,7 @@
     createSubModal();
     wrapExistingNavigation();
     installKeyboardAndFocusHandling();
+    installMorningAssemblyThemeControls();
     syncPortalVisibility();
   }
 
