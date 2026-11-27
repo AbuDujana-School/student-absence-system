@@ -159,6 +159,7 @@ jobs:
             supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql; do
             psql -v ON_ERROR_STOP=1 -f "$migration"
           done
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261127090000_morning_assembly_lateness_scoped_delete_rpc.sql
       - name: Verify morning assembly lateness ledger integrity in isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/morning-assembly-lateness/tests/sql/ledger_integrity.sql
       - name: Verify direct student roster save and history preservation
