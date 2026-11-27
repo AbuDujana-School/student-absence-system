@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { academicYearKey, canUseMorningLateness } from "./policy.ts";
+import { academicYearKey, canUseMorningLateness, canViewMorningLatenessReport } from "./policy.ts";
 import { buildAdditionalAdminPermissions, isAdditionalAdminTeacher } from "../_shared/admin_principal_policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -103,7 +103,7 @@ async function handle(req:Request) {
   const ctx=omanNow();
   const action=String(body?.action || "");
   if (action === "report") {
-    if (principal.type !== "admin" && principal.permissions.reportMorningAssemblyLateness !== true) {
+    if (!canViewMorningLatenessReport({principalType:principal.type,nonDutyPermission:principal.permissions.morningAssemblyLatenessNonDuty === true,customPermission:principal.permissions.morningAssemblyLateness === true})) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);

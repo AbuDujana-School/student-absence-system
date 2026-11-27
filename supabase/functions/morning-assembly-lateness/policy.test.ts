@@ -1,4 +1,4 @@
-import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, isNonDutyTeacherEligibleForMorningLateness, latenessAbsenceDays, canUseMorningLateness } from "./policy.ts";
+import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, isNonDutyTeacherEligibleForMorningLateness, latenessAbsenceDays, canUseMorningLateness, canViewMorningLatenessReport } from "./policy.ts";
 
 Deno.test("Oman academic year starts on September 1", () => {
   if (academicYearKey("2026-08-31") !== "2025/2026") throw new Error("August must remain in the ending academic year");
@@ -46,4 +46,12 @@ Deno.test("admin and explicitly authorized custom users have independent access"
   if (!canUseMorningLateness({principalType:"teacher",permission:false,nonDutyPermission:true,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الأربعاء",minutes:480})) throw new Error("Non-duty teacher with explicit permission should be allowed");
   if (!canUseMorningLateness({principalType:"teacher",permission:false,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الثلاثاء",minutes:480})) throw new Error("Duty teacher should be allowed without legacy permission");
   if (canUseMorningLateness({principalType:"teacher",permission:false,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الأربعاء",minutes:480})) throw new Error("Non-duty teacher without explicit permission must be denied");
+});
+
+Deno.test("cumulative report is visible only to users with permanent morning-lateness access", () => {
+  if (!canViewMorningLatenessReport({principalType:"admin"})) throw new Error("Admin must view the report");
+  if (!canViewMorningLatenessReport({principalType:"teacher",nonDutyPermission:true})) throw new Error("Permanent non-duty access must view the report");
+  if (canViewMorningLatenessReport({principalType:"teacher",nonDutyPermission:false})) throw new Error("Duty-only teacher must not view the report");
+  if (!canViewMorningLatenessReport({principalType:"custom",customPermission:true})) throw new Error("Authorized custom user must view the report");
+  if (canViewMorningLatenessReport({principalType:"custom",customPermission:false})) throw new Error("Custom user without permanent access must not view the report");
 });
