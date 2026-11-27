@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - "main"
+      - "feature/leadership-admin-portal-20261126"
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
