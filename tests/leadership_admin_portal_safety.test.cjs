@@ -84,6 +84,7 @@ test("morning assembly separates quick monitoring from report details without re
   assert.match(portal, /data-ma-tab="report"/);
   assert.match(portal, /morningAssemblyClassesGrid/);
   assert.match(portal, /morningAssemblyReportContainer/);
+  assert.match(portal, /sectionsOverlap/);
   assert.match(portal, /classList\.toggle\('hidden', reportMode\)/);
   assert.match(styles, /\.ma-section-tabs/);
   assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
