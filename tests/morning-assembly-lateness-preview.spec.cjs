@@ -85,6 +85,7 @@ test("vibrant glass themes are isolated to the morning assembly workspace", asyn
   }));
   expect(light.root).toContain("radial-gradient");
   expect(light.hero).toContain("linear-gradient");
+  expect(light.hero).toContain("36, 121, 216");
   expect(light.tile).toContain("linear-gradient");
   expect(light.bodyDark).toBe(false);
   expect(light.htmlDark).toBe(false);
@@ -103,6 +104,7 @@ test("vibrant glass themes are isolated to the morning assembly workspace", asyn
   }));
   expect(dusk.root).toContain("linear-gradient");
   expect(dusk.hero).toContain("linear-gradient");
+  expect(dusk.hero).toContain("36, 61, 121");
   expect(dusk.bodyDark).toBe(false);
   expect(dusk.htmlDark).toBe(false);
 
