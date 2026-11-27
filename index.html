@@ -9005,7 +9005,7 @@ let morningAssemblyBulkMode = false;
 const morningAssemblyBulkSelection = new Map();
 
 function setMorningAssemblyTheme(theme){const view=document.getElementById('morningAssemblyLatenessView');if(!view)return;const night=theme==='night';view.dataset.maTheme=night?'night':'day';document.getElementById('morningAssemblyDayTheme')?.classList.toggle('active',!night);document.getElementById('morningAssemblyNightTheme')?.classList.toggle('active',night);}
-function setMorningAssemblyTab(tab){const report=tab==='report';document.getElementById('morningAssemblyQuickPanel')?.classList.toggle('hidden',report);document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden',!report);document.getElementById('morningAssemblyQuickTab')?.classList.toggle('active',!report);document.getElementById('morningAssemblyReportTab')?.classList.toggle('active',report);if(report&&canViewMorningAssemblyLatenessReport())void loadMorningAssemblyLatenessReport();}
+function setMorningAssemblyTab(tab){const canQuick=canUseMorningAssemblyLateness(),canReport=canViewMorningAssemblyLatenessReport();const quickTab=document.getElementById('morningAssemblyQuickTab'),reportTab=document.getElementById('morningAssemblyReportTab');quickTab?.classList.toggle('hidden',!canQuick);reportTab?.classList.toggle('hidden',!canReport);const report=tab==='report'&&canReport;document.getElementById('morningAssemblyQuickPanel')?.classList.toggle('hidden',report||!canQuick);document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden',!report);quickTab?.classList.toggle('active',!report&&canQuick);reportTab?.classList.toggle('active',report);if(report)void loadMorningAssemblyLatenessReport();}
 function updateMorningAssemblyVisualCounts(){const count=morningAssemblyLatenessToday?.size||0;['morningAssemblyTodayCount','morningAssemblyTodayCountSecondary','morningAssemblyReportBadge'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=count.toLocaleString('en-US');});}
 
 function renderMorningAssemblyClasses() {
@@ -9224,6 +9224,8 @@ async function loadMorningAssemblyLatenessToday() {
     if (status) status.textContent = 'اليوم: ' + currentDate + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
     renderMorningAssemblyStudents();
     renderMorningAssemblySearch();
+    renderMorningAssemblyClasses();
+    updateMorningAssemblyVisualCounts();
   } catch (error) {
     morningAssemblyLatenessTodayLoaded = false;
     morningAssemblyLatenessTodayDate = '';
@@ -9255,6 +9257,8 @@ async function recordMorningAssemblyLateness(className,studentName,button) {
     if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
     renderMorningAssemblyStudents();
     renderMorningAssemblySearch();
+    renderMorningAssemblyClasses();
+    updateMorningAssemblyVisualCounts();
   } catch (error) {
     showToast(error.message || 'تعذر تعديل تسجيل التأخر.', 'error');
     if (error.status === 409) void loadMorningAssemblyLatenessToday();
@@ -9289,6 +9293,7 @@ async function loadMorningAssemblyLatenessReport() {
       yearSelect.value = data.academic_year;
     }
     morningAssemblyReportRows = buildMorningAssemblyReportRows(data.rows || []);
+    const reportCount=morningAssemblyReportRows.reduce((sum,item)=>sum+item.count,0);const reportBadge=document.getElementById('morningAssemblyReportBadge');if(reportBadge)reportBadge.textContent=reportCount.toLocaleString('en-US');
     document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
     if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; return; }
     const totalLate = morningAssemblyReportRows.reduce((sum,item)=>sum+item.count,0);
