@@ -125,6 +125,7 @@ async function handle(req:Request) {
       const {data,error}=await db.from("morning_assembly_lateness")
         .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year")
         .eq("academic_year",selectedYear)
+        .is("cancelled_at",null)
         .order("late_date",{ascending:false}).order("recorded_at",{ascending:false})
         .range(from,from+999);
       if (error) throw error;
@@ -146,7 +147,8 @@ async function handle(req:Request) {
   if (action === "today") {
     const {data:rows,error}=await db.from("morning_assembly_lateness")
       .select("student_id,student_name_snapshot,class_name_snapshot")
-      .eq("late_date",ctx.date);
+      .eq("late_date",ctx.date)
+      .is("cancelled_at",null);
     if (error) {
       console.error("morning assembly lateness today lookup failed",error);
       return reply(500,{error:"تعذر تحميل حالة تسجيل الطلاب لهذا اليوم."});
@@ -165,17 +167,32 @@ async function handle(req:Request) {
   const student=students[0];
   if (action === "toggle") {
     const {data:existing,error:lookupError}=await db.from("morning_assembly_lateness")
-      .select("id").eq("student_id",student.id).eq("late_date",ctx.date).maybeSingle();
+      .select("id").eq("student_id",student.id).eq("late_date",ctx.date).is("cancelled_at",null).maybeSingle();
     if (lookupError) {
       console.error("morning assembly lateness toggle lookup failed",lookupError);
       return reply(500,{error:"تعذر التحقق من حالة تأخر الطالب."});
     }
     if (existing) {
-      const {data:removed,error:deleteError}=await db.from("morning_assembly_lateness")
-        .delete().eq("id",existing.id).select("id").maybeSingle();
-      if (deleteError || !removed) {
-        console.error("morning assembly lateness toggle removal failed",deleteError);
-        return reply(500,{error:"تعذر إلغاء تسجيل التأخر. لم يتم تأكيد أي تغيير."});
+      const {data:removed,error:cancelError}=await db.from("morning_assembly_lateness")
+        .update({
+          cancelled_at:new Date().toISOString(),
+          cancelled_by:principal.name,
+          cancelled_by_type:principal.type,
+        })
+        .eq("id",existing.id).is("cancelled_at",null).select("id").maybeSingle();
+      if (cancelError) {
+        console.error("morning assembly lateness toggle cancellation failed",cancelError);
+        return reply(500,{error:"تعذر توثيق إلغاء التأخر. لم يتم تغيير السجل."});
+      }
+      // A concurrent toggle may already have cancelled this same record.
+      // Treat that as a successful idempotent cancellation, never as a delete.
+      if (!removed) {
+        const {data:stillActive,error:verifyError}=await db.from("morning_assembly_lateness")
+          .select("id").eq("id",existing.id).is("cancelled_at",null).maybeSingle();
+        if (verifyError || stillActive) {
+          console.error("morning assembly lateness cancellation could not be confirmed",verifyError);
+          return reply(500,{error:"تعذر تأكيد إلغاء التأخر. لم يتم تغيير السجل."});
+        }
       }
       return reply(200,{success:true,action:"removed",student_name:student.student_name,class_name:student.class_name});
     }

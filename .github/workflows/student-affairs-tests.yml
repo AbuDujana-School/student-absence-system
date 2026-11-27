@@ -156,7 +156,8 @@ jobs:
             supabase/migrations/20261118090058_morning_assembly_lateness_service_role_only.sql \
             supabase/migrations/20261118090409_morning_assembly_lateness_year_date_index.sql \
             supabase/migrations/20261118090521_morning_assembly_lateness_append_only.sql \
-            supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql; do
+            supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql \
+            supabase/migrations/20261127110000_morning_assembly_lateness_audited_cancellation.sql; do
             psql -v ON_ERROR_STOP=1 -f "$migration"
           done
       - name: Verify morning assembly lateness ledger integrity in isolated PostgreSQL
