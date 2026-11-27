@@ -266,6 +266,25 @@ test("portal-only permission does not grant report or statistics access and keep
 });
 
 test("morning assembly calm themes and quick/report tabs switch without touching school records", async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      window.startDistronDashboardStages = () => {};
+      window.isGeneralAdminUser = () => true;
+      window.isAdminAuthorized = () => true;
+      window.hasAdminPanelAccess = () => true;
+      window.distronDashboardStagePending = () => false;
+      window.canAccessAdminTab = () => true;
+      window.canAccessReport = () => true;
+      window.canAccessAnyReport = () => true;
+      activeUser = {
+        type: "admin",
+        name: "QA Morning Assembly Theme User",
+        permissions: { canViewAdminRecords: true, morningAssemblyLateness: true }
+      };
+      window.renderAuthenticatedDashboardShell?.();
+      document.getElementById("morningAssemblyLatenessView")?.classList.remove("hidden");
+    }, { once: true });
+  });
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
   await page.route("https://fonts.googleapis.com/**", route => route.abort());
   await page.route("https://fonts.gstatic.com/**", route => route.abort());
