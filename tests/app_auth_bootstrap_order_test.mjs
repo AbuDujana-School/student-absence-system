@@ -264,8 +264,8 @@ test("authenticated login refreshes all independent report panel visibility afte
   assert.match(reports, /isGeneralAdminUser\(user\)/);
   assert.doesNotMatch(reports, /reportMorningAssemblyLateness/);
   const morningReportAccess = section("function canViewMorningAssemblyLatenessReport(", "function canAccessReport(");
-  assert.match(morningReportAccess, /permissions\.morningAssemblyLatenessNonDuty === true/);
-  assert.match(morningReportAccess, /permissions\.morningAssemblyLateness === true/);
+  assert.match(morningReportAccess, /p\.morningAssemblyLatenessNonDuty === true/);
+  assert.match(morningReportAccess, /p\.morningAssemblyLateness === true/);
   assert.match(reports, /reportStudentAffairs/);
   assert.match(reports, /reportComprehensiveAbsence/);
   assert.match(reports, /reportClassLatenessFollowup/);
