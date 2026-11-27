@@ -2151,7 +2151,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyGradeFilters button{min-width:62px}
 @media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important}#morningAssemblyLatenessView>section{padding:1rem!important}}
 </style>
-
 <style id="morning-assembly-calm-glass-ui-v2">
 #morningAssemblyLatenessView{--ma-bg:#edf2f7;--ma-card:rgba(255,255,255,.82);--ma-text:#1e293b;--ma-muted:#475569;--ma-navy:#24384c;--ma-deep:#2b4157;--ma-line:rgba(71,85,105,.2);color:var(--ma-text)}
 #morningAssemblyLatenessView .ma-hero{background:linear-gradient(125deg,#354c63 0%,#2b4157 58%,#405a72 100%);border:1px solid rgba(255,255,255,.2);box-shadow:0 18px 42px -24px rgba(36,56,76,.55);color:#f8fafc}
@@ -2189,7 +2188,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyLatenessView .tier-yellow{background:#fef3c7!important;color:#713f12!important}
 #morningAssemblyLatenessView .tier-red{background:#fee2e2!important;color:#991b1b!important}
 #morningAssemblyLatenessView.ma-dusk{--ma-bg:#182635;--ma-card:rgba(34,52,71,.88);--ma-text:#e2e8f0;--ma-muted:#cbd5e1;--ma-line:rgba(203,213,225,.18);color:#e2e8f0}
-#morningAssemblyLatenessView.ma-dusk .ma-glass-card{background:var(--ma-card);border-color:var(--ma-line);box-shadow:0 16px 38px -24px rgba(0,0,0,.42)}
+#morningAssemblyLatenessView.ma-dusk .ma-glass-card{background:var(--ma-card);border-color:var(--ma-line);box-shadow:0 16px 38px -24px rgba(24,38,53,.42)}
 #morningAssemblyLatenessView.ma-dusk .ma-tabs{background:rgba(34,52,71,.72);border-color:var(--ma-line)}
 #morningAssemblyLatenessView.ma-dusk .ma-tab{background:rgba(71,91,112,.35);color:#e2e8f0;border-color:rgba(203,213,225,.14)}
 #morningAssemblyLatenessView.ma-dusk .ma-tab[aria-selected=true]{background:#405a72;color:#fff;border-color:#607990}
@@ -5533,172 +5532,7 @@ function saBuildPrintHtml(data){
   sections+
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلبة: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
-  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script>
-<script id="morning-assembly-calm-glass-ui-runtime">
-(function(){
-  function initMorningAssemblyCalmGlass(){
-    var view=document.getElementById('morningAssemblyLatenessView');
-    if(!view||view.dataset.calmGlassReady==='1')return;
-    var legacyHeader=view.firstElementChild;
-    if(legacyHeader)legacyHeader.classList.add('hidden');
-    view.dataset.maWasBodyDark=String(document.body.classList.contains('dark'));
-    view.dataset.maWasHtmlDark=String(document.documentElement.classList.contains('dark'));
-    view.dataset.calmGlassReady='1';
-    var classSection=document.getElementById('morningAssemblyClassesGrid')?.closest('section');
-    var studentsSection=document.getElementById('morningAssemblyStudentsList')?.closest('section');
-    var reportPanel=document.getElementById('morningAssemblyLatenessReportPanel');
-    var search=document.getElementById('morningAssemblySearch');
-    var searchLabel=search?.closest('label');
-    var searchResults=document.getElementById('morningAssemblySearchResults');
-    var bulkToggle=document.getElementById('morningAssemblyMultiSelectToggle');
-    var bulkBar=document.getElementById('morningAssemblyBulkBar');
-    if(!classSection||!studentsSection||!reportPanel||!searchLabel||!searchResults)return;
-    var hero=document.createElement('section');
-    hero.className='ma-hero rounded-3xl p-5 sm:p-6 space-y-4';
-    hero.innerHTML='<div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 shrink-0 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div><div class="min-w-0"><h2 class="font-black text-lg sm:text-xl text-white">مدرسة أبو دجانة الأنصاري</h2><p class="text-[11px] sm:text-xs text-slate-100/90 mt-1">قسم التأخر عن الطابور الصباحي • الأحد - الخميس (7:00 - 8:30)</p></div></div><span class="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-black text-white shrink-0">⏱ رصد موثّق</span></div><div class="flex flex-wrap items-center justify-between gap-3"><button type="button" id="maCalmBack" class="ma-back"><i class="fa-solid fa-arrow-right ml-1"></i> العودة</button><div class="flex flex-wrap gap-2"><button type="button" class="ma-theme-btn" data-ma-theme="morning" aria-pressed="true">☀️ نور الصباح الهادئ</button><button type="button" class="ma-theme-btn" data-ma-theme="dusk" aria-pressed="false">🌙 ضباب الغسق الهادئ</button></div></div>';
-    var tabs=document.createElement('div');
-    tabs.className='ma-tabs';
-    tabs.innerHTML='<button type="button" class="ma-tab" data-ma-tab="quick" aria-selected="true"><i class="fa-regular fa-clock"></i><span>الرصد السريع للطابور</span><span id="maTodayCount" class="ma-tab-count">0</span></button><button type="button" class="ma-tab" data-ma-tab="report" aria-selected="false"><i class="fa-solid fa-chart-column"></i><span>تقرير وتفاصيل الطابور</span><span id="maReportCount" class="ma-tab-count">0</span></button>';
-    view.insertBefore(tabs,view.firstChild);
-    view.insertBefore(hero,tabs);
-    var searchCard=document.createElement('section');
-    searchCard.id='maGlobalStudentSearchCard';
-    searchCard.className='ma-glass-card p-4 sm:p-6 space-y-4';
-    searchCard.innerHTML='<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-lg"><i class="fa-solid fa-user-clock"></i></div><div><h3 class="font-black text-base text-slate-800">تسجيل طالب متأخر</h3><p class="text-[11px] text-slate-600 mt-1">ابحث باسم الطالب من جميع الصفوف لرصد التأخر بلمسة واحدة</p></div></div><div id="maSearchControls" class="flex flex-wrap items-center gap-2"></div>';
-    var controls=searchCard.querySelector('#maSearchControls');
-    if(bulkToggle)controls.appendChild(bulkToggle);
-    if(bulkBar)searchCard.appendChild(bulkBar);
-    searchCard.appendChild(searchLabel);
-    searchCard.appendChild(searchResults);
-    view.insertBefore(searchCard,classSection);
-    var classHeading=document.createElement('div');
-    classHeading.className='flex flex-wrap items-center justify-between gap-3 mb-1';
-    classHeading.innerHTML='<div><h3 class="font-black text-base text-slate-800">اختر الصف</h3><p class="text-[11px] text-slate-600 mt-1">انقر على أي شعبة لفتح قائمة طلابها ورصد التأخر فوراً</p></div><div class="flex items-center gap-2"><span class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></span><span id="maClassTodaySummary" class="ma-summary-pill">مرصود اليوم: 0 طالب</span></div>';
-    classSection.insertBefore(classHeading,classSection.firstChild);
-    classSection.classList.add('ma-glass-card','p-4','sm:p-6');
-    studentsSection.classList.add('ma-glass-card','p-4','sm:p-6');
-    studentsSection.querySelector('h3')?.classList.add('text-slate-800');
-    var dayFilters=document.createElement('div');
-    dayFilters.id='maReportDayFilters';
-    dayFilters.className='ma-day-filters';
-    dayFilters.innerHTML='<button type="button" class="ma-day-filter" data-ma-day="all" aria-pressed="true">كل الأيام</button><button type="button" class="ma-day-filter" data-ma-day="Sunday" aria-pressed="false">الأحد</button><button type="button" class="ma-day-filter" data-ma-day="Monday" aria-pressed="false">الاثنين</button><button type="button" class="ma-day-filter" data-ma-day="Tuesday" aria-pressed="false">الثلاثاء</button><button type="button" class="ma-day-filter" data-ma-day="Wednesday" aria-pressed="false">الأربعاء</button><button type="button" class="ma-day-filter" data-ma-day="Thursday" aria-pressed="false">الخميس</button>';
-    var reportMeta=document.getElementById('morningAssemblyReportMeta');
-    if(reportMeta)reportMeta.parentNode.insertBefore(dayFilters,reportMeta);
-    var activeTab='quick';
-    var activeDay='all';
-    var allReportRows=[];
-    function setTheme(theme){
-      var dusk=theme==='dusk';
-      view.classList.toggle('ma-dusk',dusk);
-      document.documentElement.classList.toggle('dark',dusk);
-      document.body.classList.toggle('dark',dusk);
-      view.querySelectorAll('[data-ma-theme]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maTheme===(dusk?'dusk':'morning')));});
-    }
-    function setTab(tab){
-      var canRecord=typeof canUseMorningAssemblyLateness==='function'&&canUseMorningAssemblyLateness();
-      var canReport=typeof canViewMorningAssemblyLatenessReport==='function'&&canViewMorningAssemblyLatenessReport();
-      var reportTab=tabs.querySelector('[data-ma-tab=report]');
-      if(reportTab)reportTab.classList.toggle('hidden',!canReport);
-      if(tab==='quick'&&!canRecord){if(canReport)tab='report';else return;}
-      if(tab==='report'&&!canReport){if(canRecord)tab='quick';else return;}
-      activeTab=tab;
-      searchCard.classList.toggle('hidden',tab!=='quick'||!canRecord);
-      classSection.classList.toggle('hidden',tab!=='quick'||!canRecord);
-      studentsSection.classList.toggle('hidden',tab!=='quick'||!canRecord);
-      reportPanel.classList.toggle('hidden',tab!=='report'||!canReport);
-      tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.setAttribute('aria-selected',String(button.dataset.maTab===tab));});
-    }
-    function updateCounts(){
-      var todayCount=(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday.size)||0;
-      var todayNode=document.getElementById('maTodayCount');
-      var summary=document.getElementById('maClassTodaySummary');
-      if(todayNode)todayNode.textContent=String(todayCount);
-      if(summary)summary.textContent='مرصود اليوم: '+todayCount+' طالب';
-      var reportCount=document.getElementById('maReportCount');
-      if(reportCount)reportCount.textContent=String((typeof morningAssemblyReportRows!=='undefined'&&morningAssemblyReportRows.length)||0);
-      view.querySelectorAll('#morningAssemblyClassesGrid button[data-morning-class]').forEach(function(button){
-        var className=button.dataset.morningClass;
-        var count=0;
-        if(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){if(String(key).split('|')[0]===className)count++;});
-        var chip=button.querySelector('.ma-class-count');
-        if(!chip){chip=document.createElement('span');chip.className='ma-class-count';button.appendChild(chip);}
-        chip.textContent=count?count+' اليوم':'منتظم';
-        chip.classList.toggle('has-late',count>0);
-        button.dataset.selected=String(typeof morningAssemblySelectedClass!=='undefined'&&morningAssemblySelectedClass===className);
-      });
-    }
-    function weekdayOf(dateText){
-      var parsed=new Date(String(dateText||'')+'T12:00:00+04:00');
-      if(Number.isNaN(parsed.getTime()))return '';
-      return new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'Asia/Muscat'}).format(parsed);
-    }
-    function renderFilteredReport(){
-      var source=allReportRows||[];
-      var filtered=source.map(function(item){
-        var events=(item.events||[]).filter(function(event){return activeDay==='all'||weekdayOf(event.late_date)===activeDay;});
-        return Object.assign({},item,{events:events,count:events.length,absenceDays:Math.floor(events.length/4),remaining:events.length%4});
-      }).filter(function(item){return item.count>0;}).sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||a.name.localeCompare(b.name,'ar');});
-      morningAssemblyReportRows=filtered;
-      dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maDay===activeDay));});
-      var container=document.getElementById('morningAssemblyReportContainer');
-      if(!container)return;
-      var totalLate=filtered.reduce(function(sum,item){return sum+item.count;},0);
-      var totalAbsence=filtered.reduce(function(sum,item){return sum+item.absenceDays;},0);
-      if(reportMeta)reportMeta.textContent='العام الدراسي '+(document.getElementById('morningAssemblyReportYear')?.value||'')+' · الطلاب المتأخرون في الفترة المحددة: '+filtered.length;
-      if(!filtered.length){container.innerHTML='<div class="p-8 text-center text-xs text-slate-500">لا توجد سجلات تأخر في اليوم المحدد.</div>';updateCounts();return;}
-      var html='<div class="overflow-x-auto"><table class="w-full min-w-[820px] text-xs text-right"><thead><tr><th class="p-3">الترتيب</th><th class="p-3">الطالب / الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
-      filtered.forEach(function(item,index){
-        var tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';
-        var events=item.events.map(function(event){
-          var date=escapeHtml(event.late_date);
-          var time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
-          return date+' · '+time+' · سجل بواسطة: '+escapeHtml(event.recorder_name||'—');
-        }).join('<br>');
-        html+='<tr class="border-t morning-lateness-row '+tier+'"><td class="p-3 text-center font-black">'+(index+1)+'</td><td class="p-3"><div class="font-black text-sm">'+escapeHtml(item.name)+'</div><div class="mt-1 inline-flex rounded-lg border border-current/20 px-2 py-1 text-[10px] font-black">الصف '+escapeHtml(formatClassName(item.className))+'</div></td><td class="p-3 text-center font-black text-base">'+item.count+'</td><td class="p-3 text-center font-black text-base">'+item.absenceDays+'</td><td class="p-3 leading-6">'+events+'</td></tr>';
-      });
-      container.innerHTML=html+'</tbody></table></div>';
-      updateCounts();
-    }
-    hero.querySelector('#maCalmBack')?.addEventListener('click',function(){if(typeof closeMorningAssemblyLateness==='function')closeMorningAssemblyLateness();
-      document.body.classList.toggle('dark',view.dataset.maWasBodyDark==='true');
-      document.documentElement.classList.toggle('dark',view.dataset.maWasHtmlDark==='true');});
-    hero.querySelectorAll('[data-ma-theme]').forEach(function(button){button.addEventListener('click',function(){setTheme(button.dataset.maTheme);});});
-    tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.addEventListener('click',function(){setTab(button.dataset.maTab);});});
-    dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.addEventListener('click',function(){activeDay=button.dataset.maDay||'all';renderFilteredReport();});});
-    if(typeof window.renderMorningAssemblyClasses==='function'){
-      var oldClasses=window.renderMorningAssemblyClasses;
-      window.renderMorningAssemblyClasses=function(){oldClasses.apply(this,arguments);updateCounts();};
-    }
-    if(typeof window.renderMorningAssemblyStudents==='function'){
-      var oldStudents=window.renderMorningAssemblyStudents;
-      window.renderMorningAssemblyStudents=function(){var result=oldStudents.apply(this,arguments);updateCounts();return result;};
-    }
-    if(typeof window.renderMorningAssemblySearch==='function'){
-      var oldSearch=window.renderMorningAssemblySearch;
-      window.renderMorningAssemblySearch=function(){var result=oldSearch.apply(this,arguments);updateCounts();return result;};
-    }
-    if(typeof window.loadMorningAssemblyLatenessToday==='function'){
-      var oldToday=window.loadMorningAssemblyLatenessToday;
-      window.loadMorningAssemblyLatenessToday=async function(){var result=await oldToday.apply(this,arguments);updateCounts();return result;};
-    }
-    if(typeof window.loadMorningAssemblyLatenessReport==='function'){
-      var oldReport=window.loadMorningAssemblyLatenessReport;
-      window.loadMorningAssemblyLatenessReport=async function(){activeDay='all';var result=await oldReport.apply(this,arguments);allReportRows=(typeof morningAssemblyReportRows!=='undefined'?morningAssemblyReportRows:[]).slice();renderFilteredReport();return result;};
-    }
-    if(typeof window.openMorningAssemblyLateness==='function'){
-      var oldOpen=window.openMorningAssemblyLateness;
-      window.openMorningAssemblyLateness=function(){var result=oldOpen.apply(this,arguments);setTimeout(function(){setTab(canUseMorningAssemblyLateness()?'quick':'report');updateCounts();},0);return result;};
-    }
-    setTheme('morning');
-    updateCounts();
-    if(typeof canUseMorningAssemblyLateness==='function'&&canUseMorningAssemblyLateness())setTab('quick');
-    else if(typeof canViewMorningAssemblyLatenessReport==='function'&&canViewMorningAssemblyLatenessReport())setTab('report');
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMorningAssemblyCalmGlass,{once:true});
-  else initMorningAssemblyCalmGlass();
-})();
-</script>
-</body></html>';
+  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script></body></html>';
 }
 async function saPrint(){
   const p=saReportPermissions||{};
@@ -16794,5 +16628,169 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 </script>
 <script src="./student-detail-record.js?v=20261126-safe-multiselect-6" defer></script>
+<script id="morning-assembly-calm-glass-ui-runtime">
+(function(){
+  function initMorningAssemblyCalmGlass(){
+    var view=document.getElementById('morningAssemblyLatenessView');
+    if(!view||view.dataset.calmGlassReady==='1')return;
+    var legacyHeader=view.firstElementChild;
+    if(legacyHeader)legacyHeader.classList.add('hidden');
+    view.dataset.maWasBodyDark=String(document.body.classList.contains('dark'));
+    view.dataset.maWasHtmlDark=String(document.documentElement.classList.contains('dark'));
+    view.dataset.calmGlassReady='1';
+    var classSection=document.getElementById('morningAssemblyClassesGrid')?.closest('section');
+    var studentsSection=document.getElementById('morningAssemblyStudentsList')?.closest('section');
+    var reportPanel=document.getElementById('morningAssemblyLatenessReportPanel');
+    var search=document.getElementById('morningAssemblySearch');
+    var searchLabel=search?.closest('label');
+    var searchResults=document.getElementById('morningAssemblySearchResults');
+    var bulkToggle=document.getElementById('morningAssemblyMultiSelectToggle');
+    var bulkBar=document.getElementById('morningAssemblyBulkBar');
+    if(!classSection||!studentsSection||!reportPanel||!searchLabel||!searchResults)return;
+    var hero=document.createElement('section');
+    hero.className='ma-hero rounded-3xl p-5 sm:p-6 space-y-4';
+    hero.innerHTML='<div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 shrink-0 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div><div class="min-w-0"><h2 class="font-black text-lg sm:text-xl text-white">مدرسة أبو دجانة الأنصاري</h2><p class="text-[11px] sm:text-xs text-slate-100/90 mt-1">قسم التأخر عن الطابور الصباحي • الأحد - الخميس (7:00 - 8:30)</p></div></div><span class="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-black text-white shrink-0">⏱ رصد موثّق</span></div><div class="flex flex-wrap items-center justify-between gap-3"><button type="button" id="maCalmBack" class="ma-back"><i class="fa-solid fa-arrow-right ml-1"></i> العودة</button><div class="flex flex-wrap gap-2"><button type="button" class="ma-theme-btn" data-ma-theme="morning" aria-pressed="true">☀️ نور الصباح الهادئ</button><button type="button" class="ma-theme-btn" data-ma-theme="dusk" aria-pressed="false">🌙 ضباب الغسق الهادئ</button></div></div>';
+    var tabs=document.createElement('div');
+    tabs.className='ma-tabs';
+    tabs.innerHTML='<button type="button" class="ma-tab" data-ma-tab="quick" aria-selected="true"><i class="fa-regular fa-clock"></i><span>الرصد السريع للطابور</span><span id="maTodayCount" class="ma-tab-count">0</span></button><button type="button" class="ma-tab" data-ma-tab="report" aria-selected="false"><i class="fa-solid fa-chart-column"></i><span>تقرير وتفاصيل الطابور</span><span id="maReportCount" class="ma-tab-count">0</span></button>';
+    view.insertBefore(tabs,view.firstChild);
+    view.insertBefore(hero,tabs);
+    var searchCard=document.createElement('section');
+    searchCard.id='maGlobalStudentSearchCard';
+    searchCard.className='ma-glass-card p-4 sm:p-6 space-y-4';
+    searchCard.innerHTML='<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-lg"><i class="fa-solid fa-user-clock"></i></div><div><h3 class="font-black text-base text-slate-800">تسجيل طالب متأخر</h3><p class="text-[11px] text-slate-600 mt-1">ابحث باسم الطالب من جميع الصفوف لرصد التأخر بلمسة واحدة</p></div></div><div id="maSearchControls" class="flex flex-wrap items-center gap-2"></div>';
+    var controls=searchCard.querySelector('#maSearchControls');
+    if(bulkToggle)controls.appendChild(bulkToggle);
+    if(bulkBar)searchCard.appendChild(bulkBar);
+    searchCard.appendChild(searchLabel);
+    searchCard.appendChild(searchResults);
+    view.insertBefore(searchCard,classSection);
+    var classHeading=document.createElement('div');
+    classHeading.className='flex flex-wrap items-center justify-between gap-3 mb-1';
+    classHeading.innerHTML='<div><h3 class="font-black text-base text-slate-800">اختر الصف</h3><p class="text-[11px] text-slate-600 mt-1">انقر على أي شعبة لفتح قائمة طلابها ورصد التأخر فوراً</p></div><div class="flex items-center gap-2"><span class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></span><span id="maClassTodaySummary" class="ma-summary-pill">مرصود اليوم: 0 طالب</span></div>';
+    classSection.insertBefore(classHeading,classSection.firstChild);
+    classSection.classList.add('ma-glass-card','p-4','sm:p-6');
+    studentsSection.classList.add('ma-glass-card','p-4','sm:p-6');
+    studentsSection.querySelector('h3')?.classList.add('text-slate-800');
+    var dayFilters=document.createElement('div');
+    dayFilters.id='maReportDayFilters';
+    dayFilters.className='ma-day-filters';
+    dayFilters.innerHTML='<button type="button" class="ma-day-filter" data-ma-day="all" aria-pressed="true">كل الأيام</button><button type="button" class="ma-day-filter" data-ma-day="Sunday" aria-pressed="false">الأحد</button><button type="button" class="ma-day-filter" data-ma-day="Monday" aria-pressed="false">الاثنين</button><button type="button" class="ma-day-filter" data-ma-day="Tuesday" aria-pressed="false">الثلاثاء</button><button type="button" class="ma-day-filter" data-ma-day="Wednesday" aria-pressed="false">الأربعاء</button><button type="button" class="ma-day-filter" data-ma-day="Thursday" aria-pressed="false">الخميس</button>';
+    var reportMeta=document.getElementById('morningAssemblyReportMeta');
+    if(reportMeta)reportMeta.parentNode.insertBefore(dayFilters,reportMeta);
+    var activeTab='quick';
+    var activeDay='all';
+    var allReportRows=[];
+    function setTheme(theme){
+      var dusk=theme==='dusk';
+      view.classList.toggle('ma-dusk',dusk);
+      document.documentElement.classList.toggle('dark',dusk);
+      document.body.classList.toggle('dark',dusk);
+      view.querySelectorAll('[data-ma-theme]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maTheme===(dusk?'dusk':'morning')));});
+    }
+    function setTab(tab){
+      var canRecord=typeof canUseMorningAssemblyLateness==='function'&&canUseMorningAssemblyLateness();
+      var canReport=typeof canViewMorningAssemblyLatenessReport==='function'&&canViewMorningAssemblyLatenessReport();
+      var reportTab=tabs.querySelector('[data-ma-tab=report]');
+      if(reportTab)reportTab.classList.toggle('hidden',!canReport);
+      if(tab==='quick'&&!canRecord){if(canReport)tab='report';else return;}
+      if(tab==='report'&&!canReport){if(canRecord)tab='quick';else return;}
+      activeTab=tab;
+      searchCard.classList.toggle('hidden',tab!=='quick'||!canRecord);
+      classSection.classList.toggle('hidden',tab!=='quick'||!canRecord);
+      studentsSection.classList.toggle('hidden',tab!=='quick'||!canRecord);
+      reportPanel.classList.toggle('hidden',tab!=='report'||!canReport);
+      tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.setAttribute('aria-selected',String(button.dataset.maTab===tab));});
+    }
+    function updateCounts(){
+      var todayCount=(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday.size)||0;
+      var todayNode=document.getElementById('maTodayCount');
+      var summary=document.getElementById('maClassTodaySummary');
+      if(todayNode)todayNode.textContent=String(todayCount);
+      if(summary)summary.textContent='مرصود اليوم: '+todayCount+' طالب';
+      var reportCount=document.getElementById('maReportCount');
+      if(reportCount)reportCount.textContent=String((typeof morningAssemblyReportRows!=='undefined'&&morningAssemblyReportRows.length)||0);
+      view.querySelectorAll('#morningAssemblyClassesGrid button[data-morning-class]').forEach(function(button){
+        var className=button.dataset.morningClass;
+        var count=0;
+        if(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){if(String(key).split('|')[0]===className)count++;});
+        var chip=button.querySelector('.ma-class-count');
+        if(!chip){chip=document.createElement('span');chip.className='ma-class-count';button.appendChild(chip);}
+        chip.textContent=count?count+' اليوم':'منتظم';
+        chip.classList.toggle('has-late',count>0);
+        button.dataset.selected=String(typeof morningAssemblySelectedClass!=='undefined'&&morningAssemblySelectedClass===className);
+      });
+    }
+    function weekdayOf(dateText){
+      var parsed=new Date(String(dateText||'')+'T12:00:00+04:00');
+      if(Number.isNaN(parsed.getTime()))return '';
+      return new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'Asia/Muscat'}).format(parsed);
+    }
+    function renderFilteredReport(){
+      var source=allReportRows||[];
+      var filtered=source.map(function(item){
+        var events=(item.events||[]).filter(function(event){return activeDay==='all'||weekdayOf(event.late_date)===activeDay;});
+        return Object.assign({},item,{events:events,count:events.length,absenceDays:Math.floor(events.length/4),remaining:events.length%4});
+      }).filter(function(item){return item.count>0;}).sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||a.name.localeCompare(b.name,'ar');});
+      morningAssemblyReportRows=filtered;
+      dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maDay===activeDay));});
+      var container=document.getElementById('morningAssemblyReportContainer');
+      if(!container)return;
+      var totalLate=filtered.reduce(function(sum,item){return sum+item.count;},0);
+      var totalAbsence=filtered.reduce(function(sum,item){return sum+item.absenceDays;},0);
+      if(reportMeta)reportMeta.textContent='العام الدراسي '+(document.getElementById('morningAssemblyReportYear')?.value||'')+' · الطلاب المتأخرون في الفترة المحددة: '+filtered.length;
+      if(!filtered.length){container.innerHTML='<div class="p-8 text-center text-xs text-slate-500">لا توجد سجلات تأخر في اليوم المحدد.</div>';updateCounts();return;}
+      var html='<div class="overflow-x-auto"><table class="w-full min-w-[820px] text-xs text-right"><thead><tr><th class="p-3">الترتيب</th><th class="p-3">الطالب / الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
+      filtered.forEach(function(item,index){
+        var tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';
+        var events=item.events.map(function(event){
+          var date=escapeHtml(event.late_date);
+          var time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
+          return date+' · '+time+' · سجل بواسطة: '+escapeHtml(event.recorder_name||'—');
+        }).join('<br>');
+        html+='<tr class="border-t morning-lateness-row '+tier+'"><td class="p-3 text-center font-black">'+(index+1)+'</td><td class="p-3"><div class="font-black text-sm">'+escapeHtml(item.name)+'</div><div class="mt-1 inline-flex rounded-lg border border-current/20 px-2 py-1 text-[10px] font-black">الصف '+escapeHtml(formatClassName(item.className))+'</div></td><td class="p-3 text-center font-black text-base">'+item.count+'</td><td class="p-3 text-center font-black text-base">'+item.absenceDays+'</td><td class="p-3 leading-6">'+events+'</td></tr>';
+      });
+      container.innerHTML=html+'</tbody></table></div>';
+      updateCounts();
+    }
+    hero.querySelector('#maCalmBack')?.addEventListener('click',function(){if(typeof closeMorningAssemblyLateness==='function')closeMorningAssemblyLateness();
+      document.body.classList.toggle('dark',view.dataset.maWasBodyDark==='true');
+      document.documentElement.classList.toggle('dark',view.dataset.maWasHtmlDark==='true');});
+    hero.querySelectorAll('[data-ma-theme]').forEach(function(button){button.addEventListener('click',function(){setTheme(button.dataset.maTheme);});});
+    tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.addEventListener('click',function(){setTab(button.dataset.maTab);});});
+    dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.addEventListener('click',function(){activeDay=button.dataset.maDay||'all';renderFilteredReport();});});
+    if(typeof window.renderMorningAssemblyClasses==='function'){
+      var oldClasses=window.renderMorningAssemblyClasses;
+      window.renderMorningAssemblyClasses=function(){oldClasses.apply(this,arguments);updateCounts();};
+    }
+    if(typeof window.renderMorningAssemblyStudents==='function'){
+      var oldStudents=window.renderMorningAssemblyStudents;
+      window.renderMorningAssemblyStudents=function(){var result=oldStudents.apply(this,arguments);updateCounts();return result;};
+    }
+    if(typeof window.renderMorningAssemblySearch==='function'){
+      var oldSearch=window.renderMorningAssemblySearch;
+      window.renderMorningAssemblySearch=function(){var result=oldSearch.apply(this,arguments);updateCounts();return result;};
+    }
+    if(typeof window.loadMorningAssemblyLatenessToday==='function'){
+      var oldToday=window.loadMorningAssemblyLatenessToday;
+      window.loadMorningAssemblyLatenessToday=async function(){var result=await oldToday.apply(this,arguments);updateCounts();return result;};
+    }
+    if(typeof window.loadMorningAssemblyLatenessReport==='function'){
+      var oldReport=window.loadMorningAssemblyLatenessReport;
+      window.loadMorningAssemblyLatenessReport=async function(){activeDay='all';var result=await oldReport.apply(this,arguments);allReportRows=(typeof morningAssemblyReportRows!=='undefined'?morningAssemblyReportRows:[]).slice();renderFilteredReport();return result;};
+    }
+    if(typeof window.openMorningAssemblyLateness==='function'){
+      var oldOpen=window.openMorningAssemblyLateness;
+      window.openMorningAssemblyLateness=function(){var result=oldOpen.apply(this,arguments);setTimeout(function(){setTab(canUseMorningAssemblyLateness()?'quick':'report');updateCounts();},0);return result;};
+    }
+    setTheme('morning');
+    updateCounts();
+    if(typeof canUseMorningAssemblyLateness==='function'&&canUseMorningAssemblyLateness())setTab('quick');
+    else if(typeof canViewMorningAssemblyLatenessReport==='function'&&canViewMorningAssemblyLatenessReport())setTab('report');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMorningAssemblyCalmGlass,{once:true});
+  else initMorningAssemblyCalmGlass();
+})();
+</script>
 </body>
 </html>
