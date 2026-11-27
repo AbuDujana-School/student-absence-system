@@ -1,10 +1,18 @@
 name: Administrative reports center tests
+
 on:
   pull_request:
     branches:
       - main
     paths:
       - "index.html"
+      - "admin-reports-center.js"
+      - "tests/admin_reports_center_test.mjs"
+      - ".github/workflows/admin-reports-center-tests.yml"
+  push:
+    branches:
+      - feature/admin-reports-center-20261126
+    paths:
       - "admin-reports-center.js"
       - "tests/admin_reports_center_test.mjs"
       - ".github/workflows/admin-reports-center-tests.yml"
