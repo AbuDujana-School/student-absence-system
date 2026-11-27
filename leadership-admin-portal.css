@@ -394,3 +394,139 @@ body.dark .border-gray-200 { border-color:rgba(148,163,184,.22); }
   #adminSectionView table,
   #adminRecordsCenterModal table { min-width:0!important; }
 }
+
+
+/* Local, explicit light/dusk controls for the morning assembly screen. */
+#morningAssemblyLatenessView .ma-theme-switcher {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 14px;
+  padding:10px;
+  border:1px solid rgba(53,76,99,.16);
+  border-radius:18px;
+  background:rgba(255,255,255,.56);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  backdrop-filter:blur(16px) saturate(140%);
+}
+#morningAssemblyLatenessView .ma-theme-switcher button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:9px 14px;
+  border:1px solid rgba(53,76,99,.2);
+  border-radius:999px;
+  background:rgba(43,65,87,.12);
+  color:#354c63;
+  font-size:11px;
+  font-weight:900;
+  transition:background .18s ease,color .18s ease,box-shadow .18s ease;
+}
+#morningAssemblyLatenessView .ma-theme-switcher button.is-active {
+  background:#f8fafc;
+  color:#1e293b;
+  border-color:rgba(200,157,76,.42);
+  box-shadow:0 6px 16px -10px rgba(36,56,76,.48);
+}
+#morningAssemblyLatenessView.ma-theme-light {
+  color:#1e293b!important;
+  background:#f1f5f9!important;
+}
+#morningAssemblyLatenessView.ma-theme-light .glass-card,
+#morningAssemblyLatenessView.ma-theme-light section,
+#morningAssemblyLatenessView.ma-theme-light .rounded-3xl.border,
+#morningAssemblyLatenessView.ma-theme-light .rounded-2xl.border {
+  color:#1e293b!important;
+  background:rgba(255,255,255,.84)!important;
+  border-color:rgba(53,76,99,.17)!important;
+}
+#morningAssemblyLatenessView.ma-theme-light .text-slate-900,
+#morningAssemblyLatenessView.ma-theme-light .text-slate-800,
+#morningAssemblyLatenessView.ma-theme-light .text-slate-700,
+#morningAssemblyLatenessView.ma-theme-light .text-gray-900,
+#morningAssemblyLatenessView.ma-theme-light .text-gray-800 {
+  color:#1e293b!important;
+}
+#morningAssemblyLatenessView.ma-theme-light .text-slate-600,
+#morningAssemblyLatenessView.ma-theme-light .text-slate-500,
+#morningAssemblyLatenessView.ma-theme-light .text-gray-600,
+#morningAssemblyLatenessView.ma-theme-light .text-gray-500 {
+  color:#475569!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk {
+  color:#e2e8f0!important;
+  background:#182635!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .glass-card,
+#morningAssemblyLatenessView.ma-theme-dusk section,
+#morningAssemblyLatenessView.ma-theme-dusk .rounded-3xl.border,
+#morningAssemblyLatenessView.ma-theme-dusk .rounded-2xl.border {
+  color:#e2e8f0!important;
+  background:rgba(34,52,71,.9)!important;
+  border-color:rgba(148,163,184,.22)!important;
+  box-shadow:0 16px 36px -22px rgba(8,20,32,.52)!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .text-slate-900,
+#morningAssemblyLatenessView.ma-theme-dusk .text-slate-800,
+#morningAssemblyLatenessView.ma-theme-dusk .text-slate-700,
+#morningAssemblyLatenessView.ma-theme-dusk .text-gray-900,
+#morningAssemblyLatenessView.ma-theme-dusk .text-gray-800 {
+  color:#e2e8f0!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .text-slate-600,
+#morningAssemblyLatenessView.ma-theme-dusk .text-slate-500,
+#morningAssemblyLatenessView.ma-theme-dusk .text-gray-600,
+#morningAssemblyLatenessView.ma-theme-dusk .text-gray-500 {
+  color:#cbd5e1!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk input,
+#morningAssemblyLatenessView.ma-theme-dusk select,
+#morningAssemblyLatenessView.ma-theme-dusk textarea {
+  color:#e2e8f0!important;
+  background:#182635!important;
+  border-color:rgba(148,163,184,.3)!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk input::placeholder,
+#morningAssemblyLatenessView.ma-theme-dusk textarea::placeholder { color:#aebdca!important; }
+#morningAssemblyLatenessView.ma-theme-dusk .morning-grade-filter,
+#morningAssemblyLatenessView.ma-theme-dusk .morning-assembly-class-card {
+  color:#e2e8f0!important;
+  background:rgba(43,65,87,.82)!important;
+  border-color:rgba(148,163,184,.24)!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .morning-grade-filter.is-active,
+#morningAssemblyLatenessView.ma-theme-dusk .morning-assembly-class-card.is-selected {
+  color:#fff!important;
+  background:linear-gradient(135deg,#354c63,#5b6ee1)!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .morning-lateness-row.tier-white {
+  color:#e2e8f0!important;
+  background:#354c63!important;
+}
+#morningAssemblyLatenessView.ma-theme-dusk .ma-theme-switcher {
+  background:rgba(34,52,71,.88);
+  border-color:rgba(148,163,184,.22);
+}
+#morningAssemblyLatenessView.ma-theme-dusk .ma-theme-switcher button {
+  color:#e2e8f0;
+  background:rgba(53,76,99,.72);
+  border-color:rgba(148,163,184,.24);
+}
+#morningAssemblyLatenessView.ma-theme-dusk .ma-theme-switcher button.is-active {
+  color:#1e293b;
+  background:#f8fafc;
+  border-color:rgba(200,157,76,.5);
+}
+body.dark #morningAssemblyLatenessView.ma-theme-light .glass-card,
+body.dark #morningAssemblyLatenessView.ma-theme-light section {
+  color:#1e293b!important;
+  background:rgba(255,255,255,.84)!important;
+  border-color:rgba(53,76,99,.17)!important;
+}
+@media(max-width:640px) {
+  #morningAssemblyLatenessView .ma-theme-switcher button { flex:1 1 100%; }
+}
