@@ -265,32 +265,32 @@ test("portal-only permission does not grant report or statistics access and keep
   await expect(page.locator("#adminPortalModalBody")).toContainText("لا تملك صلاحية الاطلاع على الإحصائيات");
 });
 
-test("morning assembly calm themes and quick/report tabs switch without touching school records", async ({ page }) => {
-  await page.addInitScript(() => {
-    document.addEventListener("DOMContentLoaded", () => {
-      window.startDistronDashboardStages = () => {};
-      window.isGeneralAdminUser = () => true;
-      window.isAdminAuthorized = () => true;
-      window.hasAdminPanelAccess = () => true;
-      window.distronDashboardStagePending = () => false;
-      window.canAccessAdminTab = () => true;
-      window.canAccessReport = () => true;
-      window.canAccessAnyReport = () => true;
-      activeUser = {
-        type: "admin",
-        name: "QA Morning Assembly Theme User",
-        permissions: { canViewAdminRecords: true, morningAssemblyLateness: true }
-      };
-      window.renderAuthenticatedDashboardShell?.();
-      document.getElementById("morningAssemblyLatenessView")?.classList.remove("hidden");
-    }, { once: true });
-  });
+test("morning assembly calm themes and report tab opens the original permission-gated report", async ({ page }) => {
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
   await page.route("https://fonts.googleapis.com/**", route => route.abort());
   await page.route("https://fonts.gstatic.com/**", route => route.abort());
   await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
   await page.route("https://cdn.tailwindcss.com/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/index.html", { waitUntil: "domcontentloaded" });
+
+  await page.evaluate(() => {
+    window.startDistronDashboardStages = () => {};
+    window.isGeneralAdminUser = () => true;
+    window.isAdminAuthorized = () => true;
+    window.hasAdminPanelAccess = () => true;
+    window.distronDashboardStagePending = () => false;
+    window.canAccessAdminTab = () => true;
+    window.canAccessReport = () => true;
+    window.canAccessAnyReport = () => true;
+    window.loadMorningAssemblyLatenessReport = async () => {};
+    activeUser = {
+      type: "admin",
+      name: "QA Morning Assembly Theme User",
+      permissions: { canViewAdminRecords: true, reportMorningAssemblyLateness: true }
+    };
+    window.renderAuthenticatedDashboardShell();
+    document.getElementById("morningAssemblyLatenessView")?.classList.remove("hidden");
+  });
 
   const view = page.locator("#morningAssemblyLatenessView");
   await expect(view).toBeAttached();
@@ -301,39 +301,27 @@ test("morning assembly calm themes and quick/report tabs switch without touching
   await themes.locator('[data-ma-theme="light"]').click();
   await expect(view).toHaveClass(/ma-theme-light/);
 
-  const domState = await page.evaluate(() => {
-    const root = document.getElementById("morningAssemblyLatenessView");
-    const ids = ["morningAssemblyClassesGrid", "morningAssemblySearch", "morningAssemblyStudentsList", "morningAssemblySearchResults", "morningAssemblyReportYear", "morningAssemblyReportMeta", "morningAssemblyReportContainer"];
-    return {
-      installed: root?.dataset.calmNavigationInstalled || null,
-      ids: ids.map(id => {
-        const node = document.getElementById(id);
-        return { id, exists: !!node, insideView: !!(root && node && root.contains(node)), tag: node?.tagName || null, parent: node?.parentElement?.tagName || null };
-      }),
-      sections: Array.from(root?.querySelectorAll("section") || []).map((section, index) => ({
-        index,
-        ids: Array.from(section.querySelectorAll("[id]")).map(node => node.id),
-        text: (section.innerText || "").slice(0, 120)
-      }))
-    };
-  });
-  console.log("MORNING_ASSEMBLY_DOM_STATE=" + JSON.stringify(domState));
   const tabs = view.locator(".ma-section-tabs");
   await expect(tabs).toBeAttached();
   const quick = tabs.locator('[data-ma-tab="quick"]');
   const report = tabs.locator('[data-ma-tab="report"]');
   await expect(quick).toHaveAttribute("aria-selected", "true");
+
   const classSection = view.locator("#morningAssemblyClassesGrid").locator("xpath=ancestor::section[1]");
   const studentSection = view.locator("#morningAssemblySearch").locator("xpath=ancestor::section[1]");
-  const reportSection = view.locator("#morningAssemblyReportContainer").locator("xpath=ancestor::section[1]");
   await expect(classSection).not.toHaveClass(/hidden/);
   await expect(studentSection).not.toHaveClass(/hidden/);
+
   await report.click();
   await expect(report).toHaveAttribute("aria-selected", "true");
-  await expect(classSection).toHaveClass(/hidden/);
-  await expect(studentSection).toHaveClass(/hidden/);
-  await expect(reportSection).not.toHaveClass(/hidden/);
+  await expect(page.locator("#adminModal")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#sec-reports")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#morningAssemblyLatenessReportPanel")).not.toHaveClass(/hidden/);
+
+  await page.evaluate(() => closeAdminModal());
   await quick.click();
   await expect(quick).toHaveAttribute("aria-selected", "true");
   await expect(classSection).not.toHaveClass(/hidden/);
+  await expect(studentSection).not.toHaveClass(/hidden/);
 });
+
