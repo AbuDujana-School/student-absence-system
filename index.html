@@ -6,14 +6,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style id="login-first-paint">
-html,body{min-height:100%;margin:0;background:#04121f!important}
-body.login-mode{min-height:100dvh;background:#04121f!important;overflow:hidden}
+html,body{min-height:100%;margin:0;background:#04121f!important;color-scheme:dark}
+body.login-mode{min-height:100svh;min-height:100dvh;background:#04121f!important;overflow-x:hidden;overflow-y:auto}
 body.login-mode>header{display:none!important}
-body.login-mode>main{display:grid;place-items:center;align-content:center;width:100%!important;height:100dvh;min-height:100svh;min-height:100dvh;margin:0!important;padding:max(4px,env(safe-area-inset-top)) 8px max(4px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:hidden}
+body.login-mode>main{display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#04121f">
-<meta name="app-build" content="2026-11-27-direct-pin-login-3">
+<meta name="app-build" content="2026-11-27-direct-pin-login-5">
 <title>مدرسة ابو دجانة</title>
 
 
@@ -2521,76 +2521,72 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 @media(prefers-reduced-motion:reduce){#loginView.school-login *,#loginView.school-login *:before,#loginView.school-login *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 <style id="premium-pin-responsive-layout">
-@media(max-width:600px){
- body.login-mode>main{display:grid;place-items:center;align-content:center;height:100dvh;max-height:100dvh;min-height:100dvh;padding:max(4px,env(safe-area-inset-top)) 6px max(4px,env(safe-area-inset-bottom))!important;overflow:hidden}
- #loginView.school-login{width:min(100%,420px);max-width:420px;padding:3px}
- #loginView.school-login .sl-stage{width:100%;max-width:420px}
- #loginView.school-login .sl-topbar{gap:8px;padding:6px 9px;border-radius:17px}
- #loginView.school-login .sl-emblem.mini{width:38px;height:38px}
- #loginView.school-login .sl-theme{width:35px;height:35px;flex-basis:35px;font-size:17px}
- #loginView.school-login .sl-top-info h2{font-size:clamp(10px,2.1vw,12px);line-height:1.45}
- #loginView.school-login .sl-top-info p{font-size:9px}
- #loginView.school-login .sl-card{display:block;margin-top:7px;padding:9px 11px 9px;border-radius:23px}
+@media(max-width:759px){
+ body.login-mode{min-height:100svh;min-height:100dvh;overflow-x:hidden;overflow-y:auto!important}
+ body.login-mode>main{display:flex!important;flex-direction:column;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) clamp(10px,3vw,18px) max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important;overscroll-behavior-y:contain}
+ #loginView.school-login{display:flex;flex-direction:column;box-sizing:border-box;width:100%;max-width:560px;min-height:calc(100svh - 28px);min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 28px);margin:0 auto;padding:clamp(8px,2.2vw,14px)}
+ #loginView.school-login .sl-stage{display:flex;flex:1 0 auto;flex-direction:column;gap:12px;width:100%;max-width:560px;margin:0 auto}
+ #loginView.school-login .sl-topbar{gap:10px;padding:9px 12px;border-radius:19px}
+ #loginView.school-login .sl-emblem.mini{width:44px;height:44px}
+ #loginView.school-login .sl-theme{width:40px;height:40px;flex-basis:40px;font-size:18px}
+ #loginView.school-login .sl-top-info h2{font-size:clamp(12px,3.2vw,15px);line-height:1.5}
+ #loginView.school-login .sl-top-info p{font-size:11px;line-height:1.5}
+ #loginView.school-login .sl-card{display:flex;flex:1 0 auto;flex-direction:column;align-items:stretch;justify-content:center;gap:clamp(12px,2.4vh,20px);margin-top:0;padding:clamp(17px,3.2vh,28px) clamp(13px,3.2vw,22px);border-radius:26px}
  #loginView.school-login .sl-intro{min-width:0}
- #loginView.school-login .sl-hero{width:clamp(70px,11dvh,84px);height:clamp(70px,11dvh,84px);margin:0 auto 3px}
- #loginView.school-login .sl-emblem.hero-logo{inset:5px}
- #loginView.school-login .sl-title{font-size:clamp(16px,2.6dvh,19px);line-height:1.35}
- #loginView.school-login .sl-slogan{margin-top:1px;font-size:11px;line-height:1.35}
- #loginView.school-login .sl-motto{margin-top:2px;font-size:11px;line-height:1.3}
- #loginView.school-login .sl-motto:before,#loginView.school-login .sl-motto:after{width:22px}
- #loginView.school-login .sl-quote{margin-top:2px;font-size:clamp(10px,1.65dvh,11px);line-height:1.35}
- #loginView.school-login .sl-pin-label{justify-content:flex-start;margin:6px 2px 3px;font-size:11px}
- #loginView.school-login .sl-pin{min-height:32px;padding:3px 7px;gap:0;border-radius:12px}
- #loginView.school-login .sl-dots{gap:6px;padding:2px}
- #loginView.school-login .sl-dot{flex-basis:9px;width:9px;height:9px}
+ #loginView.school-login .sl-hero{width:clamp(94px,15dvh,126px);height:clamp(94px,15dvh,126px);margin:0 auto 7px}
+ #loginView.school-login .sl-emblem.hero-logo{inset:7px}
+ #loginView.school-login .sl-title{font-size:clamp(18px,4.7vw,24px);line-height:1.4}
+ #loginView.school-login .sl-slogan{margin-top:3px;font-size:clamp(12px,3.5vw,15px);line-height:1.5}
+ #loginView.school-login .sl-motto{margin-top:6px;font-size:13px;line-height:1.4}
+ #loginView.school-login .sl-motto:before,#loginView.school-login .sl-motto:after{width:28px}
+ #loginView.school-login .sl-quote{margin-top:5px;font-size:clamp(11px,3vw,13px);line-height:1.6}
+ #loginView.school-login .sl-form{width:100%;max-width:460px;margin:0 auto}
+ #loginView.school-login .sl-pin-label{justify-content:flex-start;margin:11px 2px 6px;font-size:13px;line-height:1.5}
+ #loginView.school-login .sl-pin{min-height:50px;padding:7px 10px;gap:8px;border-radius:15px}
+ #loginView.school-login .sl-dots{gap:7px;padding:3px}
+ #loginView.school-login .sl-dot{flex-basis:11px;width:11px;height:11px}
  #loginView.school-login .sl-dots.long{gap:3px}
- #loginView.school-login .sl-dots.long .sl-dot{flex-basis:7px;width:7px;height:7px}
- #loginView.school-login .sl-pad{gap:5px}
- #loginView.school-login .sl-key{height:clamp(39px,6.3dvh,46px);border-radius:12px;font-size:26px}
- #loginView.school-login .sl-key.delete{font-size:13px}
- #loginView.school-login .sl-key.submit{font-size:15px}
- #loginView.school-login .sl-foot{margin-top:4px;font-size:8px}
- #loginView.school-login .sl-error{margin-top:4px;padding:5px 7px;font-size:9px}
+ #loginView.school-login .sl-dots.long .sl-dot{flex-basis:8px;width:8px;height:8px}
+ #loginView.school-login .sl-pad{gap:8px}
+ #loginView.school-login .sl-key{height:clamp(54px,7dvh,66px);min-height:54px;border-radius:14px;font-size:clamp(27px,7vw,32px)}
+ #loginView.school-login .sl-key.delete{font-size:15px}
+ #loginView.school-login .sl-key.submit{font-size:16px}
+ #loginView.school-login .sl-foot{margin-top:7px;font-size:10px;line-height:1.5}
+ #loginView.school-login .sl-error{margin-top:6px;padding:7px 9px;font-size:11px;line-height:1.5}
 }
-@media(max-width:600px) and (max-height:620px){
- #loginView.school-login .sl-topbar{padding:4px 7px}
- #loginView.school-login .sl-emblem.mini{width:32px;height:32px}
- #loginView.school-login .sl-theme{width:30px;height:30px;flex-basis:30px}
- #loginView.school-login .sl-card{margin-top:5px;padding:6px 9px}
- #loginView.school-login .sl-hero{width:60px;height:60px;margin-bottom:2px}
- #loginView.school-login .sl-title{font-size:15px}
- #loginView.school-login .sl-slogan{font-size:10px}
- #loginView.school-login .sl-motto{font-size:10px}
- #loginView.school-login .sl-quote{font-size:9px;line-height:1.25}
- #loginView.school-login .sl-pin-label{margin:4px 2px 2px}
- #loginView.school-login .sl-pin{min-height:28px}
- #loginView.school-login .sl-key{height:36px;font-size:23px}
- #loginView.school-login .sl-pad{gap:4px}
- #loginView.school-login .sl-foot{margin-top:3px}
+@media(max-width:360px){
+ #loginView.school-login .sl-topbar{gap:7px;padding:9px 10px}
+ #loginView.school-login .sl-emblem.mini{width:40px;height:40px}
+ #loginView.school-login .sl-theme{width:36px;height:36px;flex-basis:36px}
+ #loginView.school-login .sl-card{padding-right:11px;padding-left:11px}
+ #loginView.school-login .sl-pad{gap:7px}
+ #loginView.school-login .sl-key{font-size:28px}
 }
 @media(min-width:760px){
- body.login-mode>main{display:grid;place-items:center;align-content:center;height:100dvh;min-height:100dvh;padding:12px 20px!important;overflow:hidden}
- #loginView.school-login{width:min(100%,1040px);max-width:1040px;padding:10px 16px}
- #loginView.school-login .sl-stage{width:100%;max-width:1000px}
- #loginView.school-login .sl-topbar{padding:10px 18px}
- #loginView.school-login .sl-emblem.mini{width:50px;height:50px}
- #loginView.school-login .sl-top-info h2{font-size:15px}
- #loginView.school-login .sl-top-info p{font-size:11px}
- #loginView.school-login .sl-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,1fr);align-items:center;gap:clamp(22px,3.5vw,44px);margin-top:16px;padding:24px clamp(22px,4vw,42px);text-align:center}
+ body.login-mode{min-height:100svh;min-height:100dvh;overflow-x:hidden;overflow-y:auto!important}
+ body.login-mode>main{display:flex!important;flex-direction:column;align-items:center;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(16px,env(safe-area-inset-top)) clamp(20px,3vw,36px) max(20px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
+ #loginView.school-login{display:flex;box-sizing:border-box;width:100%;max-width:1240px;min-height:calc(100svh - 40px);min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 40px);margin:0 auto;padding:12px 16px}
+ #loginView.school-login .sl-stage{display:flex;flex:1 0 auto;flex-direction:column;justify-content:center;gap:14px;width:100%;max-width:1180px;margin:auto}
+ #loginView.school-login .sl-topbar{gap:14px;padding:12px 20px}
+ #loginView.school-login .sl-emblem.mini{width:52px;height:52px}
+ #loginView.school-login .sl-theme{width:46px;height:46px;flex-basis:46px}
+ #loginView.school-login .sl-top-info h2{font-size:16px;line-height:1.55}
+ #loginView.school-login .sl-top-info p{font-size:12px}
+ #loginView.school-login .sl-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,440px);align-items:center;gap:clamp(22px,3.5vw,52px);flex:1 0 auto;margin-top:0;padding:clamp(24px,3.5vw,40px);border-radius:30px;text-align:center}
  #loginView.school-login .sl-intro{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center}
- #loginView.school-login .sl-hero{width:clamp(132px,18vw,172px);height:clamp(132px,18vw,172px);margin:0 auto 8px}
+ #loginView.school-login .sl-hero{width:clamp(132px,18vw,180px);height:clamp(132px,18vw,180px);margin:0 auto 9px}
  #loginView.school-login .sl-emblem.hero-logo{inset:10px}
- #loginView.school-login .sl-title{font-size:clamp(21px,2.4vw,28px);line-height:1.5}
+ #loginView.school-login .sl-title{font-size:clamp(22px,2.3vw,30px);line-height:1.5}
  #loginView.school-login .sl-slogan{font-size:clamp(13px,1.45vw,16px)}
  #loginView.school-login .sl-motto{margin-top:7px;font-size:14px}
- #loginView.school-login .sl-quote{font-size:15px;line-height:1.7;margin-top:7px}
- #loginView.school-login .sl-form{width:100%;max-width:440px;justify-self:center}
+ #loginView.school-login .sl-quote{font-size:clamp(14px,1.3vw,16px);line-height:1.7;margin-top:7px}
+ #loginView.school-login .sl-form{width:100%;max-width:440px;justify-self:center;margin:0 auto}
  #loginView.school-login .sl-pin-label{justify-content:flex-start;margin:0 2px 8px;font-size:13px}
- #loginView.school-login .sl-pin{min-height:48px;border-radius:15px}
+ #loginView.school-login .sl-pin{min-height:54px;border-radius:16px}
  #loginView.school-login .sl-dots{gap:9px}
  #loginView.school-login .sl-dot{width:12px;height:12px;flex-basis:12px}
  #loginView.school-login .sl-pad{gap:9px}
- #loginView.school-login .sl-key{height:60px;border-radius:16px;font-size:30px}
+ #loginView.school-login .sl-key{height:clamp(60px,7vh,70px);min-height:60px;border-radius:16px;font-size:31px}
  #loginView.school-login .sl-key.delete{font-size:15px}
  #loginView.school-login .sl-key.submit{font-size:17px}
  #loginView.school-login .sl-foot{margin-top:9px;font-size:10px}
@@ -12905,7 +12901,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   try {
     const workerContainer = navigator.serviceWorker;
     if (workerContainer && typeof workerContainer.register === "function") {
-      Promise.resolve(workerContainer.register("./sw.js?v=20261127-direct-pin-login-3", { updateViaCache: "none" }))
+      Promise.resolve(workerContainer.register("./sw.js?v=20261127-direct-pin-login-5", { updateViaCache: "none" }))
         .then(registration => {
           if (registration && typeof registration.update === "function") return registration.update();
           return undefined;
