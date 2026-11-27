@@ -2588,10 +2588,14 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     // This mount is reserved for the canonical editor and archive cards only.
     // Legacy administration/reset panels are intentionally not created or moved here.
     function mountCanonicalPanel(){
+      // The canonical single-screen adapter owns the edit/archive mount points.
+      // The legacy timetable panel is intentionally absent in this layout and
+      // must never be a prerequisite for opening the reserve workspace.
       const panel=$("timetableSubstitutionPanel");
+      const editHost=$("subxEditMountArea");
       const archiveHost=$("subxArchiveMountArea");
-      if(!panel||!$("subxEditMountArea")||!archiveHost)return false;
-      panel.classList.add("hidden");
+      if(!editHost||!archiveHost)return false;
+      panel?.classList.add("hidden");
       $("timetableDailyActivePanel")?.classList.add("hidden");
       $("timetableDailyArchivePanel")?.classList.add("hidden");
       return true;

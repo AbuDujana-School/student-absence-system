@@ -203,3 +203,13 @@ test('reserve save guard accepts YYYY-MM-DD and rejects only earlier dates',()=>
  assert.ok('2026-11-25'>='2026-11-25');
  assert.ok(!('2026-11-24'>='2026-11-25'));
 });
+
+test('canonical reserve mounting does not require the removed legacy timetable panel',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ const mount=workflow.match(/function mountCanonicalPanel\\(\\)\\{([\\s\\S]*?)\\n    \\}/)?.[1]||'';
+ assert.ok(mount.includes('const editHost=$("subxEditMountArea")'));
+ assert.ok(mount.includes('const archiveHost=$("subxArchiveMountArea")'));
+ assert.match(mount,/if\\(!editHost\\|\\|!archiveHost\\)return false/);
+ assert.match(mount,/panel\\?\\.classList\\.add\\("hidden"\\)/);
+ assert.doesNotMatch(mount,/if\\(!panel\\|\\|/);
+});
