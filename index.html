@@ -17023,8 +17023,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       view.querySelectorAll('#morningAssemblyGradeFilters [data-morning-grade]').forEach(function(button){
         var grade=button.dataset.morningGrade||'all',count=0;
         if(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){
-          var className=String(key).split('|')[0],match=className.match(/(?:^|\\/)\\s*(9|10|11|12)\\s*$/);
-          if(grade==='all'||(match&&match[1]===grade))count++;
+          var className=String(key).split('|')[0],gradeOf=String(className.split('/').pop()||'').trim();
+          if(grade==='all'||gradeOf===grade)count++;
         });
         var badge=button.querySelector('.ma-grade-today-count');
         if(!badge){badge=document.createElement('span');badge.className='ma-grade-today-count';button.appendChild(badge);}
