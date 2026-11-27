@@ -2232,6 +2232,11 @@ body>header [class*="bg-emerald-"]{background:rgba(255,255,255,.1)!important;col
 body>header [class*="text-emerald-"]{color:#dbe5ef!important}
 body>header [class*="bg-blue-800"],body>header [class*="bg-cyan-800"]{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important}
 body>header [class*="text-blue-"],body>header [class*="text-cyan-"]{color:#dbe5ef!important}
+
+#morningAssemblyLatenessView .ma-day-filter{border:1px solid rgba(71,85,105,.22);border-radius:999px;padding:8px 13px;background:rgba(226,232,240,.55);color:#334155;font-size:10px;font-weight:900}
+#morningAssemblyLatenessView .ma-day-filter.is-active{background:#2b4157;border-color:#2b4157;color:#fff}
+.dark #morningAssemblyLatenessView .ma-day-filter{background:#223447;border-color:#52677d;color:#e2e8f0}
+.dark #morningAssemblyLatenessView .ma-day-filter.is-active{background:#40566e;border-color:#71869c;color:#fff}
 </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
@@ -3289,6 +3294,14 @@ body>header [class*="text-blue-"],body>header [class*="text-cyan-"]{color:#dbe5e
       </div>
     </div>
     <div id="morningAssemblyReportAccess" class="hidden rounded-2xl bg-amber-50 text-amber-900 border border-amber-200 p-3 text-xs font-bold"></div>
+    <div id="morningAssemblyDayFilters" class="flex flex-wrap gap-2" role="group" aria-label="تصفية التقرير حسب يوم الأسبوع">
+      <button type="button" data-ma-day="all" onclick="setMorningAssemblyReportDayFilter('all')" class="ma-day-filter is-active">كل الأيام</button>
+      <button type="button" data-ma-day="0" onclick="setMorningAssemblyReportDayFilter('0')" class="ma-day-filter">الأحد</button>
+      <button type="button" data-ma-day="1" onclick="setMorningAssemblyReportDayFilter('1')" class="ma-day-filter">الاثنين</button>
+      <button type="button" data-ma-day="2" onclick="setMorningAssemblyReportDayFilter('2')" class="ma-day-filter">الثلاثاء</button>
+      <button type="button" data-ma-day="3" onclick="setMorningAssemblyReportDayFilter('3')" class="ma-day-filter">الأربعاء</button>
+      <button type="button" data-ma-day="4" onclick="setMorningAssemblyReportDayFilter('4')" class="ma-day-filter">الخميس</button>
+    </div>
     <div id="morningAssemblyReportMeta" class="text-xs font-bold ma-muted"></div>
     <div id="morningAssemblyReportContainer" class="ma-table-scroll rounded-2xl border overflow-x-auto"><div class="p-8 text-center text-xs ma-muted">اضغط تحديث التقرير لعرض البيانات</div></div>
     <div class="flex justify-end"><button onclick="printMorningAssemblyLatenessReport()" class="ma-primary-btn rounded-xl px-5 py-3 text-xs font-black shadow"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة PDF</button></div>
@@ -9128,6 +9141,7 @@ function closeMorningAssemblyLateness() {
 }
 
 let morningAssemblyActiveTab='quick';
+let morningAssemblyReportDayFilter='all';
 function setMorningAssemblyTheme(isDark) {
   const current=document.documentElement.classList.contains('dark');
   if(current!==!!isDark) toggleDarkMode();
@@ -9393,48 +9407,82 @@ function buildMorningAssemblyReportRows(rows) {
   return [...byStudent.values()].map(item => ({...item,absenceDays:Math.floor(item.count/4),remaining:item.count%4}))
     .sort((a,b)=>b.count-a.count || String(a.className).localeCompare(String(b.className),'ar',{numeric:true}) || a.name.localeCompare(b.name,'ar'));
 }
+function getMorningAssemblyReportDay(event) {
+  const value=String(event?.late_date||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return '';
+  const date=new Date(value+'T12:00:00');
+  return Number.isNaN(date.getTime())?'':String(date.getDay());
+}
+function getFilteredMorningAssemblyReportRows() {
+  const day=String(morningAssemblyReportDayFilter||'all');
+  return (Array.isArray(morningAssemblyReportRows)?morningAssemblyReportRows:[])
+    .map(item=>({...item,events:(item.events||[]).filter(event=>day==='all'||getMorningAssemblyReportDay(event)===day)}))
+    .filter(item=>day==='all'||item.events.length>0);
+}
+function setMorningAssemblyReportDayFilter(day) {
+  const allowed=['all','0','1','2','3','4'];
+  if(!allowed.includes(String(day)))return;
+  morningAssemblyReportDayFilter=String(day);
+  document.querySelectorAll('#morningAssemblyDayFilters [data-ma-day]').forEach(button=>{
+    const active=button.getAttribute('data-ma-day')===morningAssemblyReportDayFilter;
+    button.classList.toggle('is-active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+  renderMorningAssemblyLatenessReport();
+}
+function renderMorningAssemblyLatenessReport() {
+  const container=document.getElementById('morningAssemblyReportContainer');if(!container)return;
+  const rows=getFilteredMorningAssemblyReportRows();
+  const reportCount=document.getElementById('morningAssemblyReportCount');if(reportCount)reportCount.textContent=String(rows.length);
+  const selectedLabel=morningAssemblyReportDayFilter==='all'?'جميع الأيام':['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'][Number(morningAssemblyReportDayFilter)]||'جميع الأيام';
+  const meta=document.getElementById('morningAssemblyReportMeta');
+  if(!rows.length){
+    if(meta)meta.innerHTML='<div class="rounded-2xl border border-slate-200 dark:border-slate-600 p-3 ma-muted">لا توجد سجلات مطابقة لمرشح '+escapeHtml(selectedLabel)+'.</div>';
+    container.innerHTML='<div class="p-8 text-center text-xs ma-muted">لا توجد سجلات تأخر في اليوم المحدد.</div>';
+    updateMorningAssemblySummary();return;
+  }
+  const totalLate=rows.reduce((sum,item)=>sum+item.count,0);
+  const totalAbsence=rows.reduce((sum,item)=>sum+item.absenceDays,0);
+  if(meta)meta.innerHTML='<div class="grid grid-cols-2 sm:grid-cols-3 gap-2"><div class="rounded-2xl bg-slate-50 border border-slate-200 p-3"><small class="block text-[10px] text-slate-500">الطلاب المطابقون</small><b class="text-xl text-slate-900">'+rows.length+'</b></div><div class="rounded-2xl bg-fuchsia-50 border border-fuchsia-200 p-3"><small class="block text-[10px] text-fuchsia-700">إجمالي مرات التأخر التراكمي</small><b class="text-xl text-fuchsia-900">'+totalLate+'</b></div><div class="col-span-2 sm:col-span-1 rounded-2xl bg-rose-50 border border-rose-200 p-3"><small class="block text-[10px] text-rose-700">أيام الغياب المستحقة</small><b class="text-xl text-rose-900">'+totalAbsence+'</b></div></div><div class="mt-2 text-[10px] font-bold ma-muted">مرشح اليوم: '+escapeHtml(selectedLabel)+' · الأعداد التراكمية محسوبة على العام الدراسي كاملاً للطلاب المطابقين.</div><div class="flex flex-wrap gap-2 mt-3 text-[10px] font-black"><span class="rounded-lg border bg-white text-slate-800 px-3 py-2">1 مرة: أبيض</span><span class="rounded-lg border border-amber-300 bg-amber-100 text-amber-900 px-3 py-2">2–3: أصفر</span><span class="rounded-lg border border-rose-300 bg-rose-100 text-rose-900 px-3 py-2">4–7: أحمر</span><span class="rounded-lg border border-slate-700 bg-[#354c63] text-white px-3 py-2">8+: كحلي</span></div>';
+  let html='<div class="overflow-x-auto"><table class="w-full min-w-[780px] text-xs text-right"><thead class="bg-slate-900 text-white"><tr><th class="p-3">الترتيب</th><th class="p-3">الطالب / الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
+  rows.forEach((item,index)=>{
+    const tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';
+    const events=item.events.map(event=>{
+      const date=escapeHtml(event.late_date);
+      const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
+      return date+' · '+time+' · سجل بواسطة: '+escapeHtml(event.recorder_name||'—');
+    }).join('<br>');
+    html+='<tr class="border-t morning-lateness-row '+tier+'"><td class="p-3 text-center font-black">'+(index+1)+'</td><td class="p-3"><div class="font-black text-sm">'+escapeHtml(item.name)+'</div><div class="mt-1 inline-flex rounded-lg border border-current/20 px-2 py-1 text-[10px] font-black">الصف '+escapeHtml(formatClassName(item.className))+'</div></td><td class="p-3 text-center font-black text-base">'+item.count+'</td><td class="p-3 text-center font-black text-base">'+item.absenceDays+'</td><td class="p-3 leading-6">'+events+'</td></tr>';
+  });
+  container.innerHTML=html+'</tbody></table></div>';
+  updateMorningAssemblySummary();
+}
 async function loadMorningAssemblyLatenessReport() {
-  const container = document.getElementById('morningAssemblyReportContainer'); if (!container) return;
-  if (!canViewMorningAssemblyLatenessReport()) {
+  const container=document.getElementById('morningAssemblyReportContainer');if(!container)return;
+  if(!canViewMorningAssemblyLatenessReport()){
     document.getElementById('morningAssemblyReportAccess')?.classList.remove('hidden');
-    document.getElementById('morningAssemblyReportAccess').textContent = 'لا تملك صلاحية الاطلاع على تقرير التأخر عن الطابور الصباحي.';
+    document.getElementById('morningAssemblyReportAccess').textContent='لا تملك صلاحية الاطلاع على تقرير التأخر عن الطابور الصباحي.';
     return;
   }
   try {
-    container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ تحميل التقرير...</div>';
-    const requestedYear = document.getElementById('morningAssemblyReportYear')?.value || '';
-    const data = await callMorningAssemblyLatenessApi({action:'report',academic_year:requestedYear || undefined});
-    const yearSelect = document.getElementById('morningAssemblyReportYear');
-    if (yearSelect) {
-      const years = Array.isArray(data.available_years) ? data.available_years : [data.academic_year];
-      yearSelect.innerHTML = years.map(year => '<option value="' + escapeHtml(year) + '">' + escapeHtml(year) + '</option>').join('');
-      yearSelect.value = data.academic_year;
+    container.innerHTML='<div class="p-8 text-center text-xs ma-muted"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ تحميل التقرير...</div>';
+    const requestedYear=document.getElementById('morningAssemblyReportYear')?.value||'';
+    const data=await callMorningAssemblyLatenessApi({action:'report',academic_year:requestedYear||undefined});
+    const yearSelect=document.getElementById('morningAssemblyReportYear');
+    if(yearSelect){
+      const years=Array.isArray(data.available_years)?data.available_years:[data.academic_year];
+      yearSelect.innerHTML=years.map(year=>'<option value="'+escapeHtml(year)+'">'+escapeHtml(year)+'</option>').join('');
+      yearSelect.value=data.academic_year;
     }
-    morningAssemblyReportRows = buildMorningAssemblyReportRows(data.rows || []);
-    const reportCount=document.getElementById('morningAssemblyReportCount'); if(reportCount) reportCount.textContent=String(morningAssemblyReportRows.length);
-    document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
-    if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-500">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; updateMorningAssemblySummary(); return; }
-    const totalLate = morningAssemblyReportRows.reduce((sum,item)=>sum+item.count,0);
-    const totalAbsence = morningAssemblyReportRows.reduce((sum,item)=>sum+item.absenceDays,0);
-    document.getElementById('morningAssemblyReportMeta').innerHTML = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2"><div class="rounded-2xl bg-slate-50 border border-slate-200 p-3"><small class="block text-[10px] text-slate-500">الطلاب المتأخرون</small><b class="text-xl text-slate-900">'+morningAssemblyReportRows.length+'</b></div><div class="rounded-2xl bg-fuchsia-50 border border-fuchsia-200 p-3"><small class="block text-[10px] text-fuchsia-700">إجمالي مرات التأخر</small><b class="text-xl text-fuchsia-900">'+totalLate+'</b></div><div class="col-span-2 sm:col-span-1 rounded-2xl bg-rose-50 border border-rose-200 p-3"><small class="block text-[10px] text-rose-700">أيام الغياب المستحقة</small><b class="text-xl text-rose-900">'+totalAbsence+'</b></div></div><div class="flex flex-wrap gap-2 mt-3 text-[10px] font-black"><span class="rounded-lg border bg-white text-slate-800 px-3 py-2">1 مرة: أبيض</span><span class="rounded-lg border border-amber-300 bg-amber-100 text-amber-900 px-3 py-2">2–3: أصفر</span><span class="rounded-lg border border-rose-300 bg-rose-100 text-rose-900 px-3 py-2">4–7: أحمر</span><span class="rounded-lg border border-slate-900 bg-[#354c63] text-white px-3 py-2">8+: كحلي</span></div>';
-    let html = '<div class="overflow-x-auto"><table class="w-full min-w-[780px] text-xs text-right"><thead class="bg-slate-900 text-white"><tr><th class="p-3">الترتيب</th><th class="p-3">الطالب / الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
-    morningAssemblyReportRows.forEach((item,index) => {
-      const tier = item.count >= 8 ? 'tier-black' : item.count >= 4 ? 'tier-red' : item.count >= 2 ? 'tier-yellow' : 'tier-white';
-      const events = item.events.map(event => {
-        const date = escapeHtml(event.late_date);
-        const time = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
-        return date + ' · ' + time + ' · سجل بواسطة: ' + escapeHtml(event.recorder_name || '—');
-      }).join('<br>');
-      html += '<tr class="border-t morning-lateness-row ' + tier + '"><td class="p-3 text-center font-black">' + (index+1) + '</td><td class="p-3"><div class="font-black text-sm">' + escapeHtml(item.name) + '</div><div class="mt-1 inline-flex rounded-lg border border-current/20 px-2 py-1 text-[10px] font-black">الصف ' + escapeHtml(formatClassName(item.className)) + '</div></td><td class="p-3 text-center font-black text-base">' + item.count + '</td><td class="p-3 text-center font-black text-base">' + item.absenceDays + '</td><td class="p-3 leading-6">' + events + '</td></tr>';
-    });
-    container.innerHTML = html + '</tbody></table></div>'; updateMorningAssemblySummary();
-  } catch (error) {
-    container.innerHTML = '<div class="p-6 text-center text-xs font-bold text-rose-600">' + escapeHtml(error.message || 'تعذر تحميل التقرير.') + '</div>';
+    morningAssemblyReportRows=buildMorningAssemblyReportRows(data.rows||[]);
+    renderMorningAssemblyLatenessReport();
+  } catch(error) {
+    container.innerHTML='<div class="p-6 text-center text-xs font-bold text-rose-600">'+escapeHtml(error.message||'تعذر تحميل التقرير.')+'</div>';
   }
 }
 function printMorningAssemblyLatenessReport() {
   if (!canViewMorningAssemblyLatenessReport()) { showToast('لا تملك صلاحية طباعة تقرير التأخر عن الطابور الصباحي.','error'); return; }
-  const source=Array.isArray(morningAssemblyReportRows)?morningAssemblyReportRows:[];
+  const source=getFilteredMorningAssemblyReportRows();
   const filtered=source.filter(function(item){return Number(item.count)>0;});
   if(!filtered.length){showToast('لا توجد حالات تأخر مسجلة في الفترة المحددة.','info');return;}
   const rows=filtered.map(function(item,index){const tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';return '<tr class="'+tier+'"><td>'+(index+1)+'</td><td><strong>'+escapeHtml(item.name)+'</strong><small>الصف '+escapeHtml(formatClassName(item.className))+'</small></td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(function(e){return escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—');}).join('<br>')+'</td></tr>';}).join('');
