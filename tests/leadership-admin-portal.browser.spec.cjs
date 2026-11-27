@@ -301,6 +301,23 @@ test("morning assembly calm themes and quick/report tabs switch without touching
   await themes.locator('[data-ma-theme="light"]').click();
   await expect(view).toHaveClass(/ma-theme-light/);
 
+  const domState = await page.evaluate(() => {
+    const root = document.getElementById("morningAssemblyLatenessView");
+    const ids = ["morningAssemblyClassesGrid", "morningAssemblySearch", "morningAssemblyStudentsList", "morningAssemblySearchResults", "morningAssemblyReportYear", "morningAssemblyReportMeta", "morningAssemblyReportContainer"];
+    return {
+      installed: root?.dataset.calmNavigationInstalled || null,
+      ids: ids.map(id => {
+        const node = document.getElementById(id);
+        return { id, exists: !!node, insideView: !!(root && node && root.contains(node)), tag: node?.tagName || null, parent: node?.parentElement?.tagName || null };
+      }),
+      sections: Array.from(root?.querySelectorAll("section") || []).map((section, index) => ({
+        index,
+        ids: Array.from(section.querySelectorAll("[id]")).map(node => node.id),
+        text: (section.innerText || "").slice(0, 120)
+      }))
+    };
+  });
+  console.log("MORNING_ASSEMBLY_DOM_STATE=" + JSON.stringify(domState));
   const tabs = view.locator(".ma-section-tabs");
   await expect(tabs).toBeAttached();
   const quick = tabs.locator('[data-ma-tab="quick"]');
