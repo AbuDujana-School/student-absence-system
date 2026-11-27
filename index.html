@@ -2164,13 +2164,18 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyLatenessView .ma-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:rgba(105,119,168,.12);color:#4c5d85;font-size:10px;font-weight:900}
 #morningAssemblyLatenessView .ma-tab[aria-selected=true] .ma-tab-count{background:rgba(255,255,255,.23);color:#fff}
 #morningAssemblyLatenessView .ma-glass-card,#morningAssemblyLatenessView .glass-card,#morningAssemblyLatenessView>section:not(.ma-hero){
-  border:1px solid rgba(255,255,255,.86)!important;border-radius:24px!important;
-  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(239,245,255,.82) 58%,rgba(250,238,255,.78))!important;
+  position:relative;border:1px solid rgba(255,255,255,.9)!important;border-radius:24px!important;
+  background:radial-gradient(ellipse at 0% 0%,rgba(103,185,255,.16),transparent 42%),radial-gradient(ellipse at 100% 100%,rgba(224,139,229,.14),transparent 44%),linear-gradient(145deg,rgba(255,255,255,.86),rgba(224,240,255,.78) 58%,rgba(247,226,250,.76))!important;
   box-shadow:0 15px 38px -25px rgba(70,79,146,.34),inset 0 1px 0 rgba(255,255,255,.9)!important;
   backdrop-filter:blur(20px) saturate(155%)!important;-webkit-backdrop-filter:blur(20px) saturate(155%)!important;
 }
 #morningAssemblyLatenessView h3{color:#34456b}
 #morningAssemblyLatenessView .ma-summary-pill{border:1px solid rgba(233,179,83,.48);background:linear-gradient(110deg,#fff1cf,#ffe1d4);color:#805522;border-radius:999px;padding:.5rem .9rem;font-weight:900}
+#morningAssemblyLatenessView #maGlobalStudentSearchCard{background:linear-gradient(125deg,rgba(221,247,255,.92),rgba(235,232,255,.88))!important;border-top:3px solid rgba(49,166,204,.48)!important}
+#morningAssemblyLatenessView section:has(#morningAssemblyClassesGrid){background:linear-gradient(130deg,rgba(225,241,255,.92),rgba(239,230,255,.88))!important;border-top:3px solid rgba(107,111,218,.38)!important}
+#morningAssemblyLatenessView section:has(#morningAssemblyStudentsList){background:linear-gradient(130deg,rgba(255,232,239,.91),rgba(231,241,255,.88))!important;border-top:3px solid rgba(224,104,155,.38)!important}
+#morningAssemblyLatenessView #morningAssemblyLatenessReportPanel{background:linear-gradient(130deg,rgba(247,232,255,.92),rgba(226,244,255,.88))!important;border-top:3px solid rgba(151,95,209,.42)!important}
+#morningAssemblyLatenessView>section:not(.ma-hero) .w-11.h-11.rounded-2xl,#morningAssemblyLatenessView .ma-glass-card .w-11.h-11.rounded-2xl{background:linear-gradient(135deg,#3288e8,#8055e8 62%,#d85da7)!important;color:#fff!important;box-shadow:0 8px 18px -9px rgba(99,83,191,.65)!important}
 #morningAssemblyLatenessView #morningAssemblyGradeFilters{display:flex;flex-wrap:wrap;gap:8px}
 #morningAssemblyLatenessView #morningAssemblyGradeFilters button,#morningAssemblyLatenessView .morning-grade-filter{
   min-width:62px;padding:9px 15px;border:1px solid rgba(109,133,195,.22);border-radius:14px;
