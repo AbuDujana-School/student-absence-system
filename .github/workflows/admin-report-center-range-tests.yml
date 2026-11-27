@@ -1,0 +1,33 @@
+name: Admin report center range and module tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "admin-reports-center.js"
+      - "tests/admin_report_center_range_test.mjs"
+      - "tests/admin_reports_center_test.mjs"
+      - ".github/workflows/admin-report-center-range-tests.yml"
+  push:
+    branches:
+      - feature/admin-reports-center-20261126
+    paths:
+      - "admin-reports-center.js"
+      - "tests/admin_reports_center_test.mjs"
+      - ".github/workflows/admin-report-center-range-tests.yml"
+
+jobs:
+  report-date-range:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check reports center module syntax
+        run: node --check admin-reports-center.js
+      - name: Run reports center module contract tests
+        run: node --test tests/admin_reports_center_test.mjs
