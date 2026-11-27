@@ -2126,110 +2126,167 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
-<style id="morning-assembly-calm-glass-overrides">
-#morningAssemblyLatenessView{--ma-slate:#354c63;--ma-slate-deep:#2b4157;--ma-indigo:#5b6ee1;--ma-gold:#c89d4c}
-#morningAssemblyLatenessView .glass-card,
-#morningAssemblyLatenessView>section{background:rgba(255,255,255,.78)!important;backdrop-filter:blur(18px) saturate(145%)!important;-webkit-backdrop-filter:blur(18px) saturate(145%)!important;border-color:rgba(53,76,99,.18)!important;box-shadow:0 14px 34px -18px rgba(36,56,76,.22)!important}
-.dark #morningAssemblyLatenessView .glass-card,.dark #morningAssemblyLatenessView>section{background:rgba(46,68,91,.82)!important;border-color:rgba(200,157,76,.22)!important}
-#morningAssemblyLatenessView .text-fuchsia-800,#morningAssemblyLatenessView .text-fuchsia-700,#morningAssemblyLatenessView .text-fuchsia-600{color:#475569!important}
-#morningAssemblyLatenessView .bg-fuchsia-700,#morningAssemblyLatenessView [class~="hover:bg-fuchsia-800"]:hover{background:#354c63!important}
-#morningAssemblyLatenessView .bg-fuchsia-50,#morningAssemblyLatenessView .bg-violet-50{background:rgba(91,110,225,.09)!important}
-#morningAssemblyLatenessView .border-fuchsia-100,#morningAssemblyLatenessView .border-fuchsia-200,#morningAssemblyLatenessView .border-violet-100{border-color:rgba(53,76,99,.2)!important}
-#morningAssemblyLatenessView input{background:rgba(241,245,249,.92)!important;border-color:rgba(71,85,105,.25)!important;color:#1e293b!important}
-.dark #morningAssemblyLatenessView input{background:rgba(31,48,66,.9)!important;color:#eef4fa!important}
-#morningAssemblyLatenessView input:focus{border-color:#5b6ee1!important;box-shadow:0 0 0 3px rgba(91,110,225,.15)!important}
-#morningAssemblyLatenessView #morningAssemblyReportMeta>div>div{background:rgba(255,255,255,.72)!important;border-color:rgba(53,76,99,.18)!important}
-#morningAssemblyLatenessView #morningAssemblyReportMeta b{color:#2b4157!important}
-#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important;width:100%;table-layout:auto}
-#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:#2b4157!important;color:#fff!important;white-space:nowrap}
-#morningAssemblyLatenessView #morningAssemblyReportContainer td{white-space:normal;overflow-wrap:normal;word-break:normal}
-#morningAssemblyLatenessView .tier-black{background:#354c63!important;color:#fff!important}
-#morningAssemblyLatenessView .tier-black td{color:#fff!important}
-#morningAssemblyLatenessView .tier-red{background:#fee2e2!important;color:#991b1b!important}
-#morningAssemblyLatenessView .tier-yellow{background:#fef3c7!important;color:#713f12!important}
-#morningAssemblyLatenessView .tier-white{background:rgba(255,255,255,.94)!important;color:#24384c!important}
-#morningAssemblyGradeFilters button{min-width:62px}
-@media(max-width:640px){#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:760px!important}#morningAssemblyLatenessView>section{padding:1rem!important}}
-</style>
-<style id="morning-assembly-calm-glass-ui-v2">
-#morningAssemblyLatenessView{--ma-bg:#edf2f7;--ma-card:rgba(255,255,255,.82);--ma-text:#1e293b;--ma-muted:#475569;--ma-navy:#24384c;--ma-deep:#2b4157;--ma-line:rgba(71,85,105,.2);color:var(--ma-text)}
-#morningAssemblyLatenessView .ma-hero{background:linear-gradient(125deg,#354c63 0%,#2b4157 58%,#405a72 100%);border:1px solid rgba(255,255,255,.2);box-shadow:0 18px 42px -24px rgba(36,56,76,.55);color:#f8fafc}
-#morningAssemblyLatenessView .ma-glass-card{background:var(--ma-card);border:1px solid var(--ma-line);border-radius:1.5rem;box-shadow:0 14px 34px -22px rgba(36,56,76,.28);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
-#morningAssemblyLatenessView .ma-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;padding:.55rem;border:1px solid var(--ma-line);border-radius:1.35rem;background:rgba(255,255,255,.58);backdrop-filter:blur(16px)}
-#morningAssemblyLatenessView .ma-tab{min-height:48px;border:1px solid transparent;border-radius:1rem;padding:.7rem .8rem;font-size:12px;font-weight:900;color:#334155;background:rgba(255,255,255,.58);display:flex;align-items:center;justify-content:center;gap:.55rem}
-#morningAssemblyLatenessView .ma-tab[aria-selected=true]{background:#2b4157;color:#fff;border-color:#2b4157;box-shadow:0 7px 18px -10px rgba(36,56,76,.7)}
-#morningAssemblyLatenessView .ma-tab-count{display:inline-flex;min-width:23px;height:23px;align-items:center;justify-content:center;padding:0 6px;border-radius:999px;background:#e8edf3;color:#24384c;font-size:10px;font-weight:900}
-#morningAssemblyLatenessView .ma-tab[aria-selected=true] .ma-tab-count{background:rgba(255,255,255,.2);color:#fff}
-#morningAssemblyLatenessView .ma-theme-btn{border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:.58rem .85rem;background:rgba(255,255,255,.1);color:#f8fafc;font-size:11px;font-weight:900;white-space:nowrap}
-#morningAssemblyLatenessView .ma-theme-btn[aria-pressed=true]{background:#f8fafc;color:#1e293b;border-color:#f8fafc}
-#morningAssemblyLatenessView .ma-back{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:.62rem 1rem;background:rgba(18,35,52,.22);color:#f8fafc;font-size:12px;font-weight:900}
-#morningAssemblyLatenessView .ma-summary-pill{display:inline-flex;align-items:center;gap:.4rem;border:1px solid #e6d4a8;background:#fbf5e8;color:#735b2b;border-radius:999px;padding:.48rem .85rem;font-size:11px;font-weight:900}
-#morningAssemblyLatenessView #morningAssemblySearch{min-height:54px;border-radius:1.1rem;background:rgba(248,250,252,.96);border-color:#cbd5e1;color:#1e293b}
-#morningAssemblyLatenessView #morningAssemblySearchResults{max-height:340px;overflow:auto;overscroll-behavior:contain}
-#morningAssemblyLatenessView #morningAssemblyGradeFilters{display:flex;flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;-webkit-overflow-scrolling:touch}
+<style id="morning-assembly-vibrant-glass-theme">
+/* Morning assembly only — vivid glass palette. No document-wide theme rules. */
+#morningAssemblyLatenessView{
+  --ma-ink:#263451;--ma-muted:#52627e;--ma-blue:#3288e8;--ma-violet:#8055e8;
+  --ma-pink:#e85d9e;--ma-coral:#f27b69;--ma-teal:#27b6b0;--ma-gold:#e8b653;
+  position:relative;isolation:isolate;overflow:hidden;padding:clamp(12px,2.4vw,24px);
+  border-radius:30px;color:var(--ma-ink);
+  background:
+    radial-gradient(ellipse at 8% 5%,rgba(255,178,116,.30),transparent 28%),
+    radial-gradient(ellipse at 94% 10%,rgba(113,190,255,.34),transparent 29%),
+    radial-gradient(ellipse at 78% 86%,rgba(199,145,255,.24),transparent 30%),
+    linear-gradient(135deg,#f4f8ff 0%,#f8f2ff 48%,#fff5f1 100%);
+}
+#morningAssemblyLatenessView:before,#morningAssemblyLatenessView:after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(2px)}
+#morningAssemblyLatenessView:before{width:230px;height:230px;left:-95px;top:28%;background:radial-gradient(circle,rgba(69,190,213,.20),transparent 70%)}
+#morningAssemblyLatenessView:after{width:280px;height:280px;right:-120px;bottom:8%;background:radial-gradient(circle,rgba(224,117,184,.17),transparent 70%)}
+#morningAssemblyLatenessView>*,#morningAssemblyLatenessView .ma-hero>*{position:relative;z-index:1}
+#morningAssemblyLatenessView .ma-hero{
+  position:relative;overflow:hidden;padding:clamp(18px,3vw,30px)!important;
+  border:1px solid rgba(255,255,255,.48);border-radius:27px!important;
+  color:#fff;background:linear-gradient(118deg,#2479d8 0%,#6755d9 43%,#bd55b8 73%,#e8788b 100%);
+  box-shadow:0 20px 48px -22px rgba(77,79,174,.48),inset 0 1px 0 rgba(255,255,255,.34);
+}
+#morningAssemblyLatenessView .ma-hero:before{content:"";position:absolute;inset:-35% auto auto -6%;width:270px;height:270px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),transparent 68%);pointer-events:none}
+#morningAssemblyLatenessView .ma-hero:after{content:"";position:absolute;right:-55px;bottom:-125px;width:290px;height:290px;border-radius:50%;background:radial-gradient(circle,rgba(255,203,151,.34),transparent 68%);pointer-events:none}
+#morningAssemblyLatenessView .ma-hero h2{color:#fff;text-shadow:0 2px 14px rgba(34,35,90,.22)}
+#morningAssemblyLatenessView .ma-hero p{color:rgba(255,255,255,.91)}
+#morningAssemblyLatenessView .ma-back{border:1px solid rgba(255,255,255,.42);border-radius:999px;padding:.68rem 1.05rem;background:rgba(255,255,255,.17);color:#fff;font-weight:900;backdrop-filter:blur(14px);transition:transform .2s,background .2s}
+#morningAssemblyLatenessView .ma-back:hover{transform:translateY(-2px);background:rgba(255,255,255,.28)}
+#morningAssemblyLatenessView .ma-theme-btn{border:1px solid rgba(255,255,255,.48);border-radius:999px;padding:.62rem .95rem;background:rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:900;white-space:nowrap;backdrop-filter:blur(14px);transition:transform .2s,box-shadow .2s}
+#morningAssemblyLatenessView .ma-theme-btn[aria-pressed=true]{background:linear-gradient(110deg,#fff0c2,#ffd4b8 55%,#f8c5e4);border-color:#fff;color:#68406f;box-shadow:0 7px 22px rgba(63,47,118,.22)}
+#morningAssemblyLatenessView .ma-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:8px;border:1px solid rgba(255,255,255,.8);border-radius:22px;background:rgba(255,255,255,.63);box-shadow:0 10px 28px -20px rgba(65,80,145,.34);backdrop-filter:blur(18px) saturate(155%)}
+#morningAssemblyLatenessView .ma-tab{min-height:52px;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.75rem .8rem;border:1px solid rgba(119,133,183,.13);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(236,244,255,.82));color:#475477;font-size:12px;font-weight:900;transition:transform .2s,box-shadow .2s}
+#morningAssemblyLatenessView .ma-tab:hover{transform:translateY(-2px)}
+#morningAssemblyLatenessView .ma-tab[aria-selected=true]{background:linear-gradient(110deg,#347fe0,#7258dc 58%,#b45ac2);border-color:transparent;color:#fff;box-shadow:0 9px 22px -10px rgba(83,83,194,.68)}
+#morningAssemblyLatenessView .ma-tab-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:rgba(105,119,168,.12);color:#4c5d85;font-size:10px;font-weight:900}
+#morningAssemblyLatenessView .ma-tab[aria-selected=true] .ma-tab-count{background:rgba(255,255,255,.23);color:#fff}
+#morningAssemblyLatenessView .ma-glass-card,#morningAssemblyLatenessView .glass-card,#morningAssemblyLatenessView>section{
+  border:1px solid rgba(255,255,255,.86)!important;border-radius:24px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(247,249,255,.72))!important;
+  box-shadow:0 15px 38px -25px rgba(70,79,146,.34),inset 0 1px 0 rgba(255,255,255,.9)!important;
+  backdrop-filter:blur(20px) saturate(155%)!important;-webkit-backdrop-filter:blur(20px) saturate(155%)!important;
+}
+#morningAssemblyLatenessView h3{color:#34456b}
+#morningAssemblyLatenessView .ma-summary-pill{border:1px solid rgba(233,179,83,.48);background:linear-gradient(110deg,#fff1cf,#ffe1d4);color:#805522;border-radius:999px;padding:.5rem .9rem;font-weight:900}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters{display:flex;flex-wrap:wrap;gap:8px}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button,#morningAssemblyLatenessView .morning-grade-filter{
+  min-width:62px;padding:9px 15px;border:1px solid rgba(109,133,195,.22);border-radius:14px;
+  background:linear-gradient(135deg,#edf6ff,#f4edff);color:#4c5c86;font-size:11px;font-weight:900;
+  transition:transform .18s,box-shadow .18s,background .18s;
+}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button:nth-child(2){background:linear-gradient(135deg,#e2f3ff,#dceeff);color:#1765a7}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button:nth-child(3){background:linear-gradient(135deg,#f0e8ff,#e7e0ff);color:#7043b4}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button:nth-child(4){background:linear-gradient(135deg,#ffe8ef,#ffe0dc);color:#ad456b}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button:nth-child(5){background:linear-gradient(135deg,#dcf8f2,#e5f6ff);color:#167c79}
+#morningAssemblyLatenessView #morningAssemblyGradeFilters button.is-active,#morningAssemblyLatenessView #morningAssemblyGradeFilters button[aria-pressed=true]{background:linear-gradient(110deg,#347fe0,#7659df)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 7px 18px -10px rgba(75,87,197,.75)}
 #morningAssemblyLatenessView #morningAssemblyClassesGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-#morningAssemblyLatenessView #morningAssemblyClassesGrid button{min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:1.25rem;background:rgba(255,255,255,.88);border:1px solid #d6dee8;color:#1e293b;box-shadow:0 8px 20px -16px rgba(36,56,76,.45)}
-#morningAssemblyLatenessView #morningAssemblyClassesGrid button[data-selected=true]{background:#2b4157;color:#fff;border-color:#2b4157}
-#morningAssemblyLatenessView .ma-class-count{display:inline-flex;border-radius:999px;padding:4px 9px;font-size:10px;font-weight:900;background:#eef2f6;color:#475569;border:1px solid #d8e0e8}
-#morningAssemblyLatenessView .ma-class-count.has-late{background:#fbf2df;color:#795d24;border-color:#e8d6aa}
-#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button{
+  position:relative;isolation:isolate;overflow:hidden;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:13px 9px;border:1px solid rgba(255,255,255,.95);border-radius:20px;
+  background:linear-gradient(145deg,#e7f4ff,#f5f0ff);color:#35517e;
+  box-shadow:0 10px 22px -17px rgba(65,87,155,.42),inset 0 1px 0 #fff;
+  font-weight:900;transition:transform .22s,border-color .22s,box-shadow .22s;
+}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:before{content:"";position:absolute;z-index:-1;width:88px;height:88px;right:-28px;top:-39px;border-radius:50%;background:rgba(255,255,255,.56)}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:nth-child(6n+2){background:linear-gradient(145deg,#f0e9ff,#fcecff);color:#7047a9}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:nth-child(6n+3){background:linear-gradient(145deg,#ffe8ed,#fff0df);color:#a94c6c}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:nth-child(6n+4){background:linear-gradient(145deg,#def8f3,#e8f7ff);color:#197a79}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:nth-child(6n+5){background:linear-gradient(145deg,#fff1d6,#ffe9e5);color:#926328}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:nth-child(6n){background:linear-gradient(145deg,#e5efff,#e8e6ff);color:#4e5eaf}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button:hover{transform:translateY(-3px);box-shadow:0 15px 27px -16px rgba(83,77,168,.5)}
+#morningAssemblyLatenessView #morningAssemblyClassesGrid button[data-selected=true],#morningAssemblyLatenessView #morningAssemblyClassesGrid button.is-selected{
+  background:linear-gradient(115deg,#287fe0,#6958dc 58%,#a95bc6)!important;color:#fff!important;border-color:rgba(255,255,255,.65)!important;
+  box-shadow:0 12px 25px -13px rgba(80,74,190,.72)!important;
+}
+#morningAssemblyLatenessView .ma-class-count{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;background:rgba(255,255,255,.78);color:#56668b;border:1px solid rgba(125,143,193,.2);font-size:10px;font-weight:900}
+#morningAssemblyLatenessView .ma-class-count.has-late{background:linear-gradient(110deg,#ffe0e7,#ffd7c9);color:#a43d58;border-color:#ffc1ca}
+#morningAssemblyLatenessView #morningAssemblySearch{min-height:54px;border-radius:17px;background:rgba(255,255,255,.94)!important;border:1px solid #d6dcf4!important;color:#273654!important;box-shadow:inset 0 2px 6px rgba(67,81,140,.05)}
+#morningAssemblyLatenessView input:focus{outline:none;border-color:#8a65e8!important;box-shadow:0 0 0 4px rgba(138,101,232,.17)!important}
+#morningAssemblyLatenessView #morningAssemblyStudentsList button,#morningAssemblyLatenessView #morningAssemblySearchResults button{
+  min-height:68px;border:1px solid rgba(128,149,202,.18)!important;border-radius:17px!important;
+  background:linear-gradient(115deg,rgba(255,255,255,.96),rgba(239,246,255,.9))!important;color:#304265!important;
+  box-shadow:0 8px 22px -18px rgba(70,85,155,.5);transition:transform .18s,border-color .18s,box-shadow .18s;
+}
+#morningAssemblyLatenessView #morningAssemblyStudentsList button:hover,#morningAssemblyLatenessView #morningAssemblySearchResults button:hover{transform:translateY(-2px);border-color:#a99be9!important;box-shadow:0 12px 24px -16px rgba(92,77,173,.42)}
+#morningAssemblyLatenessView #morningAssemblyMultiSelectToggle{border-radius:13px;background:linear-gradient(110deg,#e9e6ff,#dceaff)!important;color:#5d4db0!important;border-color:#c9c1f5!important;font-weight:900}
+#morningAssemblyLatenessView #morningAssemblyMultiSelectToggle.is-active{background:linear-gradient(110deg,#6f59dc,#3988df)!important;color:#fff!important}
+#morningAssemblyLatenessView #morningAssemblyBulkBar{background:linear-gradient(110deg,#e8e7ff,#dff3ff)!important;border:1px solid #d0ccf4!important;border-radius:17px}
+#morningAssemblyLatenessView #morningAssemblyBulkBar button:last-child{background:linear-gradient(110deg,#347fe0,#7659df)!important;color:#fff}
+#morningAssemblyLatenessView #morningAssemblyReportContainer{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:18px}
 #morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:820px!important;width:100%;table-layout:auto}
-#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:#2b4157!important;color:#f8fafc!important;white-space:nowrap}
+#morningAssemblyLatenessView #morningAssemblyReportContainer th{background:linear-gradient(100deg,#315fba,#6754c7 60%,#9b57b7)!important;color:#fff!important;white-space:nowrap}
 #morningAssemblyLatenessView #morningAssemblyReportContainer td{white-space:normal;overflow-wrap:anywhere;word-break:normal}
-#morningAssemblyLatenessView .ma-day-filters{display:flex;gap:7px;overflow-x:auto;padding:3px 1px 7px;-webkit-overflow-scrolling:touch}
-#morningAssemblyLatenessView .ma-day-filter{flex:0 0 auto;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;color:#334155;padding:8px 13px;font-size:11px;font-weight:900}
-#morningAssemblyLatenessView .ma-day-filter[aria-pressed=true]{background:#2b4157;border-color:#2b4157;color:#fff}
-#morningAssemblyLatenessView .ma-stat{background:rgba(255,255,255,.8)!important;border-color:#d5dee8!important}
-#morningAssemblyLatenessView .ma-stat b{color:#24384c!important}
-#morningAssemblyLatenessView .ma-search-action{background:#edf2f7!important;border-color:#d6dee8!important;color:#24384c!important}
-#morningAssemblyLatenessView .tier-black{background:#354c63!important;color:#fff!important}
+#morningAssemblyLatenessView #morningAssemblyReportMeta>div>div{background:linear-gradient(145deg,#fff,#f2f5ff)!important;border-color:#d9def4!important;border-radius:17px}
+#morningAssemblyLatenessView #morningAssemblyReportMeta b{color:#364b7a!important}
+#morningAssemblyLatenessView .tier-black{background:linear-gradient(100deg,#55427f,#374c83)!important;color:#fff!important}
 #morningAssemblyLatenessView .tier-black td{color:#fff!important}
-#morningAssemblyLatenessView .tier-white{background:#fff!important;color:#24384c!important}
-#morningAssemblyLatenessView .tier-yellow{background:#fef3c7!important;color:#713f12!important}
-#morningAssemblyLatenessView .tier-red{background:#fee2e2!important;color:#991b1b!important}
-#morningAssemblyLatenessView.ma-dusk{--ma-bg:#182635;--ma-card:rgba(34,52,71,.88);--ma-text:#e2e8f0;--ma-muted:#cbd5e1;--ma-line:rgba(203,213,225,.18);color:#e2e8f0}
-#morningAssemblyLatenessView.ma-dusk .ma-glass-card{background:var(--ma-card);border-color:var(--ma-line);box-shadow:0 16px 38px -24px rgba(24,38,53,.42)}
-#morningAssemblyLatenessView.ma-dusk .ma-tabs{background:rgba(34,52,71,.72);border-color:var(--ma-line)}
-#morningAssemblyLatenessView.ma-dusk .ma-tab{background:rgba(71,91,112,.35);color:#e2e8f0;border-color:rgba(203,213,225,.14)}
-#morningAssemblyLatenessView.ma-dusk .ma-tab[aria-selected=true]{background:#405a72;color:#fff;border-color:#607990}
-#morningAssemblyLatenessView.ma-dusk .ma-theme-btn[aria-pressed=true]{background:#e2e8f0;color:#1e293b}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblySearch{background:#223447;border-color:#52677d;color:#f1f5f9}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button{background:#223447;border-color:#52677d;color:#e2e8f0}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button[data-selected=true]{background:#405a72;color:#fff}
-#morningAssemblyLatenessView.ma-dusk .ma-class-count{background:#30465b;border-color:#52677d;color:#e2e8f0}
-#morningAssemblyLatenessView.ma-dusk .ma-class-count.has-late{background:#51452f;border-color:#9b8150;color:#f7e7bd}
-#morningAssemblyLatenessView.ma-dusk .ma-day-filter{background:#223447;border-color:#52677d;color:#e2e8f0}
-#morningAssemblyLatenessView.ma-dusk .ma-day-filter[aria-pressed=true]{background:#405a72;color:#fff}
-#morningAssemblyLatenessView.ma-dusk .ma-stat{background:rgba(44,66,88,.88)!important;border-color:#52677d!important}
-#morningAssemblyLatenessView.ma-dusk .ma-stat b{color:#f1f5f9!important}
-#morningAssemblyLatenessView.ma-dusk .ma-search-action{background:#30465b!important;border-color:#52677d!important;color:#e2e8f0!important}
-#morningAssemblyLatenessView.ma-dusk .text-slate-800,#morningAssemblyLatenessView.ma-dusk .text-slate-700,#morningAssemblyLatenessView.ma-dusk .text-slate-600,#morningAssemblyLatenessView.ma-dusk .text-slate-500{color:#cbd5e1!important}
-#morningAssemblyLatenessView.ma-dusk h3,#morningAssemblyLatenessView.ma-dusk h4{color:#f1f5f9!important}
-#morningAssemblyLatenessView.ma-dusk .bg-white,#morningAssemblyLatenessView.ma-dusk .bg-slate-50{background:#223447!important}
-#morningAssemblyLatenessView.ma-dusk .border-slate-100,#morningAssemblyLatenessView.ma-dusk .border-slate-200{border-color:#52677d!important}
-@media(min-width:640px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:520px){#morningAssemblyLatenessView .ma-hero{padding:16px!important}#morningAssemblyLatenessView .ma-theme-btn{font-size:10px;padding:.55rem .65rem}#morningAssemblyLatenessView .ma-tab{font-size:11px;padding:.65rem .4rem}#morningAssemblyLatenessView #morningAssemblyClassesGrid button{min-height:102px;padding:10px}}
-@media(prefers-reduced-motion:reduce){#morningAssemblyLatenessView *{scroll-behavior:auto!important;transition:none!important}}
-
-#morningAssemblyLatenessView #morningAssemblyMultiSelectToggle{background:#eef2f6!important;border-color:#cbd5e1!important;color:#24384c!important}
-#morningAssemblyLatenessView #morningAssemblyBulkBar{background:rgba(238,242,246,.9)!important;border-color:#cbd5e1!important}
-#morningAssemblyLatenessView .ma-dusk #morningAssemblyMultiSelectToggle,#morningAssemblyLatenessView.ma-dusk #morningAssemblyMultiSelectToggle{background:#30465b!important;border-color:#52677d!important;color:#e2e8f0!important}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblyBulkBar{background:#263b50!important;border-color:#52677d!important}
-#morningAssemblyLatenessView.ma-dusk .bg-fuchsia-50,#morningAssemblyLatenessView.ma-dusk .bg-fuchsia-50\/70,#morningAssemblyLatenessView.ma-dusk .bg-violet-50,#morningAssemblyLatenessView.ma-dusk .bg-rose-50,#morningAssemblyLatenessView.ma-dusk .bg-amber-50{background:#2c4258!important}
-#morningAssemblyLatenessView.ma-dusk .text-fuchsia-900,#morningAssemblyLatenessView.ma-dusk .text-fuchsia-800,#morningAssemblyLatenessView.ma-dusk .text-fuchsia-700,#morningAssemblyLatenessView.ma-dusk .text-fuchsia-600,#morningAssemblyLatenessView.ma-dusk .text-violet-700,#morningAssemblyLatenessView.ma-dusk .text-rose-900,#morningAssemblyLatenessView.ma-dusk .text-rose-700,#morningAssemblyLatenessView.ma-dusk .text-amber-800{color:#e2e8f0!important}
-#morningAssemblyLatenessView.ma-dusk .border-fuchsia-100,#morningAssemblyLatenessView.ma-dusk .border-fuchsia-200,#morningAssemblyLatenessView.ma-dusk .border-violet-100,#morningAssemblyLatenessView.ma-dusk .border-rose-200,#morningAssemblyLatenessView.ma-dusk .border-amber-200{border-color:#52677d!important}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblyStudentsList button{background:#263b50!important;border-color:#52677d!important;color:#e2e8f0!important}
-#morningAssemblyLatenessView.ma-dusk #morningAssemblySearchResults button{background:#263b50!important;border-color:#52677d!important;color:#e2e8f0!important}
-
-/* Calm slate/navy school header shared with the morning assembly workspace */
-body>header{background:linear-gradient(115deg,#354c63 0%,#24384c 58%,#2b4157 100%)!important;border-color:rgba(148,163,184,.22)!important}
-body>header [class*="bg-emerald-"]{background:rgba(255,255,255,.1)!important;color:#e2e8f0!important;border-color:rgba(255,255,255,.17)!important}
-body>header [class*="text-emerald-"]{color:#dbe5ef!important}
-body>header [class*="bg-blue-800"],body>header [class*="bg-cyan-800"]{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important}
-body>header [class*="text-blue-"],body>header [class*="text-cyan-"]{color:#dbe5ef!important}
-/* Keep class tiles compact on phones and breathable on larger screens */
+#morningAssemblyLatenessView .tier-red{background:linear-gradient(100deg,#ffdbe5,#ffe8e0)!important;color:#8e2949!important}
+#morningAssemblyLatenessView .tier-yellow{background:linear-gradient(100deg,#fff0c8,#ffe7b1)!important;color:#805315!important}
+#morningAssemblyLatenessView .tier-white{background:linear-gradient(100deg,#e9f6ff,#eff9f5)!important;color:#31556a!important}
+#morningAssemblyLatenessView #morningAssemblyReportPanel h3 i{color:#e05c9a!important}
+#morningAssemblyLatenessDashboardCard{background:linear-gradient(125deg,#237bd6,#6752d5 55%,#d45a9f)!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:0 18px 40px -19px rgba(100,75,190,.52)!important}
+#morningAssemblyLatenessDashboardCard>div:first-child{background:radial-gradient(circle,rgba(255,255,255,.3),transparent 70%)!important}
+#morningAssemblyLatenessDashboardCard .fa-person-circle-exclamation{filter:drop-shadow(0 4px 9px rgba(36,28,94,.25))}
+#morningAssemblyLatenessView.ma-dusk{
+  --ma-ink:#f1efff;--ma-muted:#c3c8e6;color:var(--ma-ink);
+  background:
+    radial-gradient(ellipse at 8% 8%,rgba(73,112,223,.34),transparent 29%),
+    radial-gradient(ellipse at 92% 14%,rgba(164,75,194,.30),transparent 30%),
+    radial-gradient(ellipse at 72% 92%,rgba(22,173,174,.20),transparent 28%),
+    linear-gradient(135deg,#202b50 0%,#29274e 48%,#38294e 100%);
+}
+#morningAssemblyLatenessView.ma-dusk:before{background:radial-gradient(circle,rgba(75,156,255,.24),transparent 70%)}
+#morningAssemblyLatenessView.ma-dusk:after{background:radial-gradient(circle,rgba(232,93,158,.20),transparent 70%)}
+#morningAssemblyLatenessView.ma-dusk .ma-hero{background:linear-gradient(115deg,#243d79 0%,#5742a5 48%,#963d85 100%);box-shadow:0 20px 48px -20px rgba(5,9,35,.55)}
+#morningAssemblyLatenessView.ma-dusk .ma-theme-btn[aria-pressed=true]{background:linear-gradient(110deg,#bcecff,#d8c6ff 55%,#ffc5dc);color:#42346f;border-color:rgba(255,255,255,.85)}
+#morningAssemblyLatenessView.ma-dusk .ma-tabs{background:rgba(37,43,83,.72);border-color:rgba(190,194,255,.18)}
+#morningAssemblyLatenessView.ma-dusk .ma-tab{background:linear-gradient(145deg,rgba(77,86,143,.48),rgba(75,55,119,.52));color:#eeecff;border-color:rgba(195,193,255,.14)}
+#morningAssemblyLatenessView.ma-dusk .ma-tab[aria-selected=true]{background:linear-gradient(110deg,#347fe0,#7658dc 58%,#b354aa);color:#fff}
+#morningAssemblyLatenessView.ma-dusk .ma-glass-card,#morningAssemblyLatenessView.ma-dusk .glass-card,#morningAssemblyLatenessView.ma-dusk>section{
+  background:linear-gradient(145deg,rgba(43,52,91,.91),rgba(52,43,83,.88))!important;
+  border-color:rgba(178,183,255,.22)!important;box-shadow:0 16px 38px -23px rgba(4,7,30,.52),inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+#morningAssemblyLatenessView.ma-dusk h3,#morningAssemblyLatenessView.ma-dusk h4{color:#f1efff!important}
+#morningAssemblyLatenessView.ma-dusk .text-slate-800,#morningAssemblyLatenessView.ma-dusk .text-slate-700,#morningAssemblyLatenessView.ma-dusk .text-slate-600,#morningAssemblyLatenessView.ma-dusk .text-slate-500{color:#cbd0ef!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyGradeFilters button{background:linear-gradient(120deg,rgba(66,92,151,.72),rgba(89,63,133,.72));border-color:rgba(174,184,255,.2);color:#eeeaff}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyGradeFilters button.is-active,#morningAssemblyLatenessView.ma-dusk #morningAssemblyGradeFilters button[aria-pressed=true]{background:linear-gradient(110deg,#3188e9,#8559e5)!important;color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button{background:linear-gradient(145deg,rgba(47,83,135,.88),rgba(70,58,124,.9));border-color:rgba(173,190,255,.24);color:#eff1ff}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button:nth-child(6n+2){background:linear-gradient(145deg,rgba(86,65,145,.92),rgba(112,58,129,.9));color:#fff}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button:nth-child(6n+3){background:linear-gradient(145deg,rgba(131,62,113,.9),rgba(108,57,105,.9));color:#fff}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button:nth-child(6n+4){background:linear-gradient(145deg,rgba(34,112,119,.9),rgba(48,91,139,.9));color:#fff}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button[data-selected=true],#morningAssemblyLatenessView.ma-dusk #morningAssemblyClassesGrid button.is-selected{background:linear-gradient(110deg,#2785e5,#8057e2 58%,#bd58b2)!important;color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblySearch{background:rgba(32,42,78,.94)!important;border-color:rgba(169,181,255,.3)!important;color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyStudentsList button,#morningAssemblyLatenessView.ma-dusk #morningAssemblySearchResults button{background:linear-gradient(120deg,rgba(45,69,116,.94),rgba(62,53,105,.94))!important;border-color:rgba(168,180,255,.22)!important;color:#f2efff!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyMultiSelectToggle{background:linear-gradient(110deg,#5646a7,#316eaf)!important;border-color:#8173d7!important;color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyBulkBar{background:linear-gradient(110deg,rgba(68,61,129,.8),rgba(38,93,130,.8))!important;border-color:rgba(171,181,255,.24)!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportContainer th{background:linear-gradient(100deg,#294a92,#5c429f 60%,#8b3d84)!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportMeta>div>div{background:linear-gradient(145deg,rgba(50,65,115,.92),rgba(61,47,103,.92))!important;border-color:rgba(169,180,255,.2)!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportMeta b{color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk .tier-black{background:linear-gradient(100deg,#46336f,#293d79)!important;color:#fff!important}
+#morningAssemblyLatenessView.ma-dusk .tier-red{background:linear-gradient(100deg,rgba(139,53,94,.85),rgba(119,58,81,.88))!important;color:#ffe5ef!important}
+#morningAssemblyLatenessView.ma-dusk .tier-yellow{background:linear-gradient(100deg,rgba(139,101,40,.9),rgba(124,82,45,.9))!important;color:#fff1cb!important}
+#morningAssemblyLatenessView.ma-dusk .tier-white{background:linear-gradient(100deg,rgba(42,94,124,.88),rgba(43,112,105,.82))!important;color:#e2fffb!important}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportContainer td{color:inherit}
+#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportPanel .bg-white,#morningAssemblyLatenessView.ma-dusk #morningAssemblyReportPanel .bg-slate-50{background:rgba(57,60,111,.85)!important}
+#morningAssemblyLatenessView #morningAssemblySearchResults{max-height:340px;overflow:auto;overscroll-behavior:contain}
+#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:820px!important}
+#morningAssemblyLatenessView #morningAssemblyReportContainer{overflow-x:auto;max-width:100%;overscroll-behavior-x:contain}
+#morningAssemblyLatenessView .ma-day-filters{display:flex;gap:7px;overflow-x:auto;padding:3px 1px 7px;-webkit-overflow-scrolling:touch}
+#morningAssemblyLatenessView .ma-day-filter{flex:0 0 auto;border:1px solid rgba(124,145,199,.24);border-radius:999px;background:linear-gradient(135deg,#e6f4ff,#f1eaff);color:#4b5b83;padding:8px 13px;font-size:11px;font-weight:900}
+#morningAssemblyLatenessView .ma-day-filter[aria-pressed=true]{background:linear-gradient(110deg,#347fe0,#7659df);border-color:transparent;color:#fff}
+#morningAssemblyLatenessView.ma-dusk .ma-day-filter{background:linear-gradient(135deg,rgba(64,89,145,.78),rgba(92,63,139,.78));border-color:rgba(174,184,255,.2);color:#eeeaff}
+#morningAssemblyLatenessView.ma-dusk .ma-day-filter[aria-pressed=true]{background:linear-gradient(110deg,#347fe0,#7659df);color:#fff}
+#morningAssemblyLatenessView #morningAssemblyMultiSelectToggle.is-active{background:linear-gradient(110deg,#6f59dc,#3988df)!important;color:#fff!important;border-color:transparent!important}
+#morningAssemblyLatenessView #morningAssemblyBulkBar button:focus-visible,#morningAssemblyLatenessView button:focus-visible{outline:3px solid rgba(129,103,235,.42);outline-offset:3px}
+#morningAssemblyLatenessView .ma-stat{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(233,241,255,.85))!important;border-color:rgba(140,155,207,.22)!important;border-radius:18px}
+#morningAssemblyLatenessView.ma-dusk .ma-stat{background:linear-gradient(145deg,rgba(51,66,118,.9),rgba(66,48,111,.9))!important;border-color:rgba(175,183,255,.2)!important}
 @media(min-width:640px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1024px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:520px){#morningAssemblyLatenessView{padding:10px;border-radius:22px}#morningAssemblyLatenessView .ma-hero{padding:16px!important}#morningAssemblyLatenessView .ma-theme-btn{font-size:10px;padding:.55rem .65rem}#morningAssemblyLatenessView .ma-tab{font-size:11px;padding:.65rem .4rem}#morningAssemblyLatenessView #morningAssemblyClassesGrid button{min-height:92px;padding:10px}}
+@media(prefers-reduced-motion:reduce){#morningAssemblyLatenessView *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
@@ -16703,8 +16760,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     function setTheme(theme){
       var dusk=theme==='dusk';
       view.classList.toggle('ma-dusk',dusk);
-      document.documentElement.classList.toggle('dark',dusk);
-      document.body.classList.toggle('dark',dusk);
       view.querySelectorAll('[data-ma-theme]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maTheme===(dusk?'dusk':'morning')));});
     }
     function setTab(tab){
