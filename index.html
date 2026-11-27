@@ -15,6 +15,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
+  .morning-lateness-row.tier-white{background:#fff!important;color:#172033!important}.morning-lateness-row.tier-yellow{background:#fef3c7!important;color:#713f12!important}.morning-lateness-row.tier-red{background:#fee2e2!important;color:#991b1b!important}.morning-lateness-row.tier-black{background:#111827!important;color:#fff!important}.morning-lateness-row.tier-black td{color:#fff!important}@media print{.morning-lateness-row{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   body { font-family: 'Tajawal', sans-serif; }
   .hidden { display: none !important; }
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -3113,6 +3114,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div id="morningAssemblyStudentsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
       <div id="morningAssemblySearchResults" class="space-y-2"></div>
     </section>
+  <section id="morningAssemblyLatenessReportPanel" class="hidden rounded-3xl border border-fuchsia-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-4 sm:p-6 shadow-sm space-y-4" dir="rtl">
+          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-person-circle-exclamation ml-1 text-fuchsia-600"></i> تقرير التأخر عن الطابور الصباحي</h3><p class="mt-1 text-xs text-slate-500">تقرير تراكمي للعام الدراسي من سبتمبر إلى يونيو · كل 4 تأخيرات = يوم غياب محسوب مستقلاً</p></div><div class="flex flex-wrap items-center gap-2"><select id="morningAssemblyReportYear" onchange="loadMorningAssemblyLatenessReport()" class="rounded-xl border border-fuchsia-200 bg-fuchsia-50 dark:bg-slate-800 dark:border-slate-700 px-3 py-2.5 text-xs font-black text-fuchsia-800 dark:text-fuchsia-200"><option value="">العام الدراسي</option></select><button onclick="loadMorningAssemblyLatenessReport()" class="rounded-xl bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2.5 text-xs font-black shadow"><i class="fa-solid fa-rotate ml-1"></i> تحديث التقرير</button></div></div>
+          <div id="morningAssemblyReportAccess" class="hidden rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 p-3 text-xs font-bold"></div>
+          <div id="morningAssemblyReportMeta" class="text-xs font-bold text-slate-500"></div>
+          <div id="morningAssemblyReportContainer" class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700"><div class="p-8 text-center text-xs text-slate-400">اضغط تحديث التقرير لعرض البيانات</div></div>
+          <div class="flex justify-end"><button onclick="printMorningAssemblyLatenessReport()" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 text-xs font-black shadow"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة PDF</button></div>
+        </section>
   </div>
 
   <div id="behaviorSessionView" class="hidden space-y-6">
@@ -3261,7 +3269,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="text-xs font-black text-purple-900 dark:text-purple-200">صلاحيات التقارير المستقلة</div>
           <p class="text-[11px] leading-5 text-purple-800 dark:text-purple-300">فعّل التقارير التي يسمح لهذا المعلم بالاطلاع عليها فقط. لا تمنح صلاحية تقرير واحد الوصول إلى التقارير الأخرى. صلاحية «التقارير» القديمة لا تمنح وصولاً تلقائياً؛ حدّد التقارير المطلوبة صراحةً.</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportMorningAssemblyLateness" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">⏰ تقرير التأخر عن الطابور الصباحي</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportStudentAffairs" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📊 لوحة تقارير شؤون الطلبة</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportComprehensiveAbsence" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📋 تقارير الغياب الشامل</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportClassLatenessFollowup" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">🕒 كشف متابعة التأخر عن الحصص</span></label>
@@ -3811,13 +3818,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </div>
 
       <div id="sec-reports" class="hidden space-y-6">
-        <section id="morningAssemblyLatenessReportPanel" class="rounded-3xl border border-fuchsia-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-4 sm:p-6 shadow-sm space-y-4" dir="rtl">
-          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-person-circle-exclamation ml-1 text-fuchsia-600"></i> تقرير التأخر عن الطابور الصباحي</h3><p class="mt-1 text-xs text-slate-500">تقرير تراكمي للعام الدراسي من سبتمبر إلى يونيو · كل 4 تأخيرات = يوم غياب محسوب مستقلاً</p></div><div class="flex flex-wrap items-center gap-2"><select id="morningAssemblyReportYear" onchange="loadMorningAssemblyLatenessReport()" class="rounded-xl border border-fuchsia-200 bg-fuchsia-50 dark:bg-slate-800 dark:border-slate-700 px-3 py-2.5 text-xs font-black text-fuchsia-800 dark:text-fuchsia-200"><option value="">العام الدراسي</option></select><button onclick="loadMorningAssemblyLatenessReport()" class="rounded-xl bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2.5 text-xs font-black shadow"><i class="fa-solid fa-rotate ml-1"></i> تحديث التقرير</button></div></div>
-          <div id="morningAssemblyReportAccess" class="hidden rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 p-3 text-xs font-bold"></div>
-          <div id="morningAssemblyReportMeta" class="text-xs font-bold text-slate-500"></div>
-          <div id="morningAssemblyReportContainer" class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700"><div class="p-8 text-center text-xs text-slate-400">اضغط تحديث التقرير لعرض البيانات</div></div>
-          <div class="flex justify-end"><button onclick="printMorningAssemblyLatenessReport()" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 text-xs font-black shadow"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة PDF</button></div>
-        </section>
         <section id="repStudentAffairsPanel" class="space-y-5 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6" dir="rtl">
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-file-circle-check ml-1 text-blue-600"></i> لوحة تقارير شؤون الطلبة</h3><p class="mt-1 text-xs text-slate-500">نسخة مستقلة من لوحة الفلترة والعرض والتحليلات والطباعة، باستخدام سجلات شؤون الطلبة الفعلية.</p></div><span id="repAccessBadge" class="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">جارٍ التحقق</span></div>
           <div id="repAccessMessage" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status"></div>
@@ -8905,15 +8905,23 @@ function refreshMorningAssemblyLatenessCard() {
   if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
 }
 function openMorningAssemblyLateness() {
-  if (!canUseMorningAssemblyLateness()) { showToast('التسجيل متاح للمناوب في يوم تكليفه أو لمن مُنح صلاحية غير المناوب، وذلك من 7:00 إلى 8:30 صباحاً.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  const canRecord = canUseMorningAssemblyLateness();
+  const canViewReport = canViewMorningAssemblyLatenessReport();
+  if (!canRecord && !canViewReport) { showToast('لا تملك صلاحية دخول قسم الطابور الصباحي.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  document.getElementById('morningAssemblyClassesGrid')?.closest('section')?.classList.toggle('hidden', !canRecord);
+  document.getElementById('morningAssemblyStudentsList')?.closest('section')?.classList.toggle('hidden', !canRecord);
+  document.getElementById('morningAssemblyLatenessReportPanel')?.classList.toggle('hidden', !canViewReport);
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   morningAssemblyLatenessToday = new Set();
   morningAssemblyLatenessTodayLoaded = false;
-  document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · جارٍ تحميل حالة تسجيل الطلاب...';
-  renderMorningAssemblyClasses();
-  renderMorningAssemblySearch();
-  void loadMorningAssemblyLatenessToday();
+  if (canRecord) {
+    document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · جارٍ تحميل حالة تسجيل الطلاب...';
+    renderMorningAssemblyClasses(); renderMorningAssemblySearch(); void loadMorningAssemblyLatenessToday();
+  } else {
+    document.getElementById('morningAssemblyTodayStatus').textContent = 'وضع الاطلاع على التقرير — لا تتوفر صلاحية التسجيل حالياً';
+  }
+  if (canViewReport) void loadMorningAssemblyLatenessReport();
 }
 function closeMorningAssemblyLateness() {
   morningAssemblySelectedClass = null;
@@ -9066,7 +9074,7 @@ function buildMorningAssemblyReportRows(rows) {
 }
 async function loadMorningAssemblyLatenessReport() {
   const container = document.getElementById('morningAssemblyReportContainer'); if (!container) return;
-  if (!canAccessReport('reportMorningAssemblyLateness')) {
+  if (!canViewMorningAssemblyLatenessReport()) {
     document.getElementById('morningAssemblyReportAccess')?.classList.remove('hidden');
     document.getElementById('morningAssemblyReportAccess').textContent = 'لا تملك صلاحية الاطلاع على تقرير التأخر عن الطابور الصباحي.';
     return;
@@ -9084,29 +9092,32 @@ async function loadMorningAssemblyLatenessReport() {
     morningAssemblyReportRows = buildMorningAssemblyReportRows(data.rows || []);
     document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
     if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; return; }
-    let html = '<table class="w-full min-w-[760px] text-xs text-right"><thead class="bg-fuchsia-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"><tr><th class="p-3">#</th><th class="p-3">اسم الطالب</th><th class="p-3">الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب الناتجة</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
+    const totalLate = morningAssemblyReportRows.reduce((sum,item)=>sum+item.count,0);
+    const totalAbsence = morningAssemblyReportRows.reduce((sum,item)=>sum+item.absenceDays,0);
+    document.getElementById('morningAssemblyReportMeta').innerHTML = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2"><div class="rounded-2xl bg-slate-50 border border-slate-200 p-3"><small class="block text-[10px] text-slate-500">الطلاب المتأخرون</small><b class="text-xl text-slate-900">'+morningAssemblyReportRows.length+'</b></div><div class="rounded-2xl bg-fuchsia-50 border border-fuchsia-200 p-3"><small class="block text-[10px] text-fuchsia-700">إجمالي مرات التأخر</small><b class="text-xl text-fuchsia-900">'+totalLate+'</b></div><div class="col-span-2 sm:col-span-1 rounded-2xl bg-rose-50 border border-rose-200 p-3"><small class="block text-[10px] text-rose-700">أيام الغياب المستحقة</small><b class="text-xl text-rose-900">'+totalAbsence+'</b></div></div><div class="flex flex-wrap gap-2 mt-3 text-[10px] font-black"><span class="rounded-lg border bg-white text-slate-800 px-3 py-2">1 مرة: أبيض</span><span class="rounded-lg border border-amber-300 bg-amber-100 text-amber-900 px-3 py-2">2–3: أصفر</span><span class="rounded-lg border border-rose-300 bg-rose-100 text-rose-900 px-3 py-2">4–7: أحمر</span><span class="rounded-lg border border-slate-900 bg-slate-950 text-white px-3 py-2">8+: أسود</span></div>';
+    let html = '<div class="overflow-x-auto"><table class="w-full min-w-[720px] text-xs text-right"><thead class="bg-slate-900 text-white"><tr><th class="p-3">الترتيب</th><th class="p-3">الطالب / الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
     morningAssemblyReportRows.forEach((item,index) => {
-      const warning = item.count >= 4;
+      const tier = item.count >= 8 ? 'tier-black' : item.count >= 4 ? 'tier-red' : item.count >= 2 ? 'tier-yellow' : 'tier-white';
       const events = item.events.map(event => {
         const date = escapeHtml(event.late_date);
         const time = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
         return date + ' · ' + time + ' · سجل بواسطة: ' + escapeHtml(event.recorder_name || '—');
       }).join('<br>');
-      html += '<tr class="border-t ' + (warning ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200' : 'border-slate-100 dark:border-slate-700') + '"><td class="p-3">' + (index+1) + '</td><td class="p-3 font-black">' + escapeHtml(item.name) + (warning ? '<div class="text-[10px] font-black mt-1">تجاوز حد 4 تأخيرات</div>' : '') + '</td><td class="p-3">' + escapeHtml(item.className) + '</td><td class="p-3 font-black">' + item.count + '</td><td class="p-3 font-black">' + item.absenceDays + '</td><td class="p-3 leading-6">' + events + '</td></tr>';
+      html += '<tr class="border-t morning-lateness-row ' + tier + '"><td class="p-3 text-center font-black">' + (index+1) + '</td><td class="p-3"><div class="font-black text-sm">' + escapeHtml(item.name) + '</div><div class="mt-1 inline-flex rounded-lg border border-current/20 px-2 py-1 text-[10px] font-black">الصف ' + escapeHtml(formatClassName(item.className)) + '</div></td><td class="p-3 text-center font-black text-base">' + item.count + '</td><td class="p-3 text-center font-black text-base">' + item.absenceDays + '</td><td class="p-3 leading-6">' + events + '</td></tr>';
     });
-    container.innerHTML = html + '</tbody></table>';
+    container.innerHTML = html + '</tbody></table></div>';
   } catch (error) {
     container.innerHTML = '<div class="p-6 text-center text-xs font-bold text-rose-600">' + escapeHtml(error.message || 'تعذر تحميل التقرير.') + '</div>';
   }
 }
 function printMorningAssemblyLatenessReport() {
-  if (!canAccessReport('reportMorningAssemblyLateness')) { showToast('لا تملك صلاحية طباعة تقرير التأخر عن الطابور الصباحي.','error'); return; }
+  if (!canViewMorningAssemblyLatenessReport()) { showToast('لا تملك صلاحية طباعة تقرير التأخر عن الطابور الصباحي.','error'); return; }
   const range=window.__arcReportRange||null,source=Array.isArray(morningAssemblyReportRows)?morningAssemblyReportRows:[];
   const filtered=source.map(function(item){const events=(item.events||[]).filter(function(e){return !range||((!range.from||String(e.late_date||'')>=range.from)&&(!range.to||String(e.late_date||'')<=range.to));});return Object.assign({},item,{events:events,count:events.length,absenceDays:Math.floor(events.length/4)});}).filter(function(item){return item.count>0;});
   if(!filtered.length){showToast('لا توجد حالات تأخر مسجلة في الفترة المحددة.','info');return;}
-  const rows=filtered.map(function(item,index){return '<tr class="'+(item.count>=4?'warning':'')+'"><td>'+(index+1)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+escapeHtml(item.className)+'</td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(function(e){return escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—');}).join('<br>')+'</td></tr>';}).join('');
+  const rows=filtered.map(function(item,index){const tier=item.count>=8?'tier-black':item.count>=4?'tier-red':item.count>=2?'tier-yellow':'tier-white';return '<tr class="'+tier+'"><td>'+(index+1)+'</td><td><strong>'+escapeHtml(item.name)+'</strong><small>الصف '+escapeHtml(formatClassName(item.className))+'</small></td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(function(e){return escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—');}).join('<br>')+'</td></tr>';}).join('');
   const w=window.open('','_blank');if(!w){showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error');return;}
-  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#172033}h1{text-align:center;font-size:20px}p{text-align:center;color:#555}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top}th{background:#f3e8ff}.warning{background:#fff1f2;color:#9f1239;font-weight:bold}@media print{body{padding:0}@page{size:A4 landscape;margin:10mm}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · الفترة: '+escapeHtml(range?.from||'العام الدراسي')+' إلى '+escapeHtml(range?.to||'اليوم')+' · كل أربعة تأخيرات تحتسب يوماً واحداً من الغياب الناتج عن التأخر</p><table><thead><tr><th>#</th><th>اسم الطالب</th><th>الصف</th><th>مرات التأخر</th><th>أيام الغياب الناتجة</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:18px;color:#172033}h1{text-align:center;font-size:22px;margin:0 0 6px}p{text-align:center;color:#555;font-size:12px;margin:0 0 14px}.summary{display:flex;gap:8px;margin:10px 0 14px}.summary span{flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:right;vertical-align:top}th{background:#183653;color:#fff}.tier-white{background:#fff;color:#172033}.tier-yellow{background:#fef3c7;color:#713f12}.tier-red{background:#fee2e2;color:#991b1b;font-weight:bold}.tier-black{background:#111827;color:#fff;font-weight:bold}.tier-black td{color:#fff}.tier-yellow td,.tier-red td{color:inherit}td small{display:block;font-size:9px;margin-top:4px;font-weight:bold}@media print{body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · العام الدراسي '+escapeHtml(document.getElementById('morningAssemblyReportYear')?.value||'')+' · الفترة: '+escapeHtml(range?.from||'من سبتمبر')+' إلى '+escapeHtml(range?.to||'يونيو')+' · كل 4 تأخيرات = يوم غياب مستقل</p><div class="summary"><span>الطلاب: '+filtered.length+'</span><span>مرات التأخر: '+filtered.reduce((s,x)=>s+x.count,0)+'</span><span>أيام الغياب: '+filtered.reduce((s,x)=>s+x.absenceDays,0)+'</span></div><table><thead><tr><th>#</th><th>اسم الطالب / الصف</th><th>مرات التأخر</th><th>أيام الغياب</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
   w.document.close();
 }
 function renderBehaviorClassesGrid() {
@@ -10705,13 +10716,21 @@ async function repPrint(){
   }
 }
 
-const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'];
+const REPORT_PERMISSION_KEYS = ['reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'];
 function canManageReportPermissions() {
   return isGeneralAdminUser(activeUser) || isAdminAuthorized();
 }
 function hasGranularReportPermissions(permissions) {
   const p = permissions && typeof permissions === 'object' ? permissions : {};
   return REPORT_PERMISSION_KEYS.some(key => Object.prototype.hasOwnProperty.call(p, key));
+}
+function canViewMorningAssemblyLatenessReport(user = activeUser) {
+  if (!user) return false;
+  if (isGeneralAdminUser(user)) return true;
+  const p = user.permissions && typeof user.permissions === 'object' ? user.permissions : {};
+  if (user.type === 'custom') return p.morningAssemblyLateness === true;
+  if (user.type === 'teacher') return p.morningAssemblyLatenessNonDuty === true;
+  return false;
 }
 function canAccessReport(key, user = activeUser) {
   if (!REPORT_PERMISSION_KEYS.includes(key)) return false;
@@ -10725,7 +10744,7 @@ function canAccessAnyReport(user = activeUser) {
 }
 function refreshReportPanelsVisibility() {
   const visibility = {
-    morningAssemblyLatenessReportPanel: canAccessReport('reportMorningAssemblyLateness'),
+    
     repStudentAffairsPanel: canAccessReport('reportStudentAffairs'),
     comprehensiveAbsenceReportPanel: canAccessReport('reportComprehensiveAbsence'),
     comprehensiveAbsenceActions: canAccessReport('reportComprehensiveAbsence'),
@@ -16336,7 +16355,7 @@ window.reportDateRangeDays=reportDateRangeDays;
 function reportCatalog(){return [
 {key:'absence',title:'تقرير الغياب الشامل',desc:'كشف الغياب والحالات اليومية وفق التسطيرة الأصلية المعتمدة.',category:'students',label:'شؤون الطلاب',icon:'fa-user-xmark',tone:'#be3b56',allowed:rep('reportComprehensiveAbsence')},
 {key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
-{key:'morning',title:'التأخر عن الطابور الصباحي',desc:'التقرير التراكمي المعتمد لسجل التأخر الصباحي.',category:'students',label:'شؤون الطلاب',icon:'fa-person-circle-exclamation',tone:'#8b5cf6',allowed:rep('reportMorningAssemblyLateness')},
+
 {key:'late',title:'متابعة التأخر عن الحصص',desc:'كشف حالات التأخر بين الحصص من السجلات الفعلية.',category:'students',label:'شؤون الطلاب',icon:'fa-clock',tone:'#0284c7',allowed:rep('reportClassLatenessFollowup')},
 {key:'reserve',title:'توزيع حصص الاحتياط',desc:'سجل التوزيعات وتغطية الغياب وفق قالب الاحتياط الأصلي.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-arrows-rotate',tone:'#168c85',allowed:rep('reportSubstitutionDistribution')},
 {key:'sa',title:'تقارير شؤون الطلبة',desc:'تقارير الغياب والسلوك وفق الصفوف والصلاحيات المسندة.',category:'students',label:'شؤون الطلاب',icon:'fa-people-group',tone:'#183653',allowed:rep('reportStudentAffairs')},

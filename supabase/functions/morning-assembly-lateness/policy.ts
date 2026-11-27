@@ -50,3 +50,10 @@ export function canUseMorningLateness(input: {
     minutes: input.minutes,
   });
 }
+
+export function canViewMorningLatenessReport(input:{principalType:"admin"|"teacher"|"custom"; nonDutyPermission?:boolean; customPermission?:boolean}):boolean {
+  if (input.principalType === "admin") return true;
+  if (input.principalType === "custom") return input.customPermission === true;
+  if (input.principalType === "teacher") return input.nonDutyPermission === true;
+  return false;
+}
