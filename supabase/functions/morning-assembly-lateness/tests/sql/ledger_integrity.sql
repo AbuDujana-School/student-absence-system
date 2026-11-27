@@ -49,6 +49,8 @@ DECLARE
   v_duplicate_blocked boolean := false;
   v_wrong_period_blocked boolean := false;
   v_wrong_year_blocked boolean := false;
+  v_delete_id uuid;
+  v_result jsonb;
 BEGIN
   INSERT INTO public.morning_assembly_lateness
     (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
@@ -96,48 +98,43 @@ BEGIN
   VALUES
     (987654321, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-19', 'admin', 'Synthetic Test', '2026/2027');
 
-  DECLARE
-    v_delete_id uuid;
-    v_result jsonb;
-  BEGIN
-    SELECT id INTO v_delete_id
-    FROM public.morning_assembly_lateness
-    WHERE student_id = 987654321 AND late_date = DATE '2026-11-19';
+  SELECT id INTO v_delete_id
+  FROM public.morning_assembly_lateness
+  WHERE student_id = 987654321 AND late_date = DATE '2026-11-19';
 
-    v_result := public.delete_morning_assembly_lateness_record(
-      v_delete_id, 987654322, DATE '2026-11-19'
-    );
-    IF v_result->>'ok' <> 'false' OR (v_result->>'deleted_records')::integer <> 0 THEN
-      RAISE EXCEPTION 'scoped cancellation accepted a mismatched student id';
-    END IF;
+  v_result := public.delete_morning_assembly_lateness_record(
+    v_delete_id, 987654322, DATE '2026-11-19'
+  );
+  IF v_result->>'ok' <> 'false' OR (v_result->>'deleted_records')::integer <> 0 THEN
+    RAISE EXCEPTION 'scoped cancellation accepted a mismatched student id';
+  END IF;
 
-    v_result := public.delete_morning_assembly_lateness_record(
-      v_delete_id, 987654321, DATE '2026-11-20'
-    );
-    IF v_result->>'ok' <> 'false' OR (v_result->>'deleted_records')::integer <> 0 THEN
-      RAISE EXCEPTION 'scoped cancellation accepted a mismatched school date';
-    END IF;
+  v_result := public.delete_morning_assembly_lateness_record(
+    v_delete_id, 987654321, DATE '2026-11-20'
+  );
+  IF v_result->>'ok' <> 'false' OR (v_result->>'deleted_records')::integer <> 0 THEN
+    RAISE EXCEPTION 'scoped cancellation accepted a mismatched school date';
+  END IF;
 
-    v_result := public.delete_morning_assembly_lateness_record(
-      v_delete_id, 987654321, DATE '2026-11-19'
-    );
-    IF v_result->>'ok' <> 'true' OR (v_result->>'deleted_records')::integer <> 1 THEN
-      RAISE EXCEPTION 'scoped cancellation did not delete exactly one matching record';
-    END IF;
+  v_result := public.delete_morning_assembly_lateness_record(
+    v_delete_id, 987654321, DATE '2026-11-19'
+  );
+  IF v_result->>'ok' <> 'true' OR (v_result->>'deleted_records')::integer <> 1 THEN
+    RAISE EXCEPTION 'scoped cancellation did not delete exactly one matching record';
+  END IF;
 
-    IF EXISTS (
-      SELECT 1 FROM public.morning_assembly_lateness
-      WHERE student_id = 987654321 AND late_date = DATE '2026-11-19'
-    ) THEN
-      RAISE EXCEPTION 'scoped cancellation left the selected test record behind';
-    END IF;
-    IF NOT EXISTS (
-      SELECT 1 FROM public.morning_assembly_lateness
-      WHERE student_id = 987654321 AND late_date = DATE '2026-11-18'
-    ) THEN
-      RAISE EXCEPTION 'scoped cancellation changed a different date record';
-    END IF;
-  END;
+  IF EXISTS (
+    SELECT 1 FROM public.morning_assembly_lateness
+    WHERE student_id = 987654321 AND late_date = DATE '2026-11-19'
+  ) THEN
+    RAISE EXCEPTION 'scoped cancellation left the selected test record behind';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.morning_assembly_lateness
+    WHERE student_id = 987654321 AND late_date = DATE '2026-11-18'
+  ) THEN
+    RAISE EXCEPTION 'scoped cancellation changed a different date record';
+  END IF;
 END
 $ledger$;
 RESET ROLE;
