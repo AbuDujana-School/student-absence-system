@@ -142,8 +142,9 @@ async function handle(req:Request) {
       reportQuery = hasDateRange
         ? reportQuery.gte("late_date",fromDate).lte("late_date",toDate)
         : reportQuery.eq("academic_year",selectedYear);
+      // Cancellation physically removes only the exact selected ledger row via the scoped RPC.
+      // The append-only ledger has no cancelled_at column, so do not filter on a nonexistent field.
       const {data,error}=await reportQuery
-        .is("cancelled_at",null)
         .order("late_date",{ascending:false}).order("recorded_at",{ascending:false})
         .range(from,from+999);
       if (error) throw error;
