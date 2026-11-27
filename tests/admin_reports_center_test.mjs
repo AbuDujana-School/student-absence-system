@@ -42,3 +42,12 @@ test("no demonstration permission switch or fabricated student rows are introduc
   assert.doesNotMatch(moduleCode, /setPermissionMode|permissionMode/);
   assert.doesNotMatch(moduleCode, /سالم بن حمد المقبالي|أحمد بن سلطان الجابري/);
 });
+
+test("calm glass theme keeps readable light/dusk contrast and avoids pure black", () => {
+  assert.match(moduleCode, /arcCalmGlassTheme/);
+  assert.match(moduleCode, /rgba\(34,52,71/);
+  assert.match(moduleCode, /#e2e8f0/);
+  assert.match(moduleCode, /#354c63/);
+  assert.doesNotMatch(moduleCode, /background:#000(?:000)?\b/i);
+  assert.match(moduleCode, /overflow-x:auto/);
+});
