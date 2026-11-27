@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
+const logo = readFileSync(new URL('../logo.png', import.meta.url));
 
 test('installed PWA checks for a fresh service worker immediately on startup', () => {
   const appBuildVersion = html.match(/<meta name="app-build" content="([^"]+)"/)?.[1];
@@ -81,9 +82,10 @@ test('app entry is a direct display-only PIN gate with both school-logo position
  assert.doesNotMatch(html,/id="schoolSplash"|dismissSchoolSplash|function closeSplash/);
  assert.doesNotMatch(login,/<(?:input|textarea)\b|contenteditable/i);
  assert.equal((login.match(/src="\.\/logo\.png"/g)||[]).length,2);
- assert.match(login,/id="schoolLoginPad"/);assert.match(login,/id="loginSubmitBtn"[^>]*type="submit"/);
+ assert.match(login,/id="schoolLoginPad"/);assert.match(login,/type="submit"[^>]*id="loginSubmitBtn"/);
  assert.match(html,/SCHOOL_LOGIN_PIN_MIN_LENGTH=4/);assert.match(html,/SCHOOL_LOGIN_PIN_MAX_LENGTH=20/);
  assert.match(html,/event\.key==="Backspace"/);assert.match(html,/event\.key==="Enter"/);assert.match(html,/Numpad\[0-9\]/);
  assert.match(html,/document\.body\.classList\.toggle\("login-mode", !activeUser\)/);
  assert.equal(manifest.start_url,"./index.html");assert.match(sw,/'\.\/logo\.png'/);
+ assert.deepEqual([...logo.subarray(0,8)],[137,80,78,71,13,10,26,10],"school logo must be a valid PNG file");
 });
