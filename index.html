@@ -3668,7 +3668,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 text-xs font-bold">
         <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" data-permission="dashboard" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 shadow-sm font-bold text-emerald-800 dark:text-emerald-300 transition-all"><i class="fa-solid fa-house text-emerald-600"></i><span>الرئيسية</span></button>
-        <button onclick="switchAdminTab('studstats')" id="tab-studstats" data-permission="studstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all" style="display:none!important"><i class="fa-solid fa-chart-pie text-emerald-600"></i><span>إحصائيات</span></button>
+        
         <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" data-permission="behaviorstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-scale-balanced text-emerald-600"></i><span>سلوكيات</span></button>
         <button onclick="switchAdminTab('users')" id="tab-users" data-permission="users" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-user-gear text-blue-500"></i><span>الأشخاص</span></button>
         <button onclick="switchAdminTab('beneficiaries')" id="tab-beneficiaries" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-slate-800 dark:to-slate-900 shadow-sm font-black text-slate-800 dark:text-amber-200 hover:border-amber-400 transition-all"><i class="fa-solid fa-users-viewfinder text-amber-600"></i><span>إدارة المستفيدين</span></button>
@@ -10793,7 +10793,7 @@ function renderAdminOverview() {
   toggle('dashboardTeachersActivity', canTeachers);
   const saAction = document.getElementById('dashboardStudentAffairsAction');
   if (saAction) { saAction.classList.toggle('hidden', !canStudentAffairs); saAction.classList.toggle('flex', canStudentAffairs); }
-  if (canStats) {
+  if (false && canStats) {
     const today = getOmanLocalDate();
     const attendanceToday = [];
     const latestByClass = new Map();
@@ -10908,7 +10908,7 @@ function initAdminDashboard() {
   const saAction = document.getElementById('dashboardStudentAffairsAction');
   if (saAction) { const show = !!(isA || activeUser?.permissions?.studentAffairs === true); saAction.classList.toggle('hidden', !show); saAction.classList.toggle('flex', show); }
   try {
-    if (has('studstats')) { renderStudentStatsDashboard(); void refreshDashboardDailyMetrics(); }
+    // مرصد الإحصاء والاتجاهات يُفتح حصراً من القسم الإداري؛ لا تُحمّل لوحة الإحصائيات القديمة هنا.
     if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
     if (has('users')) renderCustomUsersList();
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
@@ -13099,6 +13099,8 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 
 
+
+<style id="admin-observatory-single-home">#dashboardMetricsSection,#dashboardUrgentSection{display:none!important}</style>
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
