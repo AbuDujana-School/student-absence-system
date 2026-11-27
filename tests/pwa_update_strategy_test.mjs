@@ -118,3 +118,31 @@ test('PIN gate responsive layout removes helper text, shows only filled dots, an
   assert.equal(manifest.background_color, '#04121f');
   assert.equal(manifest.theme_color, '#04121f');
 });
+
+test('PIN gate structure, responsive layout, and masked-dot display remain valid', () => {
+ const head=html.slice(0,html.indexOf('</head>'));
+ assert.equal((head.match(/<style/g)||[]).length,head.split('</style>').length-1,'all head style tags must close before </head>');
+ const bodyStart=html.indexOf('<body');
+ const loginStart=html.indexOf('<div id="loginView"');
+ assert.ok(bodyStart>0&&loginStart>bodyStart);
+ assert.ok(loginStart<html.indexOf('</main>',loginStart));
+ const login=html.slice(loginStart,html.indexOf('<section id="uiReviewLauncher"',loginStart));
+ const renderer=html.slice(html.indexOf('function renderSchoolLoginPin()'),html.indexOf('function setSchoolLoginPin('));
+ assert.ok(login.includes('<span>الرقم السري</span>'));
+ assert.ok(!login.includes('schoolLoginShow'));
+ assert.ok(!login.includes('schoolLoginHint'));
+ assert.ok(!login.includes('أدخل الرمز ثم اضغط موافق'));
+ assert.ok(!login.includes('تظهر أربع خانات'));
+ assert.ok(renderer.includes('const count=schoolLoginPinCode.length'));
+ assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
+ assert.ok(!renderer.includes('data-digit'));
+ assert.ok(!renderer.includes('revealed'));
+ assert.ok(html.includes('@media(max-width:600px)'));
+ assert.ok(html.includes('@media(min-width:760px)'));
+ assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
+ assert.ok(html.includes('height:100dvh'));
+ assert.ok(!head.includes('<script src='));
+ assert.equal(manifest.background_color,'#04121f');
+ assert.equal(manifest.theme_color,'#04121f');
+ assert.equal(manifest.orientation,'any');
+});

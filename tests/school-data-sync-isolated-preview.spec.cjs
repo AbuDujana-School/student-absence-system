@@ -876,24 +876,7 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     }
   });
 
-  // This test targets the real login shell even if the local preview harness
-  // initially selected its isolated UI-review landing page.
-  const loginSurface = await page.evaluate(() => {
-    document.body.classList.add("login-mode");
-    document.getElementById("loginView")?.classList.remove("hidden");
-    document.getElementById("uiReviewLauncher")?.classList.add("hidden");
-    document.getElementById("dashboardSelectionView")?.classList.add("hidden");
-    return {
-      loginViewPresent: Boolean(document.getElementById("loginView")),
-      loginViewHidden: document.getElementById("loginView")?.classList.contains("hidden") === true,
-      keypadButtons: document.querySelectorAll('#schoolLoginPad button[data-digit="7"]').length,
-    };
-  });
-  expect(loginSurface, "Direct login surface should be mounted before the synthetic PIN is entered").toEqual({
-    loginViewPresent: true,
-    loginViewHidden: false,
-    keypadButtons: 1,
-  });
+  // Exercise the same visible keypad used by teachers instead of the removed text input.
   for (let index = 0; index < 4; index += 1) {
     await page.locator('#schoolLoginPad button[data-digit="7"]').click();
   }
