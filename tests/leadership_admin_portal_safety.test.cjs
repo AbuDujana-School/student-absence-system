@@ -88,3 +88,13 @@ test("morning assembly separates quick monitoring from report details without re
   assert.match(styles, /\.ma-section-tabs/);
   assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
+
+test("morning assembly quick view uses live school counts and clear Arabic guidance", () => {
+  assert.match(portal, /morningAssemblyLatenessToday\.size/);
+  assert.match(portal, /db\.classes\.length/);
+  assert.match(portal, /مرصود اليوم:/);
+  assert.match(portal, /تسجيل طالب متأخر/);
+  assert.match(portal, /ابحث باسم الطالب من جميع الصفوف لرصد التأخر بلمسة واحدة/);
+  assert.match(portal, /بحث ذكي باسم الطالب أو الصف من جميع الصفوف/);
+  assert.match(styles, /\.ma-today-summary/);
+});
