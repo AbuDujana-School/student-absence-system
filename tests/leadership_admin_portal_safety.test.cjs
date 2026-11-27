@@ -77,3 +77,14 @@ test("morning assembly exposes explicit local calm-light and calm-dusk controls"
   assert.match(portal, /نور الصباح الهادئ/);
   assert.match(portal, /ضباب الغسق الهادئ/);
 });
+
+test("morning assembly separates quick monitoring from report details without replacing existing section IDs", () => {
+  assert.match(portal, /function installMorningAssemblyNavigation\(\)/);
+  assert.match(portal, /data-ma-tab="quick"/);
+  assert.match(portal, /data-ma-tab="report"/);
+  assert.match(portal, /morningAssemblyClassesGrid/);
+  assert.match(portal, /morningAssemblyReportContainer/);
+  assert.match(portal, /classList\.toggle\('hidden', reportMode\)/);
+  assert.match(styles, /\.ma-section-tabs/);
+  assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+});
