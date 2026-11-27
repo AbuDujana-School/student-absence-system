@@ -236,46 +236,46 @@ body.admin-portal-lock { overflow:hidden; }
   --school-glass-border:rgba(53,76,99,.18);
   --school-glass-surface:rgba(255,255,255,.78);
 }
-body:not(.dark) .glass-card,
-body:not(.dark) #adminSectionView .admin-portal-card,
-body:not(.dark) #adminRecordsCenterModal .arc-v2-card,
-body:not(.dark) #adminRecordsCenterModal .arc-v2-tools,
-body:not(.dark) #adminRecordsCenterModal .arc-v2-date-dialog,
-body:not(.dark) .rounded-3xl.border,
-body:not(.dark) .rounded-2xl.border {
+.glass-card,
+#adminSectionView .admin-portal-card,
+#adminRecordsCenterModal .arc-v2-card,
+#adminRecordsCenterModal .arc-v2-tools,
+#adminRecordsCenterModal .arc-v2-date-dialog,
+.rounded-3xl.border,
+.rounded-2xl.border {
   background:var(--school-glass-surface);
   border-color:var(--school-glass-border);
   box-shadow:0 14px 34px -20px rgba(36,56,76,.28);
   -webkit-backdrop-filter:blur(16px) saturate(140%);
   backdrop-filter:blur(16px) saturate(140%);
 }
-body:not(.dark) .rounded-3xl.border,
-body:not(.dark) .rounded-2xl.border { color:var(--school-glass-text); }
-body:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
-body:not(.dark) select,
-body:not(.dark) textarea {
+.rounded-3xl.border,
+.rounded-2xl.border { color:var(--school-glass-text); }
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
   color:#1e293b;
   background:rgba(248,250,252,.94);
   border-color:rgba(71,85,105,.28);
 }
-body:not(.dark) input:focus,
-body:not(.dark) select:focus,
-body:not(.dark) textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline:0;
   border-color:#5b6ee1;
   box-shadow:0 0 0 3px rgba(91,110,225,.14);
 }
-body.dark {
+.dark {
   color:#e2e8f0;
   background-color:#182635;
 }
-body.dark .glass-card,
-body.dark #adminSectionView .admin-portal-card,
-body.dark #adminRecordsCenterModal .arc-v2-card,
-body.dark #adminRecordsCenterModal .arc-v2-tools,
-body.dark #adminRecordsCenterModal .arc-v2-date-dialog,
-body.dark .rounded-3xl.border,
-body.dark .rounded-2xl.border {
+.dark .glass-card,
+.dark #adminSectionView .admin-portal-card,
+.dark #adminRecordsCenterModal .arc-v2-card,
+.dark #adminRecordsCenterModal .arc-v2-tools,
+.dark #adminRecordsCenterModal .arc-v2-date-dialog,
+.dark .rounded-3xl.border,
+.dark .rounded-2xl.border {
   color:#e2e8f0;
   background:rgba(34,52,71,.86);
   border-color:rgba(148,163,184,.22);
@@ -283,37 +283,37 @@ body.dark .rounded-2xl.border {
   -webkit-backdrop-filter:blur(18px) saturate(125%);
   backdrop-filter:blur(18px) saturate(125%);
 }
-body.dark input:not([type="checkbox"]):not([type="radio"]),
-body.dark select,
-body.dark textarea {
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
   color:#e2e8f0;
   background:rgba(24,38,53,.94);
   border-color:rgba(148,163,184,.3);
 }
-body.dark input::placeholder,
-body.dark textarea::placeholder { color:#aebdca; opacity:1; }
-body.dark input:focus,
-body.dark select:focus,
-body.dark textarea:focus {
+.dark input::placeholder,
+.dark textarea::placeholder { color:#aebdca; opacity:1; }
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
   outline:0;
   border-color:#a9b4ff;
   box-shadow:0 0 0 3px rgba(169,180,255,.16);
 }
-body.dark .text-slate-900,
-body.dark .text-slate-800,
-body.dark .text-gray-900,
-body.dark .text-gray-800 { color:#e2e8f0; }
-body.dark .text-slate-600,
-body.dark .text-slate-500,
-body.dark .text-gray-600,
-body.dark .text-gray-500 { color:#cbd5e1; }
-body.dark .bg-white,
-body.dark .bg-slate-50,
-body.dark .bg-slate-100 { background-color:#223447; }
-body.dark .border-slate-100,
-body.dark .border-slate-200,
-body.dark .border-gray-100,
-body.dark .border-gray-200 { border-color:rgba(148,163,184,.22); }
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-gray-900,
+.dark .text-gray-800 { color:#e2e8f0; }
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-gray-600,
+.dark .text-gray-500 { color:#cbd5e1; }
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100 { background-color:#223447; }
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-gray-100,
+.dark .border-gray-200 { border-color:rgba(148,163,184,.22); }
 
 /* Administrative portal and reports center: consistent card rhythm and touch targets. */
 #adminSectionView .admin-portal-card,
@@ -521,8 +521,8 @@ body.dark .border-gray-200 { border-color:rgba(148,163,184,.22); }
   background:#f8fafc;
   border-color:rgba(200,157,76,.5);
 }
-body.dark #morningAssemblyLatenessView.ma-theme-light .glass-card,
-body.dark #morningAssemblyLatenessView.ma-theme-light section {
+.dark #morningAssemblyLatenessView.ma-theme-light .glass-card,
+.dark #morningAssemblyLatenessView.ma-theme-light section {
   color:#1e293b!important;
   background:rgba(255,255,255,.84)!important;
   border-color:rgba(53,76,99,.17)!important;
@@ -592,21 +592,21 @@ body.dark #morningAssemblyLatenessView.ma-theme-light section {
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
   }
 }
-body.dark #morningAssemblyLatenessView .ma-section-tabs {
+.dark #morningAssemblyLatenessView .ma-section-tabs {
   background:rgba(34,52,71,.88);
   border-color:rgba(148,163,184,.22);
 }
-body.dark #morningAssemblyLatenessView .ma-section-tabs [data-ma-tab] {
+.dark #morningAssemblyLatenessView .ma-section-tabs [data-ma-tab] {
   color:#e2e8f0;
   background:rgba(43,65,87,.82);
   border-color:rgba(148,163,184,.22);
 }
-body.dark #morningAssemblyLatenessView .ma-section-tabs [data-ma-tab].is-active {
+.dark #morningAssemblyLatenessView .ma-section-tabs [data-ma-tab].is-active {
   color:#f8fafc;
   background:#2b4157;
   border-color:#5b6ee1;
 }
-body.dark #morningAssemblyLatenessView .ma-report-count {
+.dark #morningAssemblyLatenessView .ma-report-count {
   color:#f1d69b;
   background:rgba(200,157,76,.2);
 }
@@ -642,9 +642,9 @@ body.dark #morningAssemblyLatenessView .ma-report-count {
   font-size:14px;
   font-variant-numeric:tabular-nums;
 }
-body.dark #morningAssemblyLatenessView .ma-today-summary {
+.dark #morningAssemblyLatenessView .ma-today-summary {
   color:#f1d69b;
   background:rgba(200,157,76,.16);
   border-color:rgba(200,157,76,.3);
 }
-body.dark #morningAssemblyLatenessView .ma-today-summary strong { color:#f8fafc; }
+.dark #morningAssemblyLatenessView .ma-today-summary strong { color:#f8fafc; }
