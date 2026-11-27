@@ -2441,6 +2441,18 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 @media(min-width:1280px){#adminRecordsCenterModal .arc-report-grid-lux{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:639px){#morningAssemblyLatenessView #morningAssemblyClassesGrid{grid-template-columns:1fr!important}#morningAssemblyLatenessView .ma-report-summary{grid-template-columns:1fr 1fr}#morningAssemblyLatenessView #morningAssemblyReportContainer table{min-width:900px!important}}
 @media(prefers-reduced-motion:reduce){#morningAssemblyLatenessView *,#adminRecordsCenterModal .arc-report-card{transition:none!important;animation:none!important}}
+
+#advancedAnalyticsSection .trend-reserve-kpi{display:flex;align-items:center;gap:14px;margin-top:15px;padding:16px 18px;border:1px solid rgba(200,157,76,.3);border-radius:20px;background:linear-gradient(120deg,rgba(255,250,238,.9),rgba(235,241,245,.84));box-shadow:0 12px 28px -22px rgba(36,56,76,.4);backdrop-filter:blur(16px)}
+#advancedAnalyticsSection .trend-reserve-kpi-icon{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:15px;background:linear-gradient(145deg,#f3e6c8,#e5d5ad);color:#735b30;font-size:19px}
+#advancedAnalyticsSection .trend-reserve-kpi-copy{min-width:0;flex:1}
+#advancedAnalyticsSection .trend-reserve-kpi-copy>span{display:block;color:#8a6c37;font-size:9px;font-weight:1000}
+#advancedAnalyticsSection .trend-reserve-kpi-copy strong{display:block;margin-top:3px;color:#24384c;font-size:21px;font-weight:1000}
+#advancedAnalyticsSection .trend-reserve-kpi-copy p{margin-top:3px;color:#526579;font-size:9px;line-height:1.7}
+#advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi{background:linear-gradient(120deg,rgba(71,85,105,.84),rgba(43,65,87,.9));border-color:rgba(200,157,76,.28)}
+#advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi-copy>span{color:#f0d59b}
+#advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi-copy strong{color:#f2f6fa}
+#advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi-copy p{color:#c5d1dc}
+@media(max-width:639px){#advancedAnalyticsSection .trend-reserve-kpi{align-items:flex-start;flex-wrap:wrap}#advancedAnalyticsSection .trend-reserve-kpi .trend-direction{margin-right:auto}}
 </style>
 
 </head>
