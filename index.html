@@ -2132,7 +2132,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #morningAssemblyLatenessView>section{background:rgba(255,255,255,.78)!important;backdrop-filter:blur(18px) saturate(145%)!important;-webkit-backdrop-filter:blur(18px) saturate(145%)!important;border-color:rgba(53,76,99,.18)!important;box-shadow:0 14px 34px -18px rgba(36,56,76,.22)!important}
 .dark #morningAssemblyLatenessView .glass-card,.dark #morningAssemblyLatenessView>section{background:rgba(46,68,91,.82)!important;border-color:rgba(200,157,76,.22)!important}
 #morningAssemblyLatenessView .text-fuchsia-800,#morningAssemblyLatenessView .text-fuchsia-700,#morningAssemblyLatenessView .text-fuchsia-600{color:#475569!important}
-#morningAssemblyLatenessView .bg-fuchsia-700,#morningAssemblyLatenessView .hover\\:bg-fuchsia-800:hover{background:#354c63!important}
+#morningAssemblyLatenessView .bg-fuchsia-700,#morningAssemblyLatenessView [class~="hover:bg-fuchsia-800"]:hover{background:#354c63!important}
 #morningAssemblyLatenessView .bg-fuchsia-50,#morningAssemblyLatenessView .bg-violet-50{background:rgba(91,110,225,.09)!important}
 #morningAssemblyLatenessView .border-fuchsia-100,#morningAssemblyLatenessView .border-fuchsia-200,#morningAssemblyLatenessView .border-violet-100{border-color:rgba(53,76,99,.2)!important}
 #morningAssemblyLatenessView input{background:rgba(241,245,249,.92)!important;border-color:rgba(71,85,105,.25)!important;color:#1e293b!important}
@@ -8975,7 +8975,7 @@ function renderMorningAssemblyClasses() {
   const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
   const allClasses = sortClassesList(db.classes);
   const gradeOf = value => {
-    const match = String(value || '').match(/(?:^|\\/)\\s*(9|10|11|12)\\s*$/);
+    const match = String(value || '').match(/(?:^|\/)\s*(9|10|11|12)\s*$/);
     return match ? match[1] : '';
   };
   const grades = ['all','9','10','11','12'];
