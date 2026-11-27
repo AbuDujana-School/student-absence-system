@@ -992,8 +992,14 @@
       classSection.parentNode.insertBefore(studentSection, classSection);
     }
 
-    if (!quickSections.length || !reportSections.length ||
-        reportSections.some(section => quickSections.includes(section))) return;
+    const sectionsOverlap = reportSections.some(reportSection =>
+      quickSections.some(quickSection =>
+        reportSection === quickSection ||
+        reportSection.contains(quickSection) ||
+        quickSection.contains(reportSection)
+      )
+    );
+    if (!quickSections.length || !reportSections.length || sectionsOverlap) return;
 
     view.dataset.calmNavigationInstalled = '1';
 
