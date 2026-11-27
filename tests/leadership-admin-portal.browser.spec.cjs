@@ -266,7 +266,7 @@ test("portal-only permission does not grant report or statistics access and keep
 });
 
 test("morning assembly calm themes and quick/report tabs switch without touching school records", async ({ page }) => {
-  await page.route(/https:\/\/[^/]+\\.supabase\\.co\\/.*/, route => route.abort());
+  await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, route => route.abort());
   await page.route("https://fonts.googleapis.com/**", route => route.abort());
   await page.route("https://fonts.gstatic.com/**", route => route.abort());
   await page.route("https://cdnjs.cloudflare.com/**", route => route.abort());
