@@ -62,6 +62,7 @@ test("shared calm-glass theme keeps dusk contrast readable and avoids pure black
   assert.match(styles, /#223447/);
   assert.match(styles, /#e2e8f0/);
   assert.match(styles, /#cbd5e1/);
+  assert.match(styles, /\.dark #adminRecordsCenterModal/);
   assert.doesNotMatch(styles, /#000(?:000)?\b/i);
   assert.match(styles, /overflow-x:auto/);
   assert.match(styles, /min-width:720px/);
