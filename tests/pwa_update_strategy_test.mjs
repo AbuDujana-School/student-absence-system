@@ -19,8 +19,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v62/);
-  assert.match(sw, /abudujana-static-v69/);
+  assert.match(sw, /abudujana-app-v63/);
+  assert.match(sw, /abudujana-static-v70/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
@@ -106,10 +106,10 @@ test('PIN gate responsive layout removes helper text, shows only filled dots, an
   assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
   assert.ok(!renderer.includes('data-digit'));
   assert.ok(!renderer.includes('revealed'));
-  assert.ok(html.includes('@media(max-width:600px)'));
+  assert.ok(html.includes('@media(max-width:759px)'));
   assert.ok(html.includes('@media(min-width:760px)'));
   assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
-  assert.ok(html.includes('height:100dvh'));
+  assert.ok(html.includes('min-height:100dvh'));
   const head = html.slice(0, html.indexOf('</head>'));
   assert.ok(!head.includes('<script src='));
   const libs = html.indexOf('<script src="https://cdn.tailwindcss.com">');
@@ -137,12 +137,31 @@ test('PIN gate structure, responsive layout, and masked-dot display remain valid
  assert.ok(renderer.includes('for(let i=0;i<count;i++)'));
  assert.ok(!renderer.includes('data-digit'));
  assert.ok(!renderer.includes('revealed'));
- assert.ok(html.includes('@media(max-width:600px)'));
+ assert.ok(html.includes('@media(max-width:759px)'));
  assert.ok(html.includes('@media(min-width:760px)'));
  assert.ok(html.includes('grid-template-columns:minmax(0,1fr) minmax(340px,1fr)'));
- assert.ok(html.includes('height:100dvh'));
+ assert.ok(html.includes('min-height:100dvh'));
  assert.ok(!head.includes('<script src='));
  assert.equal(manifest.background_color,'#04121f');
  assert.equal(manifest.theme_color,'#04121f');
  assert.equal(manifest.orientation,'any');
+});
+
+
+test('PIN gate uses the full available phone viewport without shrinking touch controls or locking vertical scroll', () => {
+  const firstPaint = html.match(/<style id="login-first-paint">[\\s\\S]*?<\\/style>/)?.[0] || '';
+  const responsive = html.match(/<style id="premium-pin-responsive-layout">[\\s\\S]*?<\\/style>/)?.[0] || '';
+  assert.ok(firstPaint.includes('overflow-y:auto'));
+  assert.ok(!firstPaint.includes('overflow:hidden'));
+  assert.ok(responsive.includes('@media(max-width:759px)'));
+  assert.ok(responsive.includes('width:100%;max-width:560px'));
+  assert.ok(responsive.includes('min-height:100svh'));
+  assert.ok(responsive.includes('overflow-y:auto!important'));
+  assert.ok(responsive.includes('height:clamp(54px,7dvh,66px)'));
+  assert.ok(responsive.includes('font-size:clamp(18px,4.7vw,24px)'));
+  assert.ok(responsive.includes('@media(min-width:760px)'));
+  assert.ok(responsive.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
+  assert.doesNotMatch(responsive, /max-height:620px|height:36px|font-size:9px/);
+  assert.match(html, /app-build" content="2026-11-27-direct-pin-login-4"/);
+  assert.match(html, /sw\\.js\\?v=20261127-direct-pin-login-4/);
 });
