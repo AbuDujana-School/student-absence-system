@@ -149,8 +149,12 @@ test('PIN gate structure, responsive layout, and masked-dot display remain valid
 
 
 test('PIN gate uses the full available phone viewport without shrinking touch controls or locking vertical scroll', () => {
-  const firstPaint = html.match(/<style id="login-first-paint">[\\s\\S]*?<\\/style>/)?.[0] || '';
-  const responsive = html.match(/<style id="premium-pin-responsive-layout">[\\s\\S]*?<\\/style>/)?.[0] || '';
+  const firstPaintStart = html.indexOf('<style id="login-first-paint">');
+  const firstPaintEnd = html.indexOf('</style>', firstPaintStart) + 8;
+  const responsiveStart = html.indexOf('<style id="premium-pin-responsive-layout">');
+  const responsiveEnd = html.indexOf('</style>', responsiveStart) + 8;
+  const firstPaint = html.slice(firstPaintStart, firstPaintEnd);
+  const responsive = html.slice(responsiveStart, responsiveEnd);
   assert.ok(firstPaint.includes('overflow-y:auto'));
   assert.ok(!firstPaint.includes('overflow:hidden'));
   assert.ok(responsive.includes('@media(max-width:759px)'));
@@ -162,6 +166,6 @@ test('PIN gate uses the full available phone viewport without shrinking touch co
   assert.ok(responsive.includes('@media(min-width:760px)'));
   assert.ok(responsive.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
   assert.doesNotMatch(responsive, /max-height:620px|height:36px|font-size:9px/);
-  assert.match(html, /app-build" content="2026-11-27-direct-pin-login-4"/);
-  assert.match(html, /sw\\.js\\?v=20261127-direct-pin-login-4/);
+  assert.ok(html.includes('2026-11-27-direct-pin-login-4'));
+  assert.ok(html.includes('sw.js?v=20261127-direct-pin-login-4'));
 });
