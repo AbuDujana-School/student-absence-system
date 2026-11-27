@@ -1,0 +1,38 @@
+name: Production login visual diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-ui-diagnostics.yml"
+      - "tests/production-ui-diagnostics.cjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Inspect official school login without signing in
+        env:
+          PRODUCTION_URL: https://abudujana-school.github.io/student-absence-system/
+        run: node tests/production-ui-diagnostics.cjs
+      - name: Save visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-login-ui-diagnostics
+          path: production-login-ui.png
+          if-no-files-found: warn
+          retention-days: 7
