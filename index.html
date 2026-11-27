@@ -9324,7 +9324,7 @@ async function callMorningAssemblyLatenessApi(body) {
   if (!response.ok) { const error = new Error(data.error || 'تعذر تنفيذ العملية.'); error.status = response.status; error.data = data; throw error; }
   return data;
 }
-async async function loadMorningAssemblyLatenessToday() {
+async function loadMorningAssemblyLatenessToday() {
   const requestedDate = getOmanLocalDate();
   try {
     const data = await callMorningAssemblyLatenessApi({action:'today'});
@@ -9349,27 +9349,18 @@ async async function loadMorningAssemblyLatenessToday() {
     renderMorningAssemblyStudents(); renderMorningAssemblySearch(); updateMorningAssemblySummary();
   }
 }
-function recordMorningAssemblyLateness(className,studentName,button) {
+async function recordMorningAssemblyLateness(className,studentName,button) {
   if (!canUseMorningAssemblyLateness()) { showToast('انتهت فترة التسجيل أو لم تعد المناوبة مفعلة.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
-  if (!morningAssemblyLatenessTodayLoaded) {
-    showToast('انتظر حتى يتم تحميل حالة تسجيل الطلاب.', 'info');
-    return;
-  }
+  if (!morningAssemblyLatenessTodayLoaded) { showToast('انتظر حتى يتم تحميل حالة تسجيل الطلاب.', 'info'); return; }
   if (button) { button.disabled = true; button.classList.add('opacity-60'); }
   try {
     const result = await callMorningAssemblyLatenessApi({action:'toggle',class_name:className,student_name:studentName});
     const key = morningAssemblyStudentKey(className,studentName);
-    if (result.action === 'removed') {
-      morningAssemblyLatenessToday.delete(key);
-      showToast('تم إلغاء تأخر ' + studentName + ' وإزالته من سجل اليوم.', 'success');
-    } else {
-      morningAssemblyLatenessToday.add(key);
-      showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
-    }
+    if (result.action === 'removed') { morningAssemblyLatenessToday.delete(key); showToast('تم إلغاء تأخر ' + studentName + ' وإزالته من سجل اليوم.', 'success'); }
+    else { morningAssemblyLatenessToday.add(key); showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success'); }
     const dashboardLateCount = document.getElementById('dashMorningAssemblyLateCount');
     if (dashboardLateCount) dashboardLateCount.textContent = morningAssemblyLatenessToday.size.toLocaleString('en-US') + ' طالب';
-    renderMorningAssemblyStudents();
-    renderMorningAssemblySearch();
+    renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); renderMorningAssemblySearch(); updateMorningAssemblySummary();
   } catch (error) {
     showToast(error.message || 'تعذر تعديل تسجيل التأخر.', 'error');
     if (error.status === 409) void loadMorningAssemblyLatenessToday();
