@@ -2453,6 +2453,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi-copy strong{color:#f2f6fa}
 #advancedAnalyticsSection[data-theme=dark] .trend-reserve-kpi-copy p{color:#c5d1dc}
 @media(max-width:639px){#advancedAnalyticsSection .trend-reserve-kpi{align-items:flex-start;flex-wrap:wrap}#advancedAnalyticsSection .trend-reserve-kpi .trend-direction{margin-right:auto}}
+#morningAssemblyLatenessView .ma-grade-today-count{display:inline-flex;margin-right:6px;padding:3px 7px;border-radius:999px;background:rgba(200,157,76,.16);color:#755a2c;font-size:9px;font-weight:900}
+#morningAssemblyLatenessView.ma-dusk .ma-grade-today-count{background:rgba(200,157,76,.2);color:#f3dfb5}
 </style>
 
 </head>
@@ -17018,6 +17020,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       var summary=document.getElementById('maClassTodaySummary');
       if(todayNode)todayNode.textContent=String(todayCount);
       if(summary)summary.textContent='مرصود اليوم: '+todayCount+' طالب';
+      view.querySelectorAll('#morningAssemblyGradeFilters [data-morning-grade]').forEach(function(button){
+        var grade=button.dataset.morningGrade||'all',count=0;
+        if(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){
+          var className=String(key).split('|')[0],match=className.match(/(?:^|\\/)\\s*(9|10|11|12)\\s*$/);
+          if(grade==='all'||(match&&match[1]===grade))count++;
+        });
+        var badge=button.querySelector('.ma-grade-today-count');
+        if(!badge){badge=document.createElement('span');badge.className='ma-grade-today-count';button.appendChild(badge);}
+        badge.textContent=count+' مرصود';
+      });
       var reportCount=document.getElementById('maReportCount');
       if(reportCount)reportCount.textContent=String((typeof morningAssemblyReportRows!=='undefined'&&morningAssemblyReportRows.length)||0);
       view.querySelectorAll('#morningAssemblyClassesGrid button[data-morning-class]').forEach(function(button){
