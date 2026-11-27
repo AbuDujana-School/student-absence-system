@@ -115,6 +115,6 @@ test('PIN gate responsive layout removes helper text, shows only filled dots, an
   const libs = html.indexOf('<script src="https://cdn.tailwindcss.com">');
   const core = html.indexOf('/* ============ Supabase & Crypto config ============ */');
   assert.ok(libs > 0 && core > libs);
-  assert.equal(JSON.parse(manifest).background_color, '#04121f');
-  assert.equal(JSON.parse(manifest).theme_color, '#04121f');
+  assert.equal(manifest.background_color, '#04121f');
+  assert.equal(manifest.theme_color, '#04121f');
 });
