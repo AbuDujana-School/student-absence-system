@@ -19,8 +19,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v63/);
-  assert.match(sw, /abudujana-static-v70/);
+  assert.match(sw, /abudujana-app-v64/);
+  assert.match(sw, /abudujana-static-v71/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
@@ -158,6 +158,7 @@ test('PIN gate uses the full available phone viewport without shrinking touch co
   assert.ok(firstPaint.includes('overflow-y:auto'));
   assert.ok(!firstPaint.includes('overflow:hidden'));
   assert.ok(responsive.includes('@media(max-width:759px)'));
+  assert.ok(responsive.includes('flex-direction:column'));
   assert.ok(responsive.includes('width:100%;max-width:560px'));
   assert.ok(responsive.includes('min-height:100svh'));
   assert.ok(responsive.includes('overflow-y:auto!important'));
@@ -166,6 +167,6 @@ test('PIN gate uses the full available phone viewport without shrinking touch co
   assert.ok(responsive.includes('@media(min-width:760px)'));
   assert.ok(responsive.includes('grid-template-columns:minmax(0,1fr) minmax(340px,440px)'));
   assert.doesNotMatch(responsive, /max-height:620px|\\.sl-key\\{height:36px|\\.sl-key\\{font-size:9px/);
-  assert.ok(html.includes('2026-11-27-direct-pin-login-4'));
-  assert.ok(html.includes('sw.js?v=20261127-direct-pin-login-4'));
+  assert.ok(html.includes('2026-11-27-direct-pin-login-5'));
+  assert.ok(html.includes('sw.js?v=20261127-direct-pin-login-5'));
 });
