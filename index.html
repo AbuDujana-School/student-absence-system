@@ -10558,6 +10558,17 @@ function updateAdvancedAnalyticsChart(id, config) {
 async function updateAdvancedAnalytics() {
   const section = document.getElementById('advancedAnalyticsSection');
   if (!section || typeof Chart === 'undefined') return;
+  // Scope each trend source to its own explicit read permission.
+  const canReadAttendance = typeof canAccessAdminTab === 'function' && canAccessAdminTab('studstats', activeUser);
+  const canReadBehavior = typeof canAccessAdminTab === 'function' && canAccessAdminTab('behaviorstats', activeUser);
+  const attendanceCard = document.getElementById('analyticsAttendanceChart')?.closest('.trend-chart-card');
+  const behaviorCard = document.getElementById('analyticsBehaviorChart')?.closest('.trend-chart-card');
+  if (attendanceCard) attendanceCard.classList.toggle('hidden', !canReadAttendance);
+  if (behaviorCard) behaviorCard.classList.toggle('hidden', !canReadBehavior);
+  const attendanceNote = document.getElementById('analyticsAttendanceDataNote');
+  const behaviorNote = document.getElementById('analyticsBehaviorDataNote');
+  if (!canReadAttendance && attendanceNote) attendanceNote.textContent = 'يتطلب هذا المؤشر صلاحية الاطلاع على إحصائيات الحضور والغياب.';
+  if (!canReadBehavior && behaviorNote) behaviorNote.textContent = 'يتطلب هذا المؤشر صلاحية الاطلاع على إحصائيات السلوكيات.';
   setDefaultAdvancedAnalyticsRange();
   const start = document.getElementById('analyticsStartDate')?.value;
   const end = document.getElementById('analyticsEndDate')?.value;
@@ -10586,6 +10597,7 @@ async function updateAdvancedAnalytics() {
     morningLate: new Set(), reservePeriods: 0, reserveAbsentees: new Set(), reserveSubstitutes: new Set()
   }]));
 
+  if (canReadAttendance) {
   Object.entries(db.attendance || {}).forEach(([key, session]) => {
     if (!session || !session.records || typeof session.records !== 'object') return;
     const parsed = parseAttendanceKey(key);
@@ -10601,6 +10613,8 @@ async function updateAdvancedAnalytics() {
       if (status === 'escape') daily.get(date).escape.add(studentKey);
     });
   });
+  }
+  if (canReadBehavior) {
   Object.entries(db.behaviors || {}).forEach(([key, session]) => {
     if (!session || !session.records || typeof session.records !== 'object') return;
     const parsed = parseAttendanceKey(key);
@@ -10613,6 +10627,7 @@ async function updateAdvancedAnalytics() {
       if (record && typeof record === 'object' && record.type && record.type !== 'normal') daily.get(date).behavior++;
     });
   });
+  }
 
   const absent = visibleDates.map(date => daily.get(date).absent.size);
   const escape = visibleDates.map(date => daily.get(date).escape.size);
@@ -17123,12 +17138,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       <div class="trend-card-head"><div class="trend-icon trend-icon-absence"><i class="fa-solid fa-scale-balanced"></i></div><div class="min-w-0"><span class="trend-index">01 · الطلاب</span><h4>الانضباط في الحضور والغياب</h4><p>مقارنة الغياب والتسرب يومياً دون إدخال التأخر أو الخروج</p></div><span id="analyticsAttendanceTrend" class="trend-direction">—</span></div>
       <div class="trend-legend"><span><i class="trend-dot dot-absence"></i> الغياب</span><span><i class="trend-dot dot-escape"></i> التسرب</span></div>
       <div class="trend-chart-canvas"><canvas id="analyticsAttendanceChart"></canvas></div>
-      <p class="trend-chart-note">يُحتسب الطالب مرة واحدة لكل حالة في اليوم، حتى لو تكرر تسجيله في حصص متعددة.</p>
+      <p id="analyticsAttendanceDataNote" class="trend-chart-note">يُحتسب الطالب مرة واحدة لكل حالة في اليوم، حتى لو تكرر تسجيله في حصص متعددة.</p>
     </article>
     <article class="trend-chart-card">
       <div class="trend-card-head"><div class="trend-icon trend-icon-behavior"><i class="fa-solid fa-brain"></i></div><div class="min-w-0"><span class="trend-index">02 · الطلاب</span><h4>نبض السلوكيات</h4><p>المجمل اليومي للسلوكيات المسجلة واتجاه ارتفاعها أو انخفاضها</p></div><span id="analyticsBehaviorTrend" class="trend-direction">—</span></div>
       <div class="trend-chart-canvas"><canvas id="analyticsBehaviorChart"></canvas></div>
-      <p class="trend-chart-note">إجمالي السجلات السلوكية غير الطبيعية يومياً دون تقسيم الأنواع الفرعية.</p>
+      <p id="analyticsBehaviorDataNote" class="trend-chart-note">إجمالي السجلات السلوكية غير الطبيعية يومياً دون تقسيم الأنواع الفرعية.</p>
     </article>
     <article class="trend-chart-card">
       <div class="trend-card-head"><div class="trend-icon trend-icon-morning"><i class="fa-solid fa-sun"></i></div><div class="min-w-0"><span class="trend-index">03 · الطلاب</span><h4>مؤشر تأخر الطابور الصباحي</h4><p>تغير عدد حالات التأخر المسجلة عبر أيام الدراسة</p></div><span id="analyticsMorningTrend" class="trend-direction">—</span></div>

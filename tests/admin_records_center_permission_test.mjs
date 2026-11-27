@@ -34,15 +34,22 @@ test("daily pulse data requires portal access and the matching attendance permis
   assert.match(source, /if\(tab\('behaviorstats'\)\)Object\.entries\(db\.behaviors/);
 });
 
-test("trend aggregation applies the same schoolwide guard to attendance and behavior", () => {
-  const start = centerScript.indexOf("function statsView()");
-  const end = centerScript.indexOf("\nfunction action", start);
-  assert.ok(start >= 0 && end > start, "Could not locate statsView");
-  const source = centerScript.slice(start, end);
-  assert.match(source, /schoolWide=isGeneralAdminUser\(activeUser\)\|\|isAdminAuthorized\(\)/);
-  assert.match(source, /if\(tab\('studstats'\)&&schoolWide\)Object\.entries\(db\.attendance/);
-  assert.match(source, /if\(tab\('behaviorstats'\)&&schoolWide\)Object\.entries\(db\.behaviors/);
-  assert.match(source, /if\(!schoolWide\)[\s\S]*?نطاق الإحصاء المدرسي/);
+test("trend aggregation is gated independently by attendance and behavior permissions", () => {
+  const start = html.indexOf("async function updateAdvancedAnalytics()");
+  const end = html.indexOf("\nfunction renderAdminOverview()", start);
+  assert.ok(start >= 0 && end > start, "Could not locate updateAdvancedAnalytics");
+  const source = html.slice(start, end);
+  assert.match(source, /canAccessAdminTab\('studstats', activeUser\)/);
+  assert.match(source, /canAccessAdminTab\('behaviorstats', activeUser\)/);
+  assert.match(source, /if \(canReadAttendance\)\s*\{\s*Object\.entries\(db\.attendance/);
+  assert.match(source, /if \(canReadBehavior\)\s*\{\s*Object\.entries\(db\.behaviors/);
+  assert.match(source, /attendanceCard\.classList\.toggle\('hidden', !canReadAttendance\)/);
+  assert.match(source, /behaviorCard\.classList\.toggle\('hidden', !canReadBehavior\)/);
+  assert.match(source, /يتطلب هذا المؤشر صلاحية الاطلاع على إحصائيات السلوكيات/);
+  const centerStart = html.indexOf("/* Administrative records center:");
+  const centerEnd = html.indexOf("</script>", centerStart);
+  const center = html.slice(centerStart, centerEnd);
+  assert.match(center, /if\(!canAccessAdminTab\('studstats',activeUser\)\)/);
 });
 
 test("additional-admin permission projection defaults to denied and preserves an explicit grant", () => {
