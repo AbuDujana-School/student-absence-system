@@ -9218,8 +9218,8 @@ async function loadMorningAssemblyLatenessReport() {
       yearSelect.innerHTML = years.map(year => '<option value="' + escapeHtml(year) + '">' + escapeHtml(year) + '</option>').join('');
       yearSelect.value = data.academic_year;
     }
-    const selectedRange = window.__arcReportRange;
-    const reportRows = (data.rows || []).filter(row => !selectedRange || (String(row.late_date || '') >= selectedRange.from && String(row.late_date || '') <= selectedRange.to));
+    const reportDateRange = window.__arcReportRange;
+    const reportRows = (data.rows || []).filter(row => !reportDateRange || (String(row.late_date || '') >= reportDateRange.from && String(row.late_date || '') <= reportDateRange.to));
     morningAssemblyReportRows = buildMorningAssemblyReportRows(reportRows);
     document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
     if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; return; }
