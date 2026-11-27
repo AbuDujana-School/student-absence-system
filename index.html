@@ -9,11 +9,11 @@
 html,body{min-height:100%;margin:0;background:#04121f!important;color-scheme:dark}
 body.login-mode{min-height:100svh;min-height:100dvh;background:#04121f!important;overflow-x:hidden;overflow-y:auto}
 body.login-mode>header{display:none!important}
-body.login-mode>main{display:flex;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
+body.login-mode>main{display:flex;flex-direction:column;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) 12px max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#04121f">
-<meta name="app-build" content="2026-11-27-direct-pin-login-4">
+<meta name="app-build" content="2026-11-27-direct-pin-login-5">
 <title>مدرسة ابو دجانة</title>
 
 
@@ -2523,7 +2523,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 <style id="premium-pin-responsive-layout">
 @media(max-width:759px){
  body.login-mode{min-height:100svh;min-height:100dvh;overflow-x:hidden;overflow-y:auto!important}
- body.login-mode>main{display:flex!important;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) clamp(10px,3vw,18px) max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important;overscroll-behavior-y:contain}
+ body.login-mode>main{display:flex!important;flex-direction:column;align-items:stretch;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(10px,env(safe-area-inset-top)) clamp(10px,3vw,18px) max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important;overscroll-behavior-y:contain}
  #loginView.school-login{display:flex;flex-direction:column;box-sizing:border-box;width:100%;max-width:560px;min-height:calc(100svh - 28px);min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 28px);margin:0 auto;padding:clamp(8px,2.2vw,14px)}
  #loginView.school-login .sl-stage{display:flex;flex:1 0 auto;flex-direction:column;gap:12px;width:100%;max-width:560px;margin:0 auto}
  #loginView.school-login .sl-topbar{gap:10px;padding:9px 12px;border-radius:19px}
@@ -2564,7 +2564,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 }
 @media(min-width:760px){
  body.login-mode{min-height:100svh;min-height:100dvh;overflow-x:hidden;overflow-y:auto!important}
- body.login-mode>main{display:flex!important;align-items:center;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(16px,env(safe-area-inset-top)) clamp(20px,3vw,36px) max(20px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
+ body.login-mode>main{display:flex!important;flex-direction:column;align-items:center;justify-content:center;width:100%!important;max-width:none!important;min-height:100svh;min-height:100dvh;height:auto!important;max-height:none!important;margin:0!important;padding:max(16px,env(safe-area-inset-top)) clamp(20px,3vw,36px) max(20px,env(safe-area-inset-bottom))!important;box-sizing:border-box;overflow:visible!important}
  #loginView.school-login{display:flex;box-sizing:border-box;width:100%;max-width:1240px;min-height:calc(100svh - 40px);min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 40px);margin:0 auto;padding:12px 16px}
  #loginView.school-login .sl-stage{display:flex;flex:1 0 auto;flex-direction:column;justify-content:center;gap:14px;width:100%;max-width:1180px;margin:auto}
  #loginView.school-login .sl-topbar{gap:14px;padding:12px 20px}
@@ -12901,7 +12901,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   try {
     const workerContainer = navigator.serviceWorker;
     if (workerContainer && typeof workerContainer.register === "function") {
-      Promise.resolve(workerContainer.register("./sw.js?v=20261127-direct-pin-login-4", { updateViaCache: "none" }))
+      Promise.resolve(workerContainer.register("./sw.js?v=20261127-direct-pin-login-5", { updateViaCache: "none" }))
         .then(registration => {
           if (registration && typeof registration.update === "function") return registration.update();
           return undefined;
