@@ -99,12 +99,18 @@ test("vibrant glass themes are isolated to the morning assembly workspace", asyn
   const dusk = await page.evaluate(() => ({
     root: getComputedStyle(document.querySelector("#morningAssemblyLatenessView")).backgroundImage,
     hero: getComputedStyle(document.querySelector(".ma-hero")).backgroundImage,
+    classSection: getComputedStyle(document.querySelector("section:has(#morningAssemblyClassesGrid)")).backgroundImage,
+    studentSection: getComputedStyle(document.querySelector("section:has(#morningAssemblyStudentsList)")).backgroundImage,
+    headingColor: getComputedStyle(document.querySelector("section:has(#morningAssemblyClassesGrid) h3")).color,
     bodyDark: document.body.classList.contains("dark"),
     htmlDark: document.documentElement.classList.contains("dark")
   }));
   expect(dusk.root).toContain("linear-gradient");
   expect(dusk.hero).toContain("linear-gradient");
   expect(dusk.hero).toContain("36, 61, 121");
+  expect(dusk.classSection).toContain("43, 65, 113");
+  expect(dusk.studentSection).toContain("88, 49, 101");
+  expect(dusk.headingColor).toBe("rgb(241, 239, 255)");
   expect(dusk.bodyDark).toBe(false);
   expect(dusk.htmlDark).toBe(false);
 
