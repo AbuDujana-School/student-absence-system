@@ -1,0 +1,74 @@
+name: Morning assembly lateness ledger integrity
+
+on:
+  push:
+    branches: [fix/morning-lateness-cancelled-state-20261127]
+    paths:
+      - "supabase/functions/morning-assembly-lateness/**"
+      - "supabase/migrations/*morning_assembly_lateness*"
+      - ".github/workflows/morning-assembly-lateness-ledger-tests.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/morning-assembly-lateness/**"
+      - "supabase/migrations/*morning_assembly_lateness*"
+      - ".github/workflows/morning-assembly-lateness-ledger-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ledger-integrity:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run edge-function policy tests
+        run: deno test supabase/functions/morning-assembly-lateness/policy.test.ts
+      - name: Prepare isolated PostgreSQL roles and school roster fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE TABLE public.students (
+            id bigint PRIMARY KEY,
+            class_name text NOT NULL,
+            student_name text NOT NULL
+          );
+          SQL
+      - name: Apply isolated ledger migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for migration in \
+            supabase/migrations/20261118084852_morning_assembly_lateness_ledger.sql \
+            supabase/migrations/20261118085133_morning_assembly_lateness_class_snapshot_name.sql \
+            supabase/migrations/20261118090058_morning_assembly_lateness_service_role_only.sql \
+            supabase/migrations/20261118090409_morning_assembly_lateness_year_date_index.sql \
+            supabase/migrations/20261118090521_morning_assembly_lateness_append_only.sql \
+            supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql \
+            supabase/migrations/20261127110000_morning_assembly_lateness_audited_cancellation.sql; do
+            psql -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f "$migration"
+          done
+      - name: Verify immutable history, audited cancellation, re-recording, and access boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f supabase/functions/morning-assembly-lateness/tests/sql/ledger_integrity.sql
