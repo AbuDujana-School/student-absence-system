@@ -5539,6 +5539,10 @@ function saBuildPrintHtml(data){
   function initMorningAssemblyCalmGlass(){
     var view=document.getElementById('morningAssemblyLatenessView');
     if(!view||view.dataset.calmGlassReady==='1')return;
+    var legacyHeader=view.firstElementChild;
+    if(legacyHeader)legacyHeader.classList.add('hidden');
+    view.dataset.maWasBodyDark=String(document.body.classList.contains('dark'));
+    view.dataset.maWasHtmlDark=String(document.documentElement.classList.contains('dark'));
     view.dataset.calmGlassReady='1';
     var classSection=document.getElementById('morningAssemblyClassesGrid')?.closest('section');
     var studentsSection=document.getElementById('morningAssemblyStudentsList')?.closest('section');
@@ -5593,6 +5597,8 @@ function saBuildPrintHtml(data){
     function setTab(tab){
       var canRecord=typeof canUseMorningAssemblyLateness==='function'&&canUseMorningAssemblyLateness();
       var canReport=typeof canViewMorningAssemblyLatenessReport==='function'&&canViewMorningAssemblyLatenessReport();
+      var reportTab=tabs.querySelector('[data-ma-tab=report]');
+      if(reportTab)reportTab.classList.toggle('hidden',!canReport);
       if(tab==='quick'&&!canRecord){if(canReport)tab='report';else return;}
       if(tab==='report'&&!canReport){if(canRecord)tab='quick';else return;}
       activeTab=tab;
@@ -5603,22 +5609,22 @@ function saBuildPrintHtml(data){
       tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.setAttribute('aria-selected',String(button.dataset.maTab===tab));});
     }
     function updateCounts(){
-      var todayCount=(window.morningAssemblyLatenessToday&&morningAssemblyLatenessToday.size)||0;
+      var todayCount=(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday.size)||0;
       var todayNode=document.getElementById('maTodayCount');
       var summary=document.getElementById('maClassTodaySummary');
       if(todayNode)todayNode.textContent=String(todayCount);
       if(summary)summary.textContent='مرصود اليوم: '+todayCount+' طالب';
       var reportCount=document.getElementById('maReportCount');
-      if(reportCount)reportCount.textContent=String((window.morningAssemblyReportRows||[]).length);
+      if(reportCount)reportCount.textContent=String((typeof morningAssemblyReportRows!=='undefined'&&morningAssemblyReportRows.length)||0);
       view.querySelectorAll('#morningAssemblyClassesGrid button[data-morning-class]').forEach(function(button){
         var className=button.dataset.morningClass;
         var count=0;
-        if(window.morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){if(String(key).split('|')[0]===className)count++;});
+        if(typeof morningAssemblyLatenessToday!=='undefined'&&morningAssemblyLatenessToday instanceof Set)morningAssemblyLatenessToday.forEach(function(key){if(String(key).split('|')[0]===className)count++;});
         var chip=button.querySelector('.ma-class-count');
         if(!chip){chip=document.createElement('span');chip.className='ma-class-count';button.appendChild(chip);}
         chip.textContent=count?count+' اليوم':'منتظم';
         chip.classList.toggle('has-late',count>0);
-        button.dataset.selected=String(window.morningAssemblySelectedClass===className);
+        button.dataset.selected=String(typeof morningAssemblySelectedClass!=='undefined'&&morningAssemblySelectedClass===className);
       });
     }
     function weekdayOf(dateText){
@@ -5632,7 +5638,7 @@ function saBuildPrintHtml(data){
         var events=(item.events||[]).filter(function(event){return activeDay==='all'||weekdayOf(event.late_date)===activeDay;});
         return Object.assign({},item,{events:events,count:events.length,absenceDays:Math.floor(events.length/4),remaining:events.length%4});
       }).filter(function(item){return item.count>0;}).sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||a.name.localeCompare(b.name,'ar');});
-      window.morningAssemblyReportRows=filtered;
+      morningAssemblyReportRows=filtered;
       dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.setAttribute('aria-pressed',String(button.dataset.maDay===activeDay));});
       var container=document.getElementById('morningAssemblyReportContainer');
       if(!container)return;
@@ -5653,7 +5659,9 @@ function saBuildPrintHtml(data){
       container.innerHTML=html+'</tbody></table></div>';
       updateCounts();
     }
-    hero.querySelector('#maCalmBack')?.addEventListener('click',function(){if(typeof closeMorningAssemblyLateness==='function')closeMorningAssemblyLateness();});
+    hero.querySelector('#maCalmBack')?.addEventListener('click',function(){if(typeof closeMorningAssemblyLateness==='function')closeMorningAssemblyLateness();
+      document.body.classList.toggle('dark',view.dataset.maWasBodyDark==='true');
+      document.documentElement.classList.toggle('dark',view.dataset.maWasHtmlDark==='true');});
     hero.querySelectorAll('[data-ma-theme]').forEach(function(button){button.addEventListener('click',function(){setTheme(button.dataset.maTheme);});});
     tabs.querySelectorAll('[data-ma-tab]').forEach(function(button){button.addEventListener('click',function(){setTab(button.dataset.maTab);});});
     dayFilters.querySelectorAll('[data-ma-day]').forEach(function(button){button.addEventListener('click',function(){activeDay=button.dataset.maDay||'all';renderFilteredReport();});});
@@ -5675,7 +5683,7 @@ function saBuildPrintHtml(data){
     }
     if(typeof window.loadMorningAssemblyLatenessReport==='function'){
       var oldReport=window.loadMorningAssemblyLatenessReport;
-      window.loadMorningAssemblyLatenessReport=async function(){activeDay='all';var result=await oldReport.apply(this,arguments);allReportRows=(window.morningAssemblyReportRows||[]).slice();renderFilteredReport();return result;};
+      window.loadMorningAssemblyLatenessReport=async function(){activeDay='all';var result=await oldReport.apply(this,arguments);allReportRows=(typeof morningAssemblyReportRows!=='undefined'?morningAssemblyReportRows:[]).slice();renderFilteredReport();return result;};
     }
     if(typeof window.openMorningAssemblyLateness==='function'){
       var oldOpen=window.openMorningAssemblyLateness;
