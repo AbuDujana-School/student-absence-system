@@ -395,9 +395,9 @@ test("morning assembly today response is discarded if the Oman date changes duri
 
 test("a cold app launch always shows the direct PIN gate before any previous session is restored", () => {
   const boot = section("window.addEventListener('DOMContentLoaded'", "function ");
-  assert.doesNotMatch(boot, /await checkExistingSession\\(\\)/, "cold start must not bypass the PIN gate using a saved browser session");
-  assert.match(boot, /document\\.body\\.classList\\.add\\("login-mode"\\)/);
-  assert.match(boot, /loginView.*classList\\.remove\\("hidden"\\)/);
-  assert.match(boot, /dashboardSelectionView.*classList\\.add\\("hidden"\\)/);
-  assert.match(boot, /offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored\\(\\)/);
+  assert.equal(boot.includes("await checkExistingSession();"), false, "cold start must not silently restore an earlier browser session");
+  assert.ok(boot.includes('document.body.classList.add("login-mode")'));
+  assert.ok(boot.includes('document.getElementById("loginView")?.classList.remove("hidden")'));
+  assert.ok(boot.includes('document.getElementById("dashboardSelectionView")?.classList.add("hidden")'));
+  assert.ok(boot.includes("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"));
 });
