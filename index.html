@@ -8870,6 +8870,7 @@ async function saveAttendanceSession() {
 let morningAssemblySelectedClass = null;
 let morningAssemblyLatenessToday = new Set();
 let morningAssemblyLatenessTodayLoaded = false;
+let morningAssemblyLatenessTodayDate = '';
 let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
@@ -8915,6 +8916,7 @@ function openMorningAssemblyLateness() {
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   morningAssemblyLatenessToday = new Set();
   morningAssemblyLatenessTodayLoaded = false;
+  morningAssemblyLatenessTodayDate = '';
   if (canRecord) {
     document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · جارٍ تحميل حالة تسجيل الطلاب...';
     renderMorningAssemblyClasses(); renderMorningAssemblySearch(); void loadMorningAssemblyLatenessToday();
@@ -9020,14 +9022,16 @@ async function callMorningAssemblyLatenessApi(body) {
 async function loadMorningAssemblyLatenessToday() {
   try {
     const data = await callMorningAssemblyLatenessApi({action:'today'});
+    morningAssemblyLatenessTodayDate = String(data.date || '');
     morningAssemblyLatenessToday = new Set((data.rows || []).map(row => morningAssemblyStudentKey(row.class_name_snapshot,row.student_name_snapshot)));
-    morningAssemblyLatenessTodayLoaded = true;
+    morningAssemblyLatenessTodayLoaded = Boolean(morningAssemblyLatenessTodayDate);
     const status = document.getElementById('morningAssemblyTodayStatus');
-    if (status) status.textContent = 'اليوم: ' + getOmanLocalDate() + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
+    if (status) status.textContent = 'اليوم: ' + (morningAssemblyLatenessTodayDate || getOmanLocalDate()) + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
     renderMorningAssemblyStudents();
     renderMorningAssemblySearch();
   } catch (error) {
     morningAssemblyLatenessTodayLoaded = false;
+    morningAssemblyLatenessTodayDate = '';
     const status = document.getElementById('morningAssemblyTodayStatus');
     if (status) status.textContent = 'تعذر تحميل حالة الطلاب. أعد فتح القسم للتحقق من السجلات.';
     showToast(error.message || 'تعذر تحميل سجلات التأخر لهذا اليوم.', 'error');
@@ -9039,6 +9043,13 @@ async function recordMorningAssemblyLateness(className,studentName,button) {
   if (!canUseMorningAssemblyLateness()) { showToast('انتهت فترة التسجيل أو لم تعد المناوبة مفعلة.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
   if (!morningAssemblyLatenessTodayLoaded) {
     showToast('انتظر حتى يتم تحميل حالة تسجيل الطلاب.', 'info');
+    return;
+  }
+  const currentSchoolDate = getOmanLocalDate();
+  if (morningAssemblyLatenessTodayDate !== currentSchoolDate) {
+    if (button) { button.disabled = true; button.classList.add('opacity-60'); }
+    await loadMorningAssemblyLatenessToday();
+    showToast('تم تحديث قائمة التأخر لليوم الجديد. اختر الطالب مرة أخرى للتسجيل؛ سجل الأمس محفوظ كما هو.', 'info');
     return;
   }
   if (button) { button.disabled = true; button.classList.add('opacity-60'); }
