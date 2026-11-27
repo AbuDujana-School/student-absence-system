@@ -959,6 +959,82 @@
     applyTheme('light');
   }
 
+  function installMorningAssemblyNavigation() {
+    const view = document.getElementById('morningAssemblyLatenessView');
+    if (!view || view.dataset.calmNavigationInstalled === '1') return;
+
+    const sectionFor = id => {
+      const node = document.getElementById(id);
+      if (!node || !view.contains(node)) return null;
+      return node.closest('section') || node.parentElement;
+    };
+    const unique = nodes => Array.from(new Set(nodes.filter(Boolean)));
+    const quickSections = unique([
+      sectionFor('morningAssemblyClassesGrid'),
+      sectionFor('morningAssemblySearch'),
+      sectionFor('morningAssemblyStudentsList'),
+      sectionFor('morningAssemblySearchResults')
+    ]);
+    const reportSections = unique([
+      sectionFor('morningAssemblyReportYear'),
+      sectionFor('morningAssemblyReportMeta'),
+      sectionFor('morningAssemblyReportContainer')
+    ]);
+
+    if (!quickSections.length || !reportSections.length ||
+        reportSections.some(section => quickSections.includes(section))) return;
+
+    view.dataset.calmNavigationInstalled = '1';
+    const tabs = document.createElement('div');
+    tabs.className = 'ma-section-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'أقسام التأخر عن الطابور');
+    tabs.innerHTML =
+      '<button type="button" role="tab" data-ma-tab="quick" aria-selected="true"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>الرصد السريع للطابور</span></button>' +
+      '<button type="button" role="tab" data-ma-tab="report" aria-selected="false"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>تقرير وتفاصيل الطابور</span><b class="ma-report-count" data-ma-report-count>0</b></button>';
+
+    const orderedSections = quickSections.concat(reportSections);
+    const firstContent = orderedSections.find(section => section.parentNode);
+    if (firstContent) firstContent.parentNode.insertBefore(tabs, firstContent);
+    else view.appendChild(tabs);
+
+    function updateReportCount() {
+      let count = 0;
+      try {
+        if (typeof morningAssemblyReportRows !== 'undefined' && Array.isArray(morningAssemblyReportRows)) {
+          count = morningAssemblyReportRows.length;
+        }
+      } catch (_) {}
+      if (!count) {
+        count = reportSections.reduce((sum, section) => sum + section.querySelectorAll('tbody tr').length, 0);
+      }
+      const badge = tabs.querySelector('[data-ma-report-count]');
+      if (badge) badge.textContent = count.toLocaleString('en-US');
+    }
+
+    function selectTab(mode) {
+      const reportMode = mode === 'report';
+      quickSections.forEach(section => section.classList.toggle('hidden', reportMode));
+      reportSections.forEach(section => section.classList.toggle('hidden', !reportMode));
+      tabs.querySelectorAll('[data-ma-tab]').forEach(button => {
+        const active = button.dataset.maTab === (reportMode ? 'report' : 'quick');
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      updateReportCount();
+    }
+
+    tabs.addEventListener('click', event => {
+      const button = event.target.closest('[data-ma-tab]');
+      if (!button || !tabs.contains(button)) return;
+      selectTab(button.dataset.maTab);
+    });
+
+    const reportObserver = new MutationObserver(updateReportCount);
+    reportSections.forEach(section => reportObserver.observe(section, { childList: true, subtree: true }));
+    selectTab('quick');
+  }
+
   function install() {
     const dashboardView = document.getElementById('dashboardSelectionView');
     if (!dashboardView || document.documentElement.dataset.adminLeadershipPortalInstalled === '1') return;
@@ -970,6 +1046,7 @@
     wrapExistingNavigation();
     installKeyboardAndFocusHandling();
     installMorningAssemblyThemeControls();
+    installMorningAssemblyNavigation();
     syncPortalVisibility();
   }
 
