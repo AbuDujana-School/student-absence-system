@@ -969,17 +969,28 @@
       return node.closest('section') || node.parentElement;
     };
     const unique = nodes => Array.from(new Set(nodes.filter(Boolean)));
+    const classSection = sectionFor('morningAssemblyClassesGrid');
+    const studentSection = sectionFor('morningAssemblySearch') ||
+      sectionFor('morningAssemblyStudentsList') || sectionFor('morningAssemblySearchResults');
     const quickSections = unique([
-      sectionFor('morningAssemblyClassesGrid'),
-      sectionFor('morningAssemblySearch'),
+      studentSection,
+      classSection,
       sectionFor('morningAssemblyStudentsList'),
       sectionFor('morningAssemblySearchResults')
     ]);
+    const reportRefresh = view.querySelector('[onclick*="loadMorningAssemblyLatenessReport"]');
     const reportSections = unique([
       sectionFor('morningAssemblyReportYear'),
       sectionFor('morningAssemblyReportMeta'),
-      sectionFor('morningAssemblyReportContainer')
+      sectionFor('morningAssemblyReportContainer'),
+      reportRefresh && (reportRefresh.closest('section') || reportRefresh.parentElement)
     ]);
+
+    if (classSection && studentSection && classSection !== studentSection &&
+        classSection.parentNode === studentSection.parentNode &&
+        (classSection.compareDocumentPosition(studentSection) & 4)) {
+      classSection.parentNode.insertBefore(studentSection, classSection);
+    }
 
     if (!quickSections.length || !reportSections.length ||
         reportSections.some(section => quickSections.includes(section))) return;
