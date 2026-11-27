@@ -391,3 +391,13 @@ test("morning assembly today response is discarded if the Oman date changes duri
   assert.match(loader, /String\(data\.date\) !== currentDate/);
   assert.match(loader, /morningAssemblyLatenessTodayDate = currentDate/);
 });
+
+
+test("a cold app launch always shows the direct PIN gate before any previous session is restored", () => {
+  const boot = section("window.addEventListener('DOMContentLoaded'", "function ");
+  assert.doesNotMatch(boot, /await checkExistingSession\\(\\)/, "cold start must not bypass the PIN gate using a saved browser session");
+  assert.match(boot, /document\\.body\\.classList\\.add\\("login-mode"\\)/);
+  assert.match(boot, /loginView.*classList\\.remove\\("hidden"\\)/);
+  assert.match(boot, /dashboardSelectionView.*classList\\.add\\("hidden"\\)/);
+  assert.match(boot, /offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored\\(\\)/);
+});
