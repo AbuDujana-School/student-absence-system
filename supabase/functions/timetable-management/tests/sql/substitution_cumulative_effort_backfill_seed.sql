@@ -34,7 +34,7 @@ begin
   ) returning id into v_assignment_id;
 
   update public.timetable_substitution_points_ledger
-  set points_delta=0.75
+  set points_delta=1
   where assignment_id=v_assignment_id
     and event_key='assignment:'||v_assignment_id::text||':coverage';
 
@@ -42,7 +42,7 @@ begin
     select 1 from public.timetable_substitution_points_ledger
     where assignment_id=v_assignment_id
       and event_key='assignment:'||v_assignment_id::text||':coverage'
-      and points_delta=0.75
+      and points_delta=1
   ) then
     raise exception 'Could not prepare the stale legacy coverage credit for backfill verification.';
   end if;
