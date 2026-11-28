@@ -218,8 +218,24 @@
   function printReport() {
     const report = state.lastReport;
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
-    const w = window.open("", "_blank");
-    if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
+    // Some Android in-app browsers block window.open even when called from a
+    // user click. Fall back to a same-page print frame instead of silently failing.
+    let w = window.open("", "_blank");
+    let printFrame = null;
+    if (!w) {
+      printFrame = document.createElement("iframe");
+      printFrame.setAttribute("title", "تقرير الالتزام برصد الغياب للطباعة");
+      printFrame.setAttribute("aria-hidden", "true");
+      printFrame.style.cssText = "position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;z-index:2147483647";
+      document.body.appendChild(printFrame);
+      w = printFrame.contentWindow;
+      if (!w) {
+        printFrame.remove();
+        setStatus("تعذر فتح نافذة الطباعة في هذا المتصفح.", "error");
+        return;
+      }
+      w.addEventListener("afterprint", () => printFrame?.remove(), { once: true });
+    }
     const fmtDate = value => {
       const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
       return match ? match[3] + "-" + match[2] + "-" + match[1] : String(value || "");
