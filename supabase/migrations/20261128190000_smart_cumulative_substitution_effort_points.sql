@@ -147,6 +147,7 @@ begin
       where a.assignment_type='substitution'
         and a.absent_teacher_name=OLD.absent_teacher_name
         and a.assignment_date=OLD.assignment_date
+        and coalesce(a.absence_reason,'') ilike '%طارئ%'
         and a.status in ('assigned','confirmed','completed');
       if v_remaining_assignments=0 then
         v_emergency_prefix:='absence-emergency:'||OLD.absent_teacher_name||':'||OLD.assignment_date::text||':';
