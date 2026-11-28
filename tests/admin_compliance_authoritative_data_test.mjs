@@ -13,7 +13,7 @@ test("administrative compliance report reads authoritative attendance rows from 
   assert.match(source, /db\.from\("attendance"\)/);
   assert.match(source, /\.gte\("date_str", dateFrom\)\.lte\("date_str", dateTo\)/);
   assert.match(source, /record_key,date_str,class_name,teacher_name,period,records,updated_at/);
-  assert.match(source, /attendance,\s*$/);
+  assert.match(source, /cells,\s*assignments,\s*attendance/);
 });
 
 test("saved attendance teacher names are canonicalized using the school teacher directory", () => {
@@ -36,5 +36,5 @@ test("the local dashboard cache is only a backwards-compatible fallback, not the
   assert.ok(start >= 0 && end > start);
   const source = client.slice(start, end);
   assert.match(source, /Object\.entries\(db\?\.attendance\s*\|\|\s*\{\}\)/);
-  assert.match(source, /data\.attendance\s*\?\s*data\.attendance/);
+  assert.match(source, /Array\.isArray\(data\.attendance\)\s*\?\s*data\.attendance/);
 });
