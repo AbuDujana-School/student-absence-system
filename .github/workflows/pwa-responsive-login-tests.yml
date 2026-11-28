@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/responsive-pin-login-2026-11-27
+      - fix/admin-dashboard-scroll-final-20261128
     paths:
       - "index.html"
       - "sw.js"
