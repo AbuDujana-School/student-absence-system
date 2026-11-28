@@ -1622,7 +1622,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const detectedSubjects=[...new Set((groups||[]).flatMap(group=>(group.rows||[]).map(row=>String(row.subject||"").trim()).filter(Boolean)))];
     const subjectLabel=String(subject||"").trim()||detectedSubjects.join("، ");
     const subjectTitle=String(options?.title||"").trim()||(subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط");
-    return '<main class="tt-official-page"'+(options?.singlePage?' data-single-page="1"':'')+'><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
+    return '<main class="tt-official-page"'+(options?.singlePage?' data-single-page="1"':'')+'><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
       '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+(options?.singlePage?' tt-official-single-page':'')+'"'+(options?.singlePage?' style="font-size:'+singlePageFontSize+'pt"':'')+'>'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+

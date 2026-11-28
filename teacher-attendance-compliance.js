@@ -252,7 +252,7 @@
       'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900;font-size:16px}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}.status-full{background:#ecfdf5!important}.status-partial{background:#fffbeb!important}.status-zero{background:#fff1f2!important}'+
       'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
       ' .print-toolbar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0;padding:12px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:13px}.print-toolbar button{border:0;border-radius:8px;background:#164e63;color:#fff;font:inherit;font-weight:900;padding:11px 18px;cursor:pointer;white-space:nowrap}@media print{.print-toolbar{display:none!important}header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
-      '</style></head><body><header><strong>سلطنة عمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
+      '</style></head><body><header><strong>سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
       '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
       '<div class="summary"><span>المعلمون الذين رصدوا جميع الحصص: '+report.rows.filter(r=>r.percentage===100).length+'</span><span>المعلمون الذين رصدوا بعض الحصص: '+report.rows.filter(r=>r.complete.length>0&&r.percentage<100).length+'</span><span>المعلمون الذين لم يرصدوا الغياب: '+report.rows.filter(r=>r.complete.length===0).length+'</span></div>' + '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
       '<table><thead><tr><th style="width:22%">المعلم</th><th style="width:8%">عدد الحصص</th><th style="width:25%">رصد الغياب</th><th style="width:33%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
@@ -288,7 +288,7 @@
     if (!document.getElementById("teachersActivityReportHeader")) {
       const header = document.createElement("section");
       header.id = "teachersActivityReportHeader";
-      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
+      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
       summary.parentElement.insertBefore(header, summary);
     }
     if (!document.getElementById("teachersActivityKpis")) {
