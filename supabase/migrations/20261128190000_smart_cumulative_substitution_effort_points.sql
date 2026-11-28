@@ -168,7 +168,8 @@ begin
     end if;
   end if;
 
-  return case when TG_OP='DELETE' then OLD else NEW end;
+  if TG_OP='DELETE' then return OLD; end if;
+  return NEW;
 end;
 $function$;
 
