@@ -88,7 +88,7 @@ export function countTeacherTeachingPeriods(entries:TimetableEntry[]):Map<string
   const counts=new Map<string,number>();
   for(const entry of entries){
     if(!entry.teacherId||!entry.weekday||(entry.status??"teaching")!=="teaching")continue;
-    const key=entry.teacherId+"\\u0000"+entry.weekday+"\\u0000"+entry.period;
+    const key=entry.teacherId+"\u0000"+entry.weekday+"\u0000"+entry.period;
     if(seen.has(key))continue;
     seen.add(key);
     counts.set(entry.teacherId,(counts.get(entry.teacherId)||0)+1);
@@ -301,7 +301,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       ...allSameDepartment.filter(option=>(option.dailySubstitutionCount??0)>=1),
       ...allOtherDepartments.filter(option=>(option.dailySubstitutionCount??0)>=1),
     ];
-    const manualKey=absent.name+"\\u0000"+lesson.period;
+    const manualKey=absent.name+"\u0000"+lesson.period;
     const manualName=query.manualAssignments?.[manualKey];
     const manualCandidate=manualName?rankedOptions.find(option=>option.name===manualName):undefined;
     const candidate=manualCandidate||rankedCandidates[0];
