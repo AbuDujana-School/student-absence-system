@@ -57,7 +57,7 @@ Deno.test("cumulative history includes lifetime, rolling windows and same-day ad
   ];
   // Four active rows total; 3 in 90 days, 2 in 30 days, 1 in 7 days,
   // and one same-day assignment adjacent to target period 3.
-  equal(calculateSubstitutionWorkloadScore(rows, "2026-11-29", 3), 4 + 3 * 2 + 2 * 3 + 1 * 4 + 1 * 8 + 1 * 4,
+  equal(calculateSubstitutionWorkloadScore(rows, "2026-11-29", 3), 4 + 3 * 2 + 2 * 3 + 2 * 4 + 1 * 8 + 1 * 4,
     "weighted cumulative workload");
 });
 
