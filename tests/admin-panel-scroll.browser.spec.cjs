@@ -43,6 +43,7 @@ const fixture = `<!doctype html>
 .glass-card{background:#fff;border:1px solid #ddd}.bg-slate-900\\/60{background:#0f172a99}
 </style>
 ${styleBlock("admin-panel-universal-scroll-fix")}
+${styleBlock("admin-dashboard-section-scroll-fix")}
 </head>
 <body>${modalMarkup}</body>
 </html>`;
