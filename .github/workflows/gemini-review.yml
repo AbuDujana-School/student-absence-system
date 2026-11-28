@@ -103,7 +103,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
-            gh pr comment "$PR_NUMBER" --body "❌ لم يتم العثور على مفتاح GEMINI_API_KEY في Secrets."
+            gh pr comment "$PR_NUMBER" --body "Missing GEMINI_API_KEY secret."
             exit 1
           fi
 
@@ -114,7 +114,7 @@ jobs:
 
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
           if [ -z "$CHANGED_FILES" ]; then
-            gh pr comment "$PR_NUMBER" --body "لم أجد ملفات معدّلة في هذا الطلب مقارنة بـ main."
+            gh pr comment "$PR_NUMBER" --body "No changed files found compared to main."
             exit 0
           fi
 
@@ -142,13 +142,13 @@ jobs:
 
           API_ERR=$(printf "%s" "$RESPONSE" | jq -r '.error.message // empty')
           if [ -n "$API_ERR" ]; then
-            gh pr comment "$PR_NUMBER" --body "❌ خطأ من Gemini API: ${API_ERR}"
+            gh pr comment "$PR_NUMBER" --body "Gemini API error: ${API_ERR}"
             exit 1
           fi
 
           RAW_JSON=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
           if [ -z "$RAW_JSON" ] || ! printf "%s" "$RAW_JSON" | jq -e '.files | type == "array"' >/dev/null 2>&1; then
-            gh pr comment "$PR_NUMBER" --body "❌ تعذر قراءة رد النموذج بصيغة JSON صالحة."
+            gh pr comment "$PR_NUMBER" --body "Invalid JSON response from Gemini model."
             exit 1
           fi
 
@@ -167,7 +167,7 @@ jobs:
           git add .
 
           if git diff --staged --quiet; then
-            gh pr comment "$PR_NUMBER" --body "ℹ️ لم ينتج عن التنفيذ أي تغيير جديد على الملفات."
+            gh pr comment "$PR_NUMBER" --body "No changes were produced."
             exit 0
           fi
 
@@ -176,10 +176,8 @@ jobs:
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 
           if ! git push origin "HEAD:${BRANCH}"; then
-            gh pr comment "$PR_NUMBER" --body "❌ فشل رفع التعديل (git push) إلى الفرع \`${BRANCH}\`."
+            gh pr comment "$PR_NUMBER" --body "Failed to push to branch ${BRANCH}."
             exit 1
           fi
 
-          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**
-- **الفرع:** \`${BRANCH}\`
-- **الملخص:** ${SUMMARY}"
+          gh pr comment "$PR_NUMBER" --body "Done: branch=${BRANCH} | summary=${SUMMARY}"
