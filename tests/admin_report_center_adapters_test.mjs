@@ -37,9 +37,9 @@ test("unknown reports and missing adapters fail closed",async()=>{
 test("the report center uses the detachable registry for catalog and dispatch",()=>{
  assert.match(html,/<script src="\.\/admin-report-center-adapters\.js\?v=20261128-independent-1"><\/script>/);
  const cs=html.indexOf("function reportCatalog()"),ce=html.indexOf("\nfunction reportsView()",cs);
- assert.ok(cs>=0&&ce>cs);assert.match(html.slice(cs,ce),/AdminReportCenterAdapters\.list/);
+ assert.ok(cs>=0&&ce>cs);assert.match(html.slice(cs,ce),/registry\.list/);
  const as=html.indexOf("async function reportAction(k,from,to)"),ae=html.indexOf("\nfunction statsView()",as);
- assert.ok(as>=0&&ae>as);assert.match(html.slice(as,ae),/AdminReportCenterAdapters\.execute/);
+ assert.ok(as>=0&&ae>as);assert.match(html.slice(as,ae),/registry\.execute/);
 });
 test("the adapter module is metadata and dispatch only; it performs no school-data writes",()=>{
  assert.doesNotMatch(adapterSource,/\.insert\s*\(|\.update\s*\(|\.delete\s*\(|fetch\s*\(/);
