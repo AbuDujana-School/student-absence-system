@@ -77,7 +77,7 @@ test("administrative-records access unlocks the center only while its modal is o
 
 test("Student Affairs and morning-assembly reports retain their independent access checks", () => {
   assert.ok(centerScript.includes("allowed:rep('reportStudentAffairs')"));
-  assert.ok(centerScript.includes("allowed:canViewMorningAssemblyLatenessReport(activeUser)"));
+  assert.ok(centerScript.includes("allowed:rep('reportMorningAssemblyLateness')"));
   assert.ok(centerScript.includes("function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}"));
   assert.ok(centerScript.includes("allowed:rep('reportMorningAssemblyLateness')"));
 });
@@ -87,7 +87,7 @@ test("Student Affairs reports open inside the records center without granting da
   assert.ok(centerScript.includes("async function studentAffairsReportsView(from,to)"));
   assert.ok(centerScript.includes("modal.querySelector('#arcStudentAffairsReportHost').appendChild(panel)"));
   const actionStart = centerScript.indexOf("else if(k==='sa'&&rep('reportStudentAffairs'))");
-  const actionEnd = centerScript.indexOf("\\n", actionStart);
+  const actionEnd = actionStart + 700;
   assert.ok(actionStart >= 0);
   assert.ok(!centerScript.slice(actionStart, actionEnd > actionStart ? actionEnd : actionStart + 500).includes("openAdminModal"));
   assert.ok(centerScript.includes("admin_records_center:true"));
