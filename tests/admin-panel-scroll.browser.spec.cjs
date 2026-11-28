@@ -120,16 +120,28 @@ if (printPinStart < 0 || printPinEnd < 0) throw new Error("Could not locate the 
 const printPinFunction = source.slice(printPinStart, printPinEnd);
 
 test("new login credentials remain printable when popups are blocked", async ({ page }) => {
-  await page.setContent(
-    '<div id="pinDisplayModal" data-pin="731946" data-name="Test Teacher"></div>' +
-    '<button id="printPinButton" type="button" onclick="printPinCredentials()">طباعة بيانات الدخول</button>'
-  );
+  await page.setContent('<div id="pinDisplayModal" data-pin="731946" data-name="Test Teacher"></div>');
   await page.addScriptTag({ content:
-    "window.showToast = function () {}; window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunction
+    "window.__pinToasts = []; window.showToast = function (message) { window.__pinToasts.push(message); }; " +
+    "window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunction
   });
-  await page.locator("#printPinButton").click();
+  const before = await page.evaluate(() => ({
+    functionType: typeof window.printPinCredentials,
+    pin: document.getElementById("pinDisplayModal").dataset.pin,
+    openIsStub: window.open.toString().includes("return null")
+  }));
+  expect(before.functionType).toBe("function");
+  expect(before.pin).toBe("731946");
+  expect(before.openIsStub).toBe(true);
+  await page.evaluate(() => window.printPinCredentials());
+  const result = await page.evaluate(() => ({
+    iframeCount: document.querySelectorAll("iframe").length,
+    iframeTitles: Array.from(document.querySelectorAll("iframe")).map(frame => frame.title),
+    toasts: window.__pinToasts
+  }));
+  console.log("PIN_PRINT_FALLBACK_DIAGNOSTIC", JSON.stringify(result));
+  expect(result.iframeCount).toBe(1);
   const frame = page.locator('iframe[title="طباعة بيانات الدخول"]');
-  await expect(frame).toHaveCount(1);
   await expect.poll(() => frame.evaluate(el => el.contentDocument && el.contentDocument.body ? el.contentDocument.body.innerText : ""))
     .toContain("731946");
   await expect.poll(() => frame.evaluate(el => el.contentDocument && el.contentDocument.body ? el.contentDocument.body.innerText : ""))
