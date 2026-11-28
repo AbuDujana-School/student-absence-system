@@ -1232,7 +1232,7 @@ async function handle(req: Request) {
         return reply(200, { ok: true, version: null, versions: [], teachers: [], cells: [], assignments: [] });
       }
       const versionIds = relevantVersions.map((version:any) => version.id);
-      const [cellGroups, rawAssignments] = await Promise.all([
+      const [cellGroups, rawAssignments, rawAttendance] = await Promise.all([
         Promise.all(relevantVersions.map(async (version:any) => {
           const rows = await fetchAllTimetableCells((from,to) => db.from("timetable_weekly_cells")
             .select("version_id,matched_teacher_name,teacher_source_name,weekday,period,cell_status,class_sections,subject")
@@ -1244,6 +1244,10 @@ async function handle(req: Request) {
           .in("version_id", versionIds).eq("assignment_type", "substitution")
           .gte("assignment_date", dateFrom).lte("assignment_date", dateTo)
           .order("assignment_date").order("period").order("id").range(from,to)),
+        fetchAllSubstitutionRows((from,to) => db.from("attendance")
+          .select("date_str,class_name,period,teacher_name")
+          .gte("date_str", dateFrom).lte("date_str", dateTo)
+          .order("date_str").order("class_name").order("period").range(from,to)),
       ]);
       const systemTeachers = directory.filter((teacher:any) => teacher.role === "teacher")
         .map((teacher:any) => ({ name: String(teacher.name || "").trim() })).filter((teacher:any) => teacher.name);
@@ -1273,6 +1277,12 @@ async function handle(req: Request) {
         versions: relevantVersions,
         teachers: directory.filter((teacher:any) => teacher.role === "teacher").map((teacher:any) => String(teacher.name || "").trim()).filter(Boolean),
         cells, assignments,
+        attendance: (rawAttendance || []).map((row:any) => ({
+          date: String(row.date_str || ""),
+          className: String(row.class_name || ""),
+          period: Number(row.period),
+          teacherName: String(row.teacher_name || "").trim(),
+        })).filter((row:any) => row.date && row.className && Number.isInteger(row.period)),
       });
     } catch (error) {
       console.error("Teacher attendance compliance report data failed:", error instanceof Error ? error.message : "unknown");
