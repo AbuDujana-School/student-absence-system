@@ -17192,6 +17192,21 @@ function reportDateDefaults(){var today=getOmanLocalDate(),parts=today.split('-'
 function reportDateRangeDays(from,to){var out=[],d=new Date(from+'T12:00:00Z'),last=new Date(to+'T12:00:00Z');if(!Number.isFinite(d.getTime())||!Number.isFinite(last.getTime())||last<d)throw new RangeError('الفترة الزمنية غير صحيحة.');var totalDays=Math.floor((last.getTime()-d.getTime())/86400000)+1;if(totalDays>370)throw new RangeError('الفترة المحددة تتجاوز الحد الآمن وهو 370 يوماً. قلّص الفترة حتى لا يصدر الكشف ناقصاً.');while(d<=last){out.push(d.toISOString().slice(0,10));d.setUTCDate(d.getUTCDate()+1);}return out;}
 // Expose the validator to the legacy report-printing script, which runs in a separate script scope.
 window.reportDateRangeDays=reportDateRangeDays;
+// Keep the morning-assembly report's selected date window independent from its academic-year source query.
+function filterMorningAssemblyReportRowsByDate(rows,from,to){
+ var filtered=new Map();
+ (Array.isArray(rows)?rows:[]).forEach(function(student){
+  var events=(Array.isArray(student?.events)?student.events:[]).filter(function(event){
+   var date=String(event?.late_date||'');
+   return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date>=from&&date<=to;
+  });
+  if(!events.length)return;
+  var key=String(student?.name||'')+'\\u001f'+String(student?.className||'');
+  filtered.set(key,{...student,count:events.length,events:events,absenceDays:Math.floor(events.length/4),remaining:events.length%4});
+ });
+ return [...filtered.values()].sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||String(a.name).localeCompare(String(b.name),'ar');});
+}
+window.filterMorningAssemblyReportRowsByDate=filterMorningAssemblyReportRowsByDate;
 function reportCatalog(){return [
 {key:'absence',title:'تقرير الغياب الشامل',desc:'كشف الغياب والحالات اليومية وفق التسطيرة الأصلية المعتمدة.',category:'students',label:'شؤون الطلاب',icon:'fa-user-xmark',tone:'#be3b56',allowed:rep('reportComprehensiveAbsence')},
 {key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
@@ -17224,9 +17239,14 @@ async function studentAffairsReportsView(from,to){
 }
 async function reportAction(k,from,to){var msg=modal.querySelector('#arcReportMessage'),range={from:from,to:to};try{
 if(!from||!to||from>to)throw Error('يرجى تحديد فترة زمنية صحيحة.');
+reportDateRangeDays(from,to);
+if(k==='morning'){
+ var academicYearForDate=function(value){var parts=String(value).split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;};
+ if(academicYearForDate(from)!==academicYearForDate(to))throw Error('تقرير الطابور يجب أن يكون ضمن عام دراسي واحد؛ اختر فترة لا تتجاوز بداية العام الدراسي أو نهايته.');
+}
 if(k==='absence'&&rep('reportComprehensiveAbsence')){if(typeof populateReportClassSelect==='function')populateReportClassSelect();var af=document.getElementById('reportDatePicker'),ac=document.getElementById('reportClassFilter');if(af)af.value=to;if(ac)ac.value='all';window.__arcReportRange=range;if(typeof renderReportsSection==='function')renderReportsSection();if(typeof printHorizontalReport!=='function')throw Error('قالب تقرير الغياب غير متاح.');printHorizontalReport();delete window.__arcReportRange;}
 else if(k==='behavior'&&tab('behaviorstats')){if(typeof populateBehaviorReportClassSelect==='function')populateBehaviorReportClassSelect();var bf=document.getElementById('behaviorReportDatePicker'),bc=document.getElementById('behaviorReportClassFilter');if(bf)bf.value=to;if(bc)bc.value='all';window.__arcReportRange=range;if(typeof renderBehaviorReportsSection==='function')renderBehaviorReportsSection();if(typeof printHorizontalBehaviorReport!=='function')throw Error('قالب تقرير السلوكيات غير متاح.');printHorizontalBehaviorReport();delete window.__arcReportRange;}
-else if(k==='morning'&&rep('reportMorningAssemblyLateness')){window.__arcReportRange=range;var yr=document.getElementById('morningAssemblyReportYear');if(yr&&Array.from(yr.options).some(function(o){return o.value===from.slice(0,4);}))yr.value=from.slice(0,4);await loadMorningAssemblyLatenessReport();printMorningAssemblyLatenessReport();delete window.__arcReportRange;}
+else if(k==='morning'&&rep('reportMorningAssemblyLateness')){window.__arcReportRange=range;var yr=document.getElementById('morningAssemblyReportYear'),academicYear=(function(){var parts=from.split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;})();if(yr&&Array.from(yr.options).some(function(o){return o.value===academicYear;}))yr.value=academicYear;await loadMorningAssemblyLatenessReport();morningAssemblyReportRows=filterMorningAssemblyReportRowsByDate(morningAssemblyReportRows,from,to);printMorningAssemblyLatenessReport();delete window.__arcReportRange;}
 else if(k==='late'&&rep('reportClassLatenessFollowup')){var lf=document.getElementById('lateReportFrom'),lt=document.getElementById('lateReportTo'),lc=document.getElementById('lateReportClassFilter');if(lf)lf.value=from;if(lt)lt.value=to;if(lc)lc.value='all';renderLateFollowupReport();printLateFollowupReport();}
 else if(k==='reserve'&&rep('reportSubstitutionDistribution')){var rf=document.getElementById('reserveDistributionFrom'),rt=document.getElementById('reserveDistributionTo');if(rf)rf.value=from;if(rt)rt.value=to;await loadSubstitutionDistributionReport();printSubstitutionDistributionReport();}
 else if(k==='sa'&&rep('reportStudentAffairs')){await studentAffairsReportsView(from,to);showToast('تم تجهيز كشف شؤون الطلبة داخل القسم الإداري؛ يمكنك مراجعته وطباعته من القالب الأصلي.','info');}
