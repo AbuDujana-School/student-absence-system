@@ -16858,6 +16858,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
 </style>
 <script src="./reserve-workflow.js?v=20261125-reserve-saved-review-edit-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
+<script src="./admin-report-center-adapters.js?v=20261128-independent-1"></script>
 
 <style id="substitution-single-screen-theme-v3">
 #substitutionView{position:relative;min-height:100vh;overflow-x:hidden;background:#e9eff5;color:#0f2338}html.dark #substitutionView{background:#0b1622;color:#f1f6fa}#substitutionView .subx-bg-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}#substitutionView .subx-glow{position:absolute;border-radius:50%;filter:blur(75px);opacity:.2}#substitutionView .subx-glow-1{width:320px;height:320px;top:-80px;right:-60px;background:#183653}#substitutionView .subx-glow-2{width:280px;height:280px;bottom:-60px;left:-60px;background:#168c85}#substitutionView .subx-glow-3{width:200px;height:200px;top:45%;left:30%;background:#d5a64a}#substitutionView .subx-wrapper{z-index:1}
@@ -17210,16 +17211,19 @@ function filterMorningAssemblyReportRowsByDate(rows,from,to){
  return [...filtered.values()].sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||String(a.name).localeCompare(String(b.name),'ar');});
 }
 window.filterMorningAssemblyReportRowsByDate=filterMorningAssemblyReportRowsByDate;
-function reportCatalog(){return [
-{key:'absence',title:'تقرير الغياب الشامل',desc:'كشف الغياب والحالات اليومية وفق التسطيرة الأصلية المعتمدة.',category:'students',label:'شؤون الطلاب',icon:'fa-user-xmark',tone:'#be3b56',allowed:rep('reportComprehensiveAbsence')},
-{key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
-
-{key:'late',title:'متابعة التأخر عن الحصص',desc:'كشف حالات التأخر بين الحصص من السجلات الفعلية.',category:'students',label:'شؤون الطلاب',icon:'fa-clock',tone:'#0284c7',allowed:rep('reportClassLatenessFollowup')},
-{key:'morning',title:'تقرير التأخر عن الطابور الصباحي',desc:'كشف تراكمي لتأخر الطلاب وتواريخه وفق سجل الطابور المعتمد.',category:'students',label:'شؤون الطلاب',icon:'fa-person-circle-exclamation',tone:'#b88932',allowed:rep('reportMorningAssemblyLateness')},
-{key:'reserve',title:'توزيع حصص الاحتياط',desc:'سجل التوزيعات وتغطية الغياب وفق قالب الاحتياط الأصلي.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-arrows-rotate',tone:'#168c85',allowed:rep('reportSubstitutionDistribution')},
-{key:'sa',title:'تقارير شؤون الطلبة',desc:'تقارير الغياب والسلوك وفق الصفوف والصلاحيات المسندة.',category:'students',label:'شؤون الطلاب',icon:'fa-people-group',tone:'#183653',allowed:rep('reportStudentAffairs')},
-{key:'teachers',title:'تقرير الالتزام برصد الغياب',desc:'مطابقة الحصص التدريسية وتكليفات الاحتياط مع كشوف الرصد المحفوظة.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-chart-column',tone:'#b88932',allowed:tab('teachers')}
-];}
+function reportCatalog(){
+ var registry=window.AdminReportCenterAdapters;
+ if(registry&&typeof registry.list==='function')return registry.list(function(permission){return permission.type==='tab'?tab(permission.key):rep(permission.key);});
+ return [
+ {key:'absence',title:'تقرير الغياب الشامل',desc:'كشف الغياب والحالات اليومية وفق التسطيرة الأصلية المعتمدة.',category:'students',label:'شؤون الطلاب',icon:'fa-user-xmark',tone:'#be3b56',allowed:rep('reportComprehensiveAbsence')},
+ {key:'behavior',title:'تقرير السلوكيات',desc:'كشف السلوكيات حسب الحصص والصفوف بالقالب الأصلي.',category:'students',label:'شؤون الطلاب',icon:'fa-scale-balanced',tone:'#b88932',allowed:tab('behaviorstats')},
+ {key:'late',title:'متابعة التأخر عن الحصص',desc:'كشف حالات التأخر بين الحصص من السجلات الفعلية.',category:'students',label:'شؤون الطلاب',icon:'fa-clock',tone:'#0284c7',allowed:rep('reportClassLatenessFollowup')},
+ {key:'morning',title:'تقرير التأخر عن الطابور الصباحي',desc:'كشف تراكمي لتأخر الطلاب وتواريخه وفق سجل الطابور المعتمد.',category:'students',label:'شؤون الطلاب',icon:'fa-person-circle-exclamation',tone:'#b88932',allowed:rep('reportMorningAssemblyLateness')},
+ {key:'reserve',title:'توزيع حصص الاحتياط',desc:'سجل التوزيعات وتغطية الغياب وفق قالب الاحتياط الأصلي.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-arrows-rotate',tone:'#168c85',allowed:rep('reportSubstitutionDistribution')},
+ {key:'sa',title:'تقارير شؤون الطلبة',desc:'تقارير الغياب والسلوك وفق الصفوف والصلاحيات المسندة.',category:'students',label:'شؤون الطلاب',icon:'fa-people-group',tone:'#183653',allowed:rep('reportStudentAffairs')},
+ {key:'teachers',title:'تقرير الالتزام برصد الغياب',desc:'مطابقة الحصص التدريسية وتكليفات الاحتياط مع كشوف الرصد المحفوظة.',category:'staff',label:'المعلمون والاحتياط',icon:'fa-chart-column',tone:'#b88932',allowed:tab('teachers')}
+ ];
+}
 function reportsView(){restoreRepPanel();view='reports';head('مركز التقارير والطباعة','إصدار الكشوف الرسمية وفق صلاحيات الحساب',true);var cards=reportCatalog().filter(function(r){return r.allowed;});var html='<div class="arc-reports-hero"><div><span class="arc-reports-kicker">SCHOOL REPORTS CENTER</span><h3>مركز التقارير والطباعة</h3><p>اختر التقرير ثم حدّد الفترة قبل الانتقال إلى القالب المعتمد.</p></div><div class="arc-reports-count"><strong id="arcReportsCount">'+cards.length+'</strong><span>تقارير متاحة</span></div></div><div class="arc-report-toolbar"><label class="arc-report-search"><i class="fa-solid fa-magnifying-glass"></i><input id="arcReportSearch" type="search" placeholder="ابحث باسم التقرير أو وصفه..." autocomplete="off"></label><div class="arc-report-filters"><button type="button" class="is-active" data-arc-filter="all">الكل</button><button type="button" data-arc-filter="students">شؤون الطلاب</button><button type="button" data-arc-filter="staff">المعلمون والاحتياط</button></div></div><div id="arcReportsGrid" class="arc-report-grid arc-report-grid-lux">'+cards.map(function(r){return '<button type="button" class="arc-report-card" data-report-card="'+r.key+'" data-category="'+r.category+'" data-search="'+(r.title+' '+r.desc+' '+r.label).toLowerCase()+'" data-arc-report="'+r.key+'"><span class="arc-report-card-top"><span class="arc-report-icon" style="--report-tone:'+r.tone+'"><i class="fa-solid '+r.icon+'"></i></span><span class="arc-report-tag">'+r.label+'</span></span><strong>'+r.title+'</strong><span class="arc-report-description">'+r.desc+'</span><span class="arc-report-card-foot"><span>تحديد الفترة</span><i class="fa-solid fa-arrow-left"></i></span></button>';}).join('')+'</div><div id="arcReportsEmpty" class="arc-empty hidden"><b>لا توجد تقارير مطابقة</b><p>جرّب تغيير عبارة البحث أو التصنيف.</p></div><p class="arc-reports-permission-note"><i class="fa-solid fa-shield-halved"></i> تظهر هنا التقارير المتاحة لحسابك فقط، وتظل كل وظيفة خاضعة لصلاحيتها الأصلية.</p><div id="arcReportMessage" class="arc-muted mt-3" role="status" aria-live="polite"></div><div id="arcReportDateDialog" class="arc-report-date-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="arcReportDateTitle"><section class="arc-report-date-dialog"><header><span class="arc-report-date-mark"><i class="fa-regular fa-calendar-days"></i></span><div><small>إعداد الكشف الرسمي</small><h3 id="arcReportDateTitle">تحديد الفترة الزمنية</h3><p id="arcReportDateSubtitle">اختر بداية ونهاية الفترة.</p></div><button type="button" class="arc-report-date-close" data-arc-date-cancel aria-label="إغلاق">✕</button></header><div class="arc-report-date-fields"><label>من تاريخ<input id="arcReportFrom" type="date"></label><label>إلى تاريخ<input id="arcReportTo" type="date"></label></div><div class="arc-report-date-shortcuts"><button type="button" data-arc-date-shortcut="school">من 1/9 إلى اليوم</button><button type="button" data-arc-date-shortcut="7">آخر 7 أيام</button><button type="button" data-arc-date-shortcut="month">الشهر الحالي</button></div><div class="arc-report-date-actions"><button type="button" class="arc-btn" data-arc-date-cancel>إلغاء</button><button type="button" class="arc-btn teal" data-arc-date-confirm><i class="fa-solid fa-file-circle-check"></i> عرض الكشف / الانتقال للطباعة</button></div><p id="arcReportDateError" class="arc-report-date-error" role="alert"></p></section></div>';modal.querySelector('#arcBody').innerHTML=html;filterArcReports();}
 function filterArcReports(){if(!modal)return;var q=(modal.querySelector('#arcReportSearch')?.value||'').trim().toLowerCase(),cat=modal.querySelector('[data-arc-filter].is-active')?.dataset.arcFilter||'all',shown=0;modal.querySelectorAll('[data-report-card]').forEach(function(card){var ok=(cat==='all'||card.dataset.category===cat)&&(!q||card.dataset.search.includes(q));card.classList.toggle('hidden',!ok);if(ok)shown++;});var count=modal.querySelector('#arcReportsCount');if(count)count.textContent=shown;modal.querySelector('#arcReportsEmpty')?.classList.toggle('hidden',shown>0);}
 function openReportDateDialog(key){var report=reportCatalog().find(function(r){return r.key===key&&r.allowed;});if(!report){showToast('هذا التقرير غير متاح ضمن صلاحيات حسابك.','error');return;}var d=reportDateDefaults(),dialog=modal.querySelector('#arcReportDateDialog');dialog.dataset.reportKey=key;modal.querySelector('#arcReportDateTitle').textContent=report.title;modal.querySelector('#arcReportDateSubtitle').textContent='حدد الفترة التي تريد تضمين سجلاتها في الكشف.';modal.querySelector('#arcReportFrom').value=d.from;modal.querySelector('#arcReportTo').value=d.to;modal.querySelector('#arcReportDateError').textContent='';dialog.classList.remove('hidden');}
@@ -17255,22 +17259,79 @@ async function studentAffairsReportsView(from,to){
  else{var sf=document.getElementById('repFrom'),st=document.getElementById('repTo');if(sf)sf.value=from;if(st)st.value=to;}
  await repLoadReport();
 }
-async function reportAction(k,from,to){var msg=modal.querySelector('#arcReportMessage'),range={from:from,to:to};try{
-if(!from||!to||from>to)throw Error('يرجى تحديد فترة زمنية صحيحة.');
-reportDateRangeDays(from,to);
-if(k==='morning'){
- var academicYearForDate=function(value){var parts=String(value).split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;};
- if(academicYearForDate(from)!==academicYearForDate(to))throw Error('تقرير الطابور يجب أن يكون ضمن عام دراسي واحد؛ اختر فترة لا تتجاوز بداية العام الدراسي أو نهايته.');
+async function reportAction(k,from,to){
+ var msg=modal.querySelector('#arcReportMessage'),range={from:from,to:to};
+ try{
+  if(!from||!to||from>to)throw Error('يرجى تحديد فترة زمنية صحيحة.');
+  reportDateRangeDays(from,to);
+  if(k==='morning'){
+   var academicYearForDate=function(value){var parts=String(value).split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;};
+   if(academicYearForDate(from)!==academicYearForDate(to))throw Error('تقرير الطابور يجب أن يكون ضمن عام دراسي واحد؛ اختر فترة لا تتجاوز بداية العام الدراسي أو نهايته.');
+  }
+  var handlers={
+   absence:async function(){
+    if(!rep('reportComprehensiveAbsence'))throw Error('الصلاحية غير متاحة لتقرير الغياب.');
+    if(typeof populateReportClassSelect==='function')populateReportClassSelect();
+    var date=document.getElementById('reportDatePicker'),classes=document.getElementById('reportClassFilter');
+    if(date)date.value=to;if(classes)classes.value='all';
+    window.__arcReportRange=range;
+    if(typeof renderReportsSection==='function')renderReportsSection();
+    if(typeof printHorizontalReport!=='function')throw Error('قالب تقرير الغياب غير متاح.');
+    printHorizontalReport();delete window.__arcReportRange;
+   },
+   behavior:async function(){
+    if(!tab('behaviorstats'))throw Error('الصلاحية غير متاحة لتقرير السلوكيات.');
+    if(typeof populateBehaviorReportClassSelect==='function')populateBehaviorReportClassSelect();
+    var date=document.getElementById('behaviorReportDatePicker'),classes=document.getElementById('behaviorReportClassFilter');
+    if(date)date.value=to;if(classes)classes.value='all';
+    window.__arcReportRange=range;
+    if(typeof renderBehaviorReportsSection==='function')renderBehaviorReportsSection();
+    if(typeof printHorizontalBehaviorReport!=='function')throw Error('قالب تقرير السلوكيات غير متاح.');
+    printHorizontalBehaviorReport();delete window.__arcReportRange;
+   },
+   morning:async function(){
+    if(!rep('reportMorningAssemblyLateness'))throw Error('الصلاحية غير متاحة لتقرير الطابور الصباحي.');
+    window.__arcReportRange=range;
+    var yearSelect=document.getElementById('morningAssemblyReportYear');
+    var academicYear=(function(){var parts=from.split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;})();
+    if(yearSelect&&Array.from(yearSelect.options).some(function(option){return option.value===academicYear;}))yearSelect.value=academicYear;
+    await loadMorningAssemblyLatenessReport();
+    morningAssemblyReportRows=filterMorningAssemblyReportRowsByDate(morningAssemblyReportRows,from,to);
+    printMorningAssemblyLatenessReport();delete window.__arcReportRange;
+   },
+   late:async function(){
+    if(!rep('reportClassLatenessFollowup'))throw Error('الصلاحية غير متاحة لمتابعة التأخر عن الحصص.');
+    var start=document.getElementById('lateReportFrom'),end=document.getElementById('lateReportTo'),classes=document.getElementById('lateReportClassFilter');
+    if(start)start.value=from;if(end)end.value=to;if(classes)classes.value='all';
+    renderLateFollowupReport();printLateFollowupReport();
+   },
+   reserve:async function(){
+    if(!rep('reportSubstitutionDistribution'))throw Error('الصلاحية غير متاحة لتقرير توزيع الاحتياط.');
+    var start=document.getElementById('reserveDistributionFrom'),end=document.getElementById('reserveDistributionTo');
+    if(start)start.value=from;if(end)end.value=to;
+    await loadSubstitutionDistributionReport();printSubstitutionDistributionReport();
+   },
+   sa:async function(){
+    if(!rep('reportStudentAffairs'))throw Error('الصلاحية غير متاحة لتقارير شؤون الطلبة.');
+    await studentAffairsReportsView(from,to);
+    showToast('تم تجهيز كشف شؤون الطلبة داخل القسم الإداري؛ يمكنك مراجعته وطباعته من القالب الأصلي.','info');
+   },
+   teachers:async function(){
+    if(!tab('teachers'))throw Error('الصلاحية غير متاحة لتقرير الالتزام برصد الغياب.');
+    await teacherComplianceReportsView(from,to);
+    showToast('تم تحميل تقرير الالتزام من الجدول المعتمد وتكليفات الاحتياط وسجلات الرصد. راجع الكشف ثم اضغط زر الطباعة.','success');
+   }
+  };
+  var registry=window.AdminReportCenterAdapters;
+  if(registry&&typeof registry.execute==='function')await registry.execute(k,{from:from,to:to,range:range},handlers);
+  else if(typeof handlers[k]==='function')await handlers[k]();
+  else throw Error('الصلاحية غير متاحة أو أن قالب التقرير غير محمّل.');
+ }catch(e){
+  delete window.__arcReportRange;
+  if(msg)msg.textContent=e.message||'تعذر فتح التقرير.';
+  showToast(e.message||'تعذر فتح التقرير.','error');
+ }
 }
-if(k==='absence'&&rep('reportComprehensiveAbsence')){if(typeof populateReportClassSelect==='function')populateReportClassSelect();var af=document.getElementById('reportDatePicker'),ac=document.getElementById('reportClassFilter');if(af)af.value=to;if(ac)ac.value='all';window.__arcReportRange=range;if(typeof renderReportsSection==='function')renderReportsSection();if(typeof printHorizontalReport!=='function')throw Error('قالب تقرير الغياب غير متاح.');printHorizontalReport();delete window.__arcReportRange;}
-else if(k==='behavior'&&tab('behaviorstats')){if(typeof populateBehaviorReportClassSelect==='function')populateBehaviorReportClassSelect();var bf=document.getElementById('behaviorReportDatePicker'),bc=document.getElementById('behaviorReportClassFilter');if(bf)bf.value=to;if(bc)bc.value='all';window.__arcReportRange=range;if(typeof renderBehaviorReportsSection==='function')renderBehaviorReportsSection();if(typeof printHorizontalBehaviorReport!=='function')throw Error('قالب تقرير السلوكيات غير متاح.');printHorizontalBehaviorReport();delete window.__arcReportRange;}
-else if(k==='morning'&&rep('reportMorningAssemblyLateness')){window.__arcReportRange=range;var yr=document.getElementById('morningAssemblyReportYear'),academicYear=(function(){var parts=from.split('-'),year=Number(parts[0]),month=Number(parts[1]);return month>=9?year+'/'+(year+1):(year-1)+'/'+year;})();if(yr&&Array.from(yr.options).some(function(o){return o.value===academicYear;}))yr.value=academicYear;await loadMorningAssemblyLatenessReport();morningAssemblyReportRows=filterMorningAssemblyReportRowsByDate(morningAssemblyReportRows,from,to);printMorningAssemblyLatenessReport();delete window.__arcReportRange;}
-else if(k==='late'&&rep('reportClassLatenessFollowup')){var lf=document.getElementById('lateReportFrom'),lt=document.getElementById('lateReportTo'),lc=document.getElementById('lateReportClassFilter');if(lf)lf.value=from;if(lt)lt.value=to;if(lc)lc.value='all';renderLateFollowupReport();printLateFollowupReport();}
-else if(k==='reserve'&&rep('reportSubstitutionDistribution')){var rf=document.getElementById('reserveDistributionFrom'),rt=document.getElementById('reserveDistributionTo');if(rf)rf.value=from;if(rt)rt.value=to;await loadSubstitutionDistributionReport();printSubstitutionDistributionReport();}
-else if(k==='sa'&&rep('reportStudentAffairs')){await studentAffairsReportsView(from,to);showToast('تم تجهيز كشف شؤون الطلبة داخل القسم الإداري؛ يمكنك مراجعته وطباعته من القالب الأصلي.','info');}
-else if(k==='teachers'&&tab('teachers')){await teacherComplianceReportsView(from,to);showToast('تم تحميل تقرير الالتزام من الجدول المعتمد وتكليفات الاحتياط وسجلات الرصد. راجع الكشف ثم اضغط زر الطباعة.','success');}
-else throw Error('الصلاحية غير متاحة أو أن قالب التقرير غير محمّل.');
-}catch(e){delete window.__arcReportRange;if(msg)msg.textContent=e.message||'تعذر فتح التقرير.';showToast(e.message||'تعذر فتح التقرير.','error');}}
 function statsView(){
 restoreRepPanel();
 if(!allowed())return close();
