@@ -145,6 +145,7 @@ for (const panel of longPanelCases) {
         content.classList.remove("hidden");
         content.innerHTML = markup;
         const panel = document.getElementById(id);
+        panel.classList.remove("hidden");
         if (id === "sec-behaviorstats") {
           const classes = panel.querySelector("#behaviorReportClassesContainer");
           classes.innerHTML = Array.from({ length: 10 }, (_, i) =>
