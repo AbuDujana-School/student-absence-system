@@ -61,7 +61,7 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR Branch
         uses: actions/checkout@v4
@@ -75,10 +75,17 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
           USER_PROMPT: ${{ github.event.comment.body }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
         run: |
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          if [ -z "$GEMINI_API_KEY" ]; then
+            gh pr comment "$PR_NUMBER" --body "❌ لم يتم العثور على مفتاح GEMINI_API_KEY في Secrets."
+            exit 1
+          fi
+
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
           if [ -z "$CHANGED_FILES" ]; then
-            gh pr comment "$PR_NUMBER" --body "لم أجد ملفات معدّلة في هذا الطلب. اذكر اسم الملف المطلوب تعديله."
+            gh pr comment "$PR_NUMBER" --body "لم أجد ملفات معدّلة في هذا الطلب مقارنة بـ main."
             exit 0
           fi
 
@@ -86,7 +93,7 @@ jobs:
           for f in $CHANGED_FILES; do
             if [ -f "$f" ]; then
               CONTENT=$(head -c 15000 "$f")
-              FILES_CONTEXT="${FILES_CONTEXT}\n--- FILE: ${f} ---\n${CONTENT}\n"
+              FILES_CONTEXT="${FILES_CONTEXT}"$'\n'"--- FILE: ${f} ---"$'\n'"${CONTENT}"$'\n'
             fi
           done
 
@@ -104,31 +111,43 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
-          RAW_JSON=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          API_ERR=$(printf "%s" "$RESPONSE" | jq -r '.error.message // empty')
+          if [ -n "$API_ERR" ]; then
+            gh pr comment "$PR_NUMBER" --body "❌ خطأ من Gemini API: ${API_ERR}"
+            exit 1
+          fi
 
-          if [ -z "$RAW_JSON" ]; then
-            gh pr comment "$PR_NUMBER" --body "حدث خطأ أثناء الاتصال بنموذج Gemini. تأكد من حجم الملفات أو حاول مجدداً."
+          RAW_JSON=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          if [ -z "$RAW_JSON" ] || ! printf "%s" "$RAW_JSON" | jq -e '.files | type == "array"' >/dev/null 2>&1; then
+            gh pr comment "$PR_NUMBER" --body "❌ تعذر قراءة رد النموذج بصيغة JSON صالحة."
             exit 1
           fi
 
           COUNT=$(printf "%s" "$RAW_JSON" | jq '.files | length')
           for i in $(seq 0 $((COUNT - 1))); do
-            FILE_PATH=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].path")
-            FILE_CONTENT=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].content")
-            mkdir -p "$(dirname "$FILE_PATH")"
-            printf "%s" "$FILE_CONTENT" > "$FILE_PATH"
+            FILE_PATH=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].path // empty")
+            FILE_CONTENT=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].content // empty")
+            if [ -n "$FILE_PATH" ]; then
+              mkdir -p "$(dirname "$FILE_PATH")"
+              printf "%s" "$FILE_CONTENT" > "$FILE_PATH"
+            fi
           done
 
           git config user.name "Gemini AI Bot"
           git config user.email "gemini-bot@users.noreply.github.com"
           git add .
+
           if git diff --staged --quiet; then
-            gh pr comment "$PR_NUMBER" --body "لم يتم إجراء أي تغيير فعلي على الملفات."
+            gh pr comment "$PR_NUMBER" --body "ℹ️ لم يطرأ أي تغيير فعلي على الملفات بعد تنفيذ الطلب."
             exit 0
           fi
 
           git commit -m "chore: apply Gemini requested changes"
-          git push
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if ! git push origin "HEAD:${BRANCH}"; then
+            gh pr comment "$PR_NUMBER" --body "❌ فشل رفع التعديل (git push) إلى الفرع ${BRANCH}. تأكد من صلاحيات Read and write ومن عدم وجود حماية تمنع الرفع."
+            exit 1
+          fi
 
-          SUMMARY=$(printf "%s" "$RAW_JSON" | jq -r '.summary')
-          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**\n\n${SUMMARY}"
+          SUMMARY=$(printf "%s" "$RAW_JSON" | jq -r '.summary // "تم تحديث الملفات."')
+          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**"$'\n\n'"${SUMMARY}"
