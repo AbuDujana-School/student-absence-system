@@ -282,7 +282,7 @@
     const to = document.getElementById("teachersActivityTo");
     if (from && !from.value) from.value = today;
     if (to && !to.value) to.value = today;
-    loadReport();
+    // The authorized admin dashboard invokes renderTeachersActivity/loadReport when opened.
   });
 
   function installComplianceModernUI() {
