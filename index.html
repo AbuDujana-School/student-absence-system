@@ -3983,7 +3983,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
         </div>
         <div id="dashboardTeachersActivity" class="p-5 sm:p-7 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5" dir="rtl">
           <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-3.5"><div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-clipboard-check"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">جدول تقييم ونشاط المعلمين</h3><p class="text-xs text-slate-500 font-bold">متابعة التزام المعلمين برصد الغياب في حصصهم التدريسية وحصص الاحتياط</p></div></div>
+            <div class="flex items-center gap-3.5"><div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-clipboard-check"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">تقرير الالتزام برصد الغياب</h3><p class="text-xs text-slate-500 font-bold">مطابقة تفريغ كل حصة مع جدول المعلم المعتمد وتكليفات الاحتياط الفعلية</p></div></div>
             <button id="teachersActivityPrintBtn" onclick="printTeachersActivityPDF()" disabled class="disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg active:scale-95 transition-all flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-rose-400 text-base"></i><span>طباعة التقرير PDF</span></button>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -4002,7 +4002,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
           <div id="teachersActivityStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-inner">
             <table class="w-full min-w-[900px] text-xs text-right">
-              <thead class="bg-slate-50 text-slate-700 font-black border-b border-slate-200"><tr><th class="p-3">المعلم</th><th class="p-3 text-center">عدد الحصص</th><th class="p-3">رصد الغياب</th><th class="p-3">لم يرصد الغياب</th><th class="p-3 text-center">نسبة الالتزام</th></tr></thead>
+              <thead class="bg-slate-50 text-slate-700 font-black border-b border-slate-200"><tr><th class="p-3">م / اسم المعلم</th><th class="p-3 text-center">عدد الحصص</th><th class="p-3">رصد الغياب</th><th class="p-3">لم يرصد الغياب</th><th class="p-3 text-center">نسبة الالتزام</th></tr></thead>
               <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 font-bold"><tr><td colspan="5" class="p-8 text-center text-slate-400">جارٍ تحميل تقرير الالتزام...</td></tr></tbody>
             </table>
           </div>
@@ -16668,7 +16668,6 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
 }
 </style>
 <script src="./reserve-workflow.js?v=20261125-reserve-saved-review-edit-1"></script>
-<script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
 #substitutionView{position:relative;min-height:100vh;overflow-x:hidden;background:#e9eff5;color:#0f2338}html.dark #substitutionView{background:#0b1622;color:#f1f6fa}#substitutionView .subx-bg-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}#substitutionView .subx-glow{position:absolute;border-radius:50%;filter:blur(75px);opacity:.2}#substitutionView .subx-glow-1{width:320px;height:320px;top:-80px;right:-60px;background:#183653}#substitutionView .subx-glow-2{width:280px;height:280px;bottom:-60px;left:-60px;background:#168c85}#substitutionView .subx-glow-3{width:200px;height:200px;top:45%;left:30%;background:#d5a64a}#substitutionView .subx-wrapper{z-index:1}
@@ -17419,5 +17418,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     <span id="analyticsReserveTrend" class="trend-direction">بانتظار البيانات</span>
   </section>
   <div class="trend-footnote"><i class="fa-solid fa-circle-info"></i><span>الارتفاع والانخفاض يعكسان حجم الحالات المسجلة خلال الفترة، ولا يُفسّران سبب الحالة. عند غياب صلاحية مصدر معيّن، يُعرض تنبيه بدلاً من إظهار قيمة تقديرية.</span></div>
-<script src="./student-detail-record.js?v=20261126-safe-multiselect-6" defer></script></body>
+<script src="./teacher-attendance-compliance.js?v=20261128-compliance-7" defer></script><script src="./student-detail-record.js?v=20261126-safe-multiselect-6" defer></script></body>
 </html>
