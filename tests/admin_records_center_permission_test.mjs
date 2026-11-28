@@ -7,6 +7,8 @@ const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const policy = fs.readFileSync(new URL("../supabase/functions/_shared/admin_principal_policy.ts", import.meta.url), "utf8");
 const reportPolicy = fs.readFileSync(new URL("../supabase/functions/_shared/report_access_policy.ts", import.meta.url), "utf8");
 const edge = fs.readFileSync(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url), "utf8");
+const timetableEdge = fs.readFileSync(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url), "utf8");
+const morningEdge = fs.readFileSync(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
 const centerStart = html.indexOf("/* Administrative records center:");
 const centerEnd = html.indexOf("</script>", centerStart);
 const centerScript = centerStart >= 0 && centerEnd > centerStart ? html.slice(centerStart, centerEnd) : "";
@@ -94,5 +96,8 @@ test("Student Affairs reports open inside the records center without granting da
   assert.ok(edge.includes("hasAdminRecordsCenterAccess(appPrincipal.type, appPrincipal.permissions"));
   assert.ok(edge.includes("permissionsFor(p, false, adminRecordsCenterAccess)"));
   assert.ok(edge.includes("mode === \"notice_issue_commit\""));
+  assert.ok(timetableEdge.includes("isSchoolwideReport = action === \"timetable_substitution_report\""));
+  assert.ok(timetableEdge.includes("principal.adminRecordsCenterReportOnly === true"));
+  assert.ok(morningEdge.includes("hasAdminRecordsCenterAccess(principal.type, principal.permissions"));
   assert.ok(reportPolicy.includes("report === \"reportStudentAffairs\" && adminRecordsCenterAccess"));
 });
