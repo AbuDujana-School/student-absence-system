@@ -122,3 +122,45 @@ for (const viewport of viewports) {
     });
   });
 }
+
+for (const sectionId of ["sec-reports", "sec-behaviorstats"]) {
+  test(`admin dashboard section scroll works — ${sectionId}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setContent(fixture, { waitUntil: "domcontentloaded" });
+    await page.evaluate((targetId) => {
+      const modal = document.getElementById("adminModal");
+      const content = document.getElementById("adminContentSection");
+      modal.classList.remove("hidden");
+      document.getElementById("adminAuthSection").classList.add("hidden");
+      content.classList.remove("hidden");
+      content.querySelectorAll('[id^="sec-"]').forEach(section => section.classList.add("hidden"));
+      const target = document.getElementById(targetId);
+      target.classList.remove("hidden");
+      target.insertAdjacentHTML("beforeend",
+        '<div data-scroll-fixture style="height:2600px;min-height:2600px;width:100%">real section scroll fixture</div>');
+    }, sectionId);
+
+    const metrics = await page.evaluate(() => {
+      const content = document.getElementById("adminContentSection");
+      const section = content.querySelector('[id^="sec-"]:not(.hidden)');
+      return {
+        clientHeight: content.clientHeight,
+        scrollHeight: content.scrollHeight,
+        sectionHeight: section.getBoundingClientRect().height,
+        overflowY: getComputedStyle(content).overflowY,
+        display: getComputedStyle(content).display
+      };
+    });
+    expect(metrics.clientHeight).toBeGreaterThan(100);
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+    expect(metrics.overflowY).toBe("auto");
+    expect(metrics.display).toBe("block");
+
+    await page.locator("#adminContentSection").evaluate(el => { el.scrollTop = 0; });
+    await page.mouse.move(180, 650);
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() =>
+      page.locator("#adminContentSection").evaluate(el => el.scrollTop)
+    ).toBeGreaterThan(0);
+  });
+}
