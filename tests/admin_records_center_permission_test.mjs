@@ -80,7 +80,7 @@ test("administrative-records access unlocks the center only while its modal is o
 test("Student Affairs and morning-assembly reports retain their independent access checks", () => {
   assert.ok(centerScript.includes("allowed:rep('reportStudentAffairs')"));
   assert.ok(centerScript.includes("allowed:rep('reportMorningAssemblyLateness')"));
-  assert.ok(centerScript.includes("function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}"));
+  assert.ok(centerScript.includes("function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)&&['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(k)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}"));
   assert.ok(centerScript.includes("allowed:rep('reportMorningAssemblyLateness')"));
 });
 
