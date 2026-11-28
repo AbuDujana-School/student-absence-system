@@ -4,6 +4,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const complianceModule = fs.readFileSync(new URL("../teacher-attendance-compliance.js", import.meta.url), "utf8");
 const start = html.indexOf("function reportDateRangeDays(");
 const exportBoundary = html.indexOf("\n// Expose the validator", start);
 const end = exportBoundary > start ? exportBoundary : html.indexOf("\nfunction reportCatalog()", start);
@@ -104,4 +105,15 @@ test("teacher activity report counts normalized multi-type behavior records", ()
   assert.equal(rows[0].absences, 1);
   assert.equal(rows[0].behaviors, 1);
   assert.equal(rows[0].total, 2);
+});
+
+
+test("administrative records center mounts the timetable-backed compliance report instead of printing stale local totals", () => {
+  assert.match(html, /async function teacherComplianceReportsView\\(from,to\\)/);
+  assert.match(html, /await window\\.loadTeachersActivityCompliance\\(from,to\\)/);
+  assert.match(html, /await teacherComplianceReportsView\\(from,to\\)/);
+  assert.match(html, /dashboardTeachersActivity/);
+  assert.match(complianceModule, /timetable_activity_report_data/);
+  assert.match(complianceModule, /reportRequest\\.admin_records_center = true/);
+  assert.match(complianceModule, /async function loadReport\\(fromOverride, toOverride\\)/);
 });
