@@ -74,7 +74,7 @@ test("administrative-records access unlocks the center only while its modal is o
   assert.ok(panelAccess.includes("return isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => canAccessAdminTab(key, user));"));
   assert.doesNotMatch(panelAccess, /adminRecords/);
   assert.ok(html.includes("function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser()) return true;"));
-  assert.ok(centerScript.includes("function close(){if(!modal)return;modal.classList.add('hidden');document.body.style.overflow='';document.getElementById('dashboardSelectionView')?.classList.remove('hidden');view='hub';if(typeof refreshReportPanelsVisibility==='function')refreshReportPanelsVisibility();}"));
+  assert.ok(centerScript.includes("function close(){if(!modal)return;restoreRepPanel();modal.classList.add('hidden');document.body.style.overflow='';document.getElementById('dashboardSelectionView')?.classList.remove('hidden');view='hub';if(typeof refreshReportPanelsVisibility==='function')refreshReportPanelsVisibility();}"));
 });
 
 test("Student Affairs and morning-assembly reports retain their independent access checks", () => {
