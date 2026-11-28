@@ -1751,19 +1751,20 @@ async function handle(req: Request) {
         if(!/طارئ/.test(reason))continue;
         const absentName=String(row.absent_teacher_name||"").trim();
         const absenceDate=String(row.assignment_date||"");
-        if(!absentName||!/^\\d{4}-\\d{2}-\\d{2}$/.test(absenceDate))continue;
+        if(!absentName||!/^\d{4}-\d{2}-\d{2}$/.test(absenceDate))continue;
         if(!emergencyAbsenceDays.has(absentName))emergencyAbsenceDays.set(absentName,new Set());
         emergencyAbsenceDays.get(absentName)!.add(absenceDate);
       }
       const compensationBalanceByTeacher=new Map<string,number>();
       for(const [teacherName,dates] of emergencyAbsenceDays){
-        let balance=dates.size*2;
-        const laterCovers=(assignmentRows||[]).filter((row:any)=>
-          String(row.assignment_type||"")==="substitution"&&String(row.status||"")!=="cancelled"&&
-          String(row.teacher_name||"")===teacherName&&String(row.assignment_date||"")&&
-          [...dates].some(date=>String(row.assignment_date)>date)
-        ).length;
-        balance=Math.max(0,balance-laterCovers);
+        const timeline:Array<{date:string;kind:"bonus"|"cover"}>=[
+          ...[...dates].map(date=>({date,kind:"bonus" as const})),
+          ...(assignmentRows||[]).filter((row:any)=>String(row.assignment_type||"")==="substitution"&&
+            String(row.status||"")!=="cancelled"&&String(row.teacher_name||"")===teacherName&&
+            String(row.assignment_date||"")).map((row:any)=>({date:String(row.assignment_date),kind:"cover" as const})),
+        ].sort((x,y)=>x.date.localeCompare(y.date)||(x.kind==="bonus"?-1:1));
+        let balance=0;
+        for(const event of timeline)balance=event.kind==="bonus"?balance+2:Math.max(0,balance-1);
         compensationBalanceByTeacher.set(teacherName,Number(balance.toFixed(2)));
       }
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher"&&activeTeachingTeacherNames.has(t.name)).map((t:any)=>({
@@ -1833,6 +1834,7 @@ async function handle(req: Request) {
           teachers:scopedCandidates,timetable:planningTimetable,assignments,absentTeachers:selectedAbsent,weekday,
           assignmentDate,versionId:activeVersion.id,includeOtherDepartments:includeOtherDepartments||false,
           otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],
+          scoringTimetable:timetable,
           manualAssignments:body.manualAssignments&&typeof body.manualAssignments==="object"&&!Array.isArray(body.manualAssignments)
             ?Object.fromEntries(Object.entries(body.manualAssignments).map(([key,value])=>[String(key),String(value||"")]).filter(([,value])=>value))
             :{},
