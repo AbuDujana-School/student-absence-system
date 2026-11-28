@@ -2601,8 +2601,10 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 #adminModal{
   overflow-x:hidden;
   overflow-y:auto;
+  align-items:flex-start;
   overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
 }
 #adminModal > .glass-card{
   box-sizing:border-box;
