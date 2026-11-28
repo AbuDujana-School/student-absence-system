@@ -5,6 +5,8 @@ import vm from "node:vm";
 
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const policy = fs.readFileSync(new URL("../supabase/functions/_shared/admin_principal_policy.ts", import.meta.url), "utf8");
+const reportPolicy = fs.readFileSync(new URL("../supabase/functions/_shared/report_access_policy.ts", import.meta.url), "utf8");
+const edge = fs.readFileSync(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url), "utf8");
 const centerStart = html.indexOf("/* Administrative records center:");
 const centerEnd = html.indexOf("</script>", centerStart);
 const centerScript = centerStart >= 0 && centerEnd > centerStart ? html.slice(centerStart, centerEnd) : "";
@@ -62,7 +64,7 @@ test("administrative-records access unlocks the center only while its modal is o
   assert.ok(html.includes("function isAdminRecordsCenterScopedAccess(user = activeUser)"));
   assert.ok(html.includes("return granted && !!modal && !modal.classList.contains('hidden')"));
   assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['studstats','behaviorstats','teachers'].includes(key)"));
-  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(key)"));
+  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(key)"));
   const panelStart = html.indexOf("function hasAdminPanelAccess(user = activeUser)");
   const panelEnd = html.indexOf("function getSingleAdminPanelPermission", panelStart);
   const panelAccess = html.slice(panelStart, panelEnd);
@@ -76,5 +78,21 @@ test("administrative-records access unlocks the center only while its modal is o
 test("Student Affairs and morning-assembly reports retain their independent access checks", () => {
   assert.ok(centerScript.includes("allowed:rep('reportStudentAffairs')"));
   assert.ok(centerScript.includes("allowed:canViewMorningAssemblyLatenessReport(activeUser)"));
-  assert.ok(centerScript.includes("function rep(k){return k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser);}"));
+  assert.ok(centerScript.includes("function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}"));
+  assert.ok(centerScript.includes("allowed:rep('reportMorningAssemblyLateness')"));
+});
+
+
+test("Student Affairs reports open inside the records center without granting dashboard entry", () => {
+  assert.ok(centerScript.includes("async function studentAffairsReportsView(from,to)"));
+  assert.ok(centerScript.includes("modal.querySelector('#arcStudentAffairsReportHost').appendChild(panel)"));
+  const actionStart = centerScript.indexOf("else if(k==='sa'&&rep('reportStudentAffairs'))");
+  const actionEnd = centerScript.indexOf("\\n", actionStart);
+  assert.ok(actionStart >= 0);
+  assert.ok(!centerScript.slice(actionStart, actionEnd > actionStart ? actionEnd : actionStart + 500).includes("openAdminModal"));
+  assert.ok(centerScript.includes("admin_records_center:true"));
+  assert.ok(edge.includes("hasAdminRecordsCenterAccess(appPrincipal.type, appPrincipal.permissions"));
+  assert.ok(edge.includes("permissionsFor(p, false, adminRecordsCenterAccess)"));
+  assert.ok(edge.includes("mode === \"notice_issue_commit\""));
+  assert.ok(reportPolicy.includes("report === \"reportStudentAffairs\" && adminRecordsCenterAccess"));
 });
