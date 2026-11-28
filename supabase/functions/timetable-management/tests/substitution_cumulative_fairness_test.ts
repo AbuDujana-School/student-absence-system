@@ -101,7 +101,7 @@ Deno.test("four consecutive periods are avoided when a non-exhausting option exi
   equal(ranked[0]?.id, "rested", "non-exhausting candidate wins");
 });
 
-Deno.test("same-day substitution cap is a hard eligibility gate", () => {
+Deno.test("one existing same-day cover is allowed as a second-pass option but ranks behind a fresh candidate", () => {
   const once = teacher("already-covered");
   const fresh = teacher("fresh");
   const timetable = [freeCell(once.id), freeCell(fresh.id)];
@@ -109,6 +109,7 @@ Deno.test("same-day substitution cap is a hard eligibility gate", () => {
     { substituteTeacherId: once.id, weekday: "الأحد", period: 2, assignmentDate: "2026-11-29", versionId: "test-version", assignmentType: "substitution", status: "assigned" },
   ];
   const ranked = getAvailableSubstitutionCandidates(query([once, fresh], timetable, assignments));
-  equal(ranked.length, 1, "only one-per-day candidates");
-  equal(ranked[0]?.id, "fresh", "fresh candidate selected");
+  equal(ranked.length, 2, "one existing cover remains eligible for the second pass");
+  equal(ranked[0]?.id, "fresh", "fresh candidate is preferred");
+  equal(ranked[1]?.id, "already-covered", "one-cover candidate remains available as fallback");
 });
