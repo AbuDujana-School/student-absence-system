@@ -89,7 +89,7 @@ Deno.test("report permissions are independent and legacy broad access is denied"
   assert(helperStart >= 0 && helperEnd > helperStart, "Could not locate report permission helpers");
   const helperSource = html.slice(helperStart, helperEnd);
   const create = new Function("activeUser", "isAdminAuthorized", "isGeneralAdminUser", "isAdminRecordsCenterScopedAccess", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
-    (user: Record<string, unknown>, isAdminAuthorized: () => boolean, isGeneralAdminUser: (user: Record<string, unknown>) => boolean) => {
+    (user: Record<string, unknown>, isAdminAuthorized: () => boolean, isGeneralAdminUser: (user: Record<string, unknown>) => boolean, isAdminRecordsCenterScopedAccess: () => boolean) => {
       canAccessReport: (key: string) => boolean;
       canAccessAnyReport: () => boolean;
     };
