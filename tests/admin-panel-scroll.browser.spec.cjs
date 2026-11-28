@@ -118,12 +118,13 @@ const printPinStart = source.indexOf("function printPinCredentials()");
 const printPinEnd = source.indexOf("async function copyPinAndClose()", printPinStart);
 if (printPinStart < 0 || printPinEnd < 0) throw new Error("Could not locate the production PIN print function.");
 const printPinFunction = source.slice(printPinStart, printPinEnd);
+const printPinFunctionGlobal = printPinFunction.replace(/^function printPinCredentials\(\)/, "window.printPinCredentials = function");
 
 test("new login credentials remain printable when popups are blocked", async ({ page }) => {
   await page.setContent('<div id="pinDisplayModal" data-pin="731946" data-name="Test Teacher"></div>');
   await page.addScriptTag({ content:
     "window.__pinToasts = []; window.showToast = function (message) { window.__pinToasts.push(message); }; " +
-    "window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunction
+    "window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunctionGlobal
   });
   const before = await page.evaluate(() => ({
     functionType: typeof window.printPinCredentials,
