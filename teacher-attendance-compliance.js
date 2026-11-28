@@ -142,7 +142,7 @@
     }
     rows.sort((a,b) => a.percentage - b.percentage || b.pending.length - a.pending.length || a.name.localeCompare(b.name,"ar"));
     return {
-      rows, totalLessons: rows.reduce((sum,row)=>sum+row.total,0),
+      rows, totalTeachers: teachers.length, totalLessons: rows.reduce((sum,row)=>sum+row.total,0),
       completeLessons: rows.reduce((sum,row)=>sum+row.complete.length,0),
       pendingLessons: rows.reduce((sum,row)=>sum+row.pending.length,0),
       from, to, version: data.version,
@@ -220,47 +220,54 @@
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
-    const rows = report.rows.map(row => {
-      const status = row.percentage === 100 ? 'full' : row.complete.length === 0 ? 'zero' : 'partial';
-      const chunkSize = 6;
-      const chunks = values => {
-        const result = [];
-        for (let i = 0; i < values.length; i += chunkSize) result.push(values.slice(i, i + chunkSize));
-        return result.length ? result : [[]];
-      };
-      const completeChunks = chunks(row.complete);
-      const pendingChunks = chunks(row.pending);
-      const count = Math.max(completeChunks.length, pendingChunks.length);
-      return Array.from({ length: count }, (_, index) => {
-        const complete = completeChunks[index] || [];
-        const pending = pendingChunks[index] || [];
-        const first = index === 0;
-        return '<tr class="status-' + status + '"><td class="name">'+(first ? esc(row.name) : '<span class="continuation">تكملة</span>')+'</td>'+
-          '<td class="num">'+(first ? row.total : '')+'</td>'+
-          '<td>'+complete.map(esc).join("<br>")+'</td><td>'+pending.map(esc).join("<br>")+'</td>'+
-          '<td class="pct">'+(first ? row.percentage.toFixed(1)+'%' : '')+'</td></tr>';
-      }).join("");
+    const fmtDate = value => {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+      return match ? match[3] + "-" + match[2] + "-" + match[1] : String(value || "");
+    };
+    const period = report.from === report.to ? fmtDate(report.from) : fmtDate(report.from) + " إلى " + fmtDate(report.to);
+    const full = report.rows.filter(row => row.percentage === 100).length;
+    const zero = report.rows.filter(row => row.complete.length === 0).length;
+    const partial = report.rows.length - full - zero;
+    const rows = report.rows.map((row,index) => {
+      const status = row.percentage === 100 ? "full" : row.complete.length === 0 ? "zero" : "partial";
+      const lessons = (items, kind) => items.length
+        ? '<ul class="lesson-list lesson-list--' + kind + '">' + items.map(item => '<li>' + esc(item) + '</li>').join("") + '</ul>'
+        : '<span class="empty">—</span>';
+      return '<tr class="status-' + status + '">' +
+        '<td class="serial">' + (index + 1) + '</td>' +
+        '<td class="name">' + esc(row.name) + '</td>' +
+        '<td class="num">' + row.total + '</td>' +
+        '<td class="pct"><strong>' + row.percentage.toFixed(1) + '%</strong><span class="status-label">' +
+          (status === "full" ? "رصد جميع الحصص" : status === "zero" ? "لم يرصد" : "رصد بعض الحصص") + '</span></td>' +
+        '<td class="lessons complete">' + lessons(row.complete,"complete") + '</td>' +
+        '<td class="lessons pending">' + lessons(row.pending,"pending") + '</td>' +
+        '</tr>';
     }).join("");
-    const period = report.from === report.to ? report.from : report.from + " — " + report.to;
-    const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير الالتزام برصد الغياب</title>'+
-      '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>'+
-      '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
-      'body{font-family:Tajawal,Arial,sans-serif;color:#172b35;font-size:14px;margin:0}header{text-align:center;border:2px solid #183653;padding:10px 12px;margin-bottom:10px}'+
-      'header strong{display:block;font-size:14px;line-height:1.8}header h1{font-size:18px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-weight:700}'+
-      '.summary{display:flex;gap:8px;justify-content:space-between;margin:8px 0 12px}.summary span{flex:1;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px;font-weight:800}'+
-      'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:4px 5px;vertical-align:top;overflow-wrap:anywhere;font-size:14px;line-height:1.5}th{background:#eaf1f6;color:#183653;font-weight:900;text-align:center}'+
-      'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900;font-size:16px}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}.status-full{background:#ecfdf5!important}.status-partial{background:#fffbeb!important}.status-zero{background:#fff1f2!important}'+
-      'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
-      ' .print-toolbar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0;padding:12px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:13px}.print-toolbar button{border:0;border-radius:8px;background:#164e63;color:#fff;font:inherit;font-weight:900;padding:11px 18px;cursor:pointer;white-space:nowrap}@media print{.print-toolbar{display:none!important}header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
-      '</style></head><body><header><strong>سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
-      '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
-      '<div class="summary"><span>المعلمون الذين رصدوا جميع الحصص: '+report.rows.filter(r=>r.percentage===100).length+'</span><span>المعلمون الذين رصدوا بعض الحصص: '+report.rows.filter(r=>r.complete.length>0&&r.percentage<100).length+'</span><span>المعلمون الذين لم يرصدوا الغياب: '+report.rows.filter(r=>r.complete.length===0).length+'</span></div>' + '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
-      '<table><thead><tr><th style="width:22%">المعلم</th><th style="width:8%">عدد الحصص</th><th style="width:25%">رصد الغياب</th><th style="width:33%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      '<div class="signatures"><span>مساعد مدير المدرسة: ....................................</span><span>مدير المدرسة: ....................................</span></div>'+
-      '<div class="print-toolbar" role="region" aria-label="أدوات الطباعة"><strong>هذه معاينة التقرير. لحفظه بصيغة PDF اضغط الزر ثم اختر «حفظ كملف PDF» من خيارات الطباعة.</strong><button type="button" onclick="window.focus();window.print();">طباعة / حفظ PDF</button></div>'+
-      '<script>function openPrintDialog(){window.focus();window.print();}window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(openPrintDialog,650);});});<\/script></body></html>';
-    w.document.open(); w.document.write(html); w.document.close();
-    w.focus();
+    const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تقرير الالتزام برصد الغياب</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>' +
+      '@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'html,body{margin:0;padding:0}body{font-family:Tajawal,Arial,sans-serif;color:#172b3b;font-size:13px;line-height:1.55;background:#fff}' +
+      '.official{border:1.6px solid #183653;border-top:5px solid #183653;padding:9px 14px 8px;text-align:center;margin-bottom:9px;break-inside:avoid}' +
+      '.official-lines{font-size:13px;font-weight:800;line-height:1.65;color:#263f55}.official h1{font-size:21px;line-height:1.3;margin:5px 0 2px;color:#123653;font-weight:900}.period{font-size:14px;font-weight:800;color:#526579}' +
+      '.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0}.kpi{border:1px solid #cbd8e2;border-radius:7px;padding:7px 9px;background:#f5f8fb;text-align:center;min-height:56px;break-inside:avoid}.kpi-label{display:block;font-size:12px;font-weight:800;color:#526579}.kpi-value{display:block;font-size:21px;font-weight:900;line-height:1.25;color:#183653}.kpi--done{background:#effaf5;border-color:#b8e2cd}.kpi--done .kpi-value{color:#08734b}.kpi--pending{background:#fff5f4;border-color:#f0c7c3}.kpi--pending .kpi-value{color:#a63131}' +
+      '.classification{display:flex;gap:8px;margin:7px 0 10px}.class-item{flex:1;border:1px solid #d6e0e8;border-radius:6px;padding:6px 9px;text-align:center;font-weight:800;background:#fafcfd}.class-item b{font-size:17px;margin-inline-start:5px}.class-item.full{color:#08734b}.class-item.partial{color:#98620a}.class-item.zero{color:#a63131}' +
+      'table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl}thead{display:table-header-group}tfoot{display:table-footer-group}th{background:#183653;color:#fff;font-size:13px;font-weight:900;padding:8px 5px;border:1px solid #183653;text-align:center}td{border:1px solid #cbd5df;padding:6px 7px;vertical-align:top;font-size:13px;line-height:1.5;overflow-wrap:break-word;word-break:normal}tbody tr:nth-child(even){background:#f7f9fb}.serial,.num,.pct{text-align:center;vertical-align:middle;font-weight:900;font-variant-numeric:tabular-nums}.serial{color:#64748b}.name{font-size:14px;font-weight:900;white-space:normal;overflow-wrap:normal;word-break:normal}.pct strong{display:block;font-size:15px;color:#183653}.status-label{display:block;font-size:11px;font-weight:800;margin-top:2px;color:#526579}.status-full{background:#f0faf5!important}.status-partial{background:#fffaf0!important}.status-zero{background:#fff5f5!important}.lessons{font-size:12.5px}.lesson-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:3px 9px}.lesson-list li{display:inline-block;white-space:nowrap;break-inside:avoid;page-break-inside:avoid}.complete .lesson-list li:before{content:"✓ ";color:#08734b;font-weight:900}.pending .lesson-list li:before{content:"• ";color:#b33b3b;font-weight:900}.empty{color:#94a3b8}.signatures{display:flex;justify-content:space-between;gap:40px;margin:20px 8px 0;break-inside:avoid;font-size:14px;font-weight:900}.signatures div{width:42%;text-align:center;padding-top:7px}.signatures .line{display:block;border-top:1px solid #8292a0;margin-top:34px;padding-top:5px;color:#34495e}' +
+      '.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0;padding:10px 12px;border:1px solid #cbdbea;border-radius:8px;background:#f1f6fb;color:#29445e;font-size:13px}.toolbar button{border:0;border-radius:7px;background:#183653;color:white;padding:10px 18px;font:inherit;font-weight:900;cursor:pointer;white-space:nowrap}' +
+      '@media screen{body{padding:12px;background:#eef2f6}.page{max-width:1200px;margin:0 auto;background:#fff;padding:16px;box-shadow:0 5px 22px #17324d18;border-radius:10px}}' +
+      '@media print{body{padding:0;background:#fff}.page{padding:0;max-width:none;box-shadow:none}.toolbar{display:none!important}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.official,.kpi,.classification,.signatures{break-inside:avoid;page-break-inside:avoid}th,td{font-size:13px} .lesson-list li{white-space:nowrap}}' +
+      '</style></head><body><main class="page">' +
+      '<header class="official"><div class="official-lines">سلطنة عمان — وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div><h1>تقرير الالتزام برصد الغياب</h1><div class="period">الفترة الزمنية: ' + esc(period) + '</div></header>' +
+      '<section class="summary">' +
+      '<div class="kpi"><span class="kpi-label">إجمالي المعلمين</span><strong class="kpi-value">' + Number(report.totalTeachers || report.rows.length) + '</strong></div>' +
+      '<div class="kpi"><span class="kpi-label">إجمالي الحصص</span><strong class="kpi-value">' + report.totalLessons + '</strong></div>' +
+      '<div class="kpi kpi--done"><span class="kpi-label">إجمالي الحصص المرصودة</span><strong class="kpi-value">' + report.completeLessons + '</strong></div>' +
+      '<div class="kpi kpi--pending"><span class="kpi-label">إجمالي الحصص غير المرصودة</span><strong class="kpi-value">' + report.pendingLessons + '</strong></div></section>' +
+      '<section class="classification"><div class="class-item full">رصد جميع الحصص <b>' + full + '</b></div><div class="class-item partial">رصد بعض الحصص <b>' + partial + '</b></div><div class="class-item zero">لم يرصد الغياب <b>' + zero + '</b></div></section>' +
+      '<table><colgroup><col style="width:4%"><col style="width:18%"><col style="width:8%"><col style="width:12%"><col style="width:29%"><col style="width:29%"></colgroup><thead><tr><th>م</th><th>اسم المعلم</th><th>عدد الحصص</th><th>نسبة الالتزام</th><th>الحصص المرصودة</th><th>الحصص غير المرصودة</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<footer class="signatures"><div>مساعد مدير المدرسة<span class="line">التوقيع: ........................................</span></div><div>مدير المدرسة<span class="line">التوقيع: ........................................</span></div></footer>' +
+      '<div class="toolbar"><strong>لحفظ التقرير بصيغة PDF اختر «حفظ كملف PDF» من نافذة الطباعة.</strong><button type="button" onclick="window.focus();window.print()">طباعة / حفظ PDF</button></div>' +
+      '</main><script>window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(function(){window.focus();window.print()},500)})});<\\/script></body></html>';
+    w.document.open(); w.document.write(html); w.document.close(); w.focus();
   }
   window.setTeachersActivityMode = setMode;
   window.loadTeachersActivityCompliance = loadReport;
