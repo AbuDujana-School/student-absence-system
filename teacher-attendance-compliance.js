@@ -330,6 +330,7 @@
   }
   window.mountAdminTeacherComplianceReport = mountReport;
   window.unmountAdminTeacherComplianceReport = function () { state.root = null; state.lastReport = null; };
+  window.buildTeacherAttendanceComplianceReport = makeReport;
   window.setTeachersActivityMode = setMode;
   window.loadTeachersActivityCompliance = loadReport;
   window.printTeachersActivityPDF = printReport;
