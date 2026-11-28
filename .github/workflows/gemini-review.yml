@@ -1,16 +1,19 @@
-name: Gemini PR Review
+name: Gemini PR Agent
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
 
 jobs:
-  review:
+  review_on_pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,23 +27,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "Missing GEMINI_API_KEY secret"
-            exit 1
-          fi
+          DIFF=$(git diff origin/main...HEAD | head -c 12000)
+          [ -z "$DIFF" ] && exit 0
 
-          DIFF=$(git diff origin/main...HEAD)
-          if [ -z "$DIFF" ]; then
-            echo "No diff found"
-            exit 0
-          fi
-
-          SHORT_DIFF=$(printf "%s" "$DIFF" | head -c 12000)
-
-          PAYLOAD=$(jq -n --arg diff "$SHORT_DIFF" '{
+          PAYLOAD=$(jq -n --arg diff "$DIFF" '{
             contents: [{
               parts: [{
-                text: ("Review this pull request diff concisely in Arabic or English, focusing on bugs, edge cases, security, and improvements:\n\n" + $diff)
+                text: ("راجع هذا التعديل البرمجي باختصار باللغة العربية، واذكر الأخطاء أو التحسينات المقترحة. أخبر المستخدم أنه يمكنه كتابة تعليق يبدأ بـ /gemini لتنفيذ التعديلات تلقائياً:\n\n" + $diff)
               }]
             }]
           }')
@@ -51,11 +44,91 @@ jobs:
             -d "$PAYLOAD")
 
           REVIEW=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          [ -n "$REVIEW" ] && gh pr comment "$PR_NUMBER" --body "$REVIEW"
 
-          if [ -z "$REVIEW" ]; then
-            echo "Gemini API response error:"
-            printf "%s\n" "$RESPONSE"
+  edit_on_command:
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, '/gemini') &&
+      (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR Branch Info
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 0
+
+      - name: Apply Code Edit via Gemini API
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          USER_PROMPT: ${{ github.event.comment.body }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          if [ -z "$CHANGED_FILES" ]; then
+            gh pr comment "$PR_NUMBER" --body "لم أجد ملفات معدّلة في هذا الطلب. اذكر اسم الملف المطلوب تعديله."
+            exit 0
+          fi
+
+          FILES_CONTEXT=""
+          for f in $CHANGED_FILES; do
+            if [ -f "$f" ]; then
+              CONTENT=$(head -c 15000 "$f")
+              FILES_CONTEXT="${FILES_CONTEXT}\n--- FILE: ${f} ---\n${CONTENT}\n"
+            fi
+          done
+
+          PAYLOAD=$(jq -n --arg prompt "$USER_PROMPT" --arg files "$FILES_CONTEXT" '{
+            contents: [{
+              parts: [{
+                text: ("أنت مبرمج خبير. نفذ طلب المستخدم التالي على الملفات المرفقة.\nأرجع النتيجة بصيغة JSON صالحة فقط بدون أي نص إضافي أو علامات markdown، بالشكل التالي:\n{\"summary\": \"ملخص التعديل بالعربية\", \"files\": [{\"path\": \"مسار الملف\", \"content\": \"المحتوى الكامل الجديد للملف\"}]}\n\nطلب المستخدم:\n" + $prompt + "\n\nالملفات الحالية:\n" + $files)
+              }]
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+          }')
+
+          RESPONSE=$(curl -sS -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          RAW_JSON=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+
+          if [ -z "$RAW_JSON" ]; then
+            gh pr comment "$PR_NUMBER" --body "حدث خطأ أثناء الاتصال بنموذج Gemini. تأكد من حجم الملفات أو حاول مجدداً."
             exit 1
           fi
 
-          gh pr comment "$PR_NUMBER" --body "$REVIEW"
+          COUNT=$(printf "%s" "$RAW_JSON" | jq '.files | length')
+          for i in $(seq 0 $((COUNT - 1))); do
+            FILE_PATH=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].path")
+            FILE_CONTENT=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].content")
+            mkdir -p "$(dirname "$FILE_PATH")"
+            printf "%s" "$FILE_CONTENT" > "$FILE_PATH"
+          done
+
+          git config user.name "Gemini AI Bot"
+          git config user.email "gemini-bot@users.noreply.github.com"
+          git add .
+          if git diff --staged --quiet; then
+            gh pr comment "$PR_NUMBER" --body "لم يتم إجراء أي تغيير فعلي على الملفات."
+            exit 0
+          fi
+
+          git commit -m "chore: apply Gemini requested changes"
+          git push
+
+          SUMMARY=$(printf "%s" "$RAW_JSON" | jq -r '.summary')
+          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**\n\n${SUMMARY}"
