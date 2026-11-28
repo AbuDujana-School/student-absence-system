@@ -2699,36 +2699,41 @@ body:not(.login-mode)>main{height:auto!important;min-height:100dvh!important;max
 </style>
 
 <style id="admin-dashboard-universal-scroll-fix">
-/* The admin panels are split between #adminContentSection and its sibling
-   sections inside .glass-card. Flatten the wrapper and let the card own the
-   single bounded scroll area so every dashboard section remains reachable. */
+/* Give the dialog a definite viewport-bounded height. The content section
+   then receives a real flex viewport and owns vertical scrolling. */
 #adminModal:not(.hidden) > .glass-card{
+  box-sizing:border-box!important;
   display:flex!important;
   flex-direction:column!important;
   width:100%!important;
-  height:auto!important;
+  height:min(92vh,900px)!important;
+  height:min(92dvh,900px)!important;
   min-height:0!important;
-  max-height:92vh!important;
+  max-height:calc(100vh - 32px)!important;
+  max-height:calc(100dvh - 32px)!important;
+  overflow:hidden!important;
+}
+#adminModal:not(.hidden) > .glass-card > #adminContentSection:not(.hidden){
+  display:block!important;
+  position:relative!important;
+  flex:1 1 0%!important;
+  width:100%!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:100%!important;
   overflow-x:hidden!important;
   overflow-y:auto!important;
   overscroll-behavior-y:contain!important;
   -webkit-overflow-scrolling:touch!important;
   touch-action:pan-y!important;
 }
-#adminModal:not(.hidden) > .glass-card > #adminContentSection:not(.hidden){
-  display:contents!important;
-}
 #adminModal:not(.hidden) > .glass-card > #adminContentSection.hidden{
   display:none!important;
 }
 #adminModal:not(.hidden) > .glass-card > .bg-emerald-900{
-  position:sticky!important;
-  top:0!important;
-  z-index:40!important;
   flex:none!important;
 }
-#adminModal:not(.hidden) > .glass-card > [id^="sec-"]:not(.hidden),
-#adminModal:not(.hidden) > .glass-card > #adminContentSection > [id^="sec-"]:not(.hidden){
+#adminModal:not(.hidden) #adminContentSection:not(.hidden)>[id^="sec-"]:not(.hidden){
   display:block!important;
   position:relative!important;
   flex:none!important;
