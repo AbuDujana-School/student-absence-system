@@ -117,3 +117,48 @@ test("administrative records center mounts the timetable-backed compliance repor
   assert.ok(complianceModule.includes("reportRequest.admin_records_center = true"));
   assert.ok(complianceModule.includes("async function loadReport(fromOverride, toOverride)"));
 });
+
+
+test("a saved attendance session counts as recorded even when another authorized user saved it", () => {
+  const context = {
+    window: {},
+    document: { addEventListener() {}, getElementById() { return null; }, createElement() { return {}; }, head: { appendChild() {} } },
+    console,
+  };
+  vm.runInNewContext(complianceModule, context);
+  const build = context.window.buildTeacherAttendanceComplianceReport;
+  assert.equal(typeof build, "function");
+  const report = build({
+    teachers: ["معلم ألف"],
+    versions: [{ id: "v1", activatedDate: "2026-11-01" }],
+    cells: [{ versionId: "v1", weekday: "الأحد", period: 1, status: "teaching", teacherName: "معلم ألف", classSections: ["9/1"] }],
+    assignments: [],
+    attendance: [{ date: "2026-11-22", className: "9/1", period: 1, recordedBy: "مدير المدرسة" }],
+  }, "2026-11-22", "2026-11-22", "2026-11-22");
+  assert.equal(report.totalLessons, 1);
+  assert.equal(report.completeLessons, 1);
+  assert.equal(report.pendingLessons, 0);
+  assert.equal(report.rows[0].percentage, 100);
+});
+
+test("compliance report marks only missing lesson slots as pending", () => {
+  const context = {
+    window: {},
+    document: { addEventListener() {}, getElementById() { return null; }, createElement() { return {}; }, head: { appendChild() {} } },
+    console,
+  };
+  vm.runInNewContext(complianceModule, context);
+  const report = context.window.buildTeacherAttendanceComplianceReport({
+    teachers: ["معلم ألف"],
+    versions: [{ id: "v1", activatedDate: "2026-11-01" }],
+    cells: [
+      { versionId: "v1", weekday: "الأحد", period: 1, status: "teaching", teacherName: "معلم ألف", classSections: ["9/1"] },
+      { versionId: "v1", weekday: "الأحد", period: 2, status: "teaching", teacherName: "معلم ألف", classSections: ["9/1"] },
+    ],
+    assignments: [],
+    attendance: [{ date: "2026-11-22", className: "9/1", period: 1 }],
+  }, "2026-11-22", "2026-11-22", "2026-11-22");
+  assert.equal(report.totalLessons, 2);
+  assert.equal(report.completeLessons, 1);
+  assert.equal(report.pendingLessons, 1);
+});
