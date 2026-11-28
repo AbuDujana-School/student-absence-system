@@ -14,6 +14,20 @@ export function hasExplicitReportPermissions(permissions: Record<string, unknown
 }
 
 /** Explicit per-report flags take precedence over the legacy broad reports flag. */
+export function hasAdminRecordsCenterAccess(
+  principalType: string,
+  permissions: Record<string, unknown> | null | undefined,
+  isGeneralAdmin = false,
+  adminRecordsCenterAccess = false,
+): boolean {
+  if (principalType === "admin" && isGeneralAdmin) return true;
+  if (report === "reportStudentAffairs" && adminRecordsCenterAccess) return true;
+  const value = permissions && typeof permissions === "object" ? permissions : {};
+  const overrides = value.additionalAdminOverrides && typeof value.additionalAdminOverrides === "object"
+    ? value.additionalAdminOverrides as Record<string, unknown> : {};
+  return value.adminRecords === true || value.canViewAdminRecords === true || overrides.adminRecords === true;
+}
+
 export function canAccessReportPermission(
   principalType: string,
   permissions: Record<string, unknown> | null | undefined,
