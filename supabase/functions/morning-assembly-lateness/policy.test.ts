@@ -54,4 +54,6 @@ Deno.test("cumulative report is visible only to users with permanent morning-lat
   if (canViewMorningLatenessReport({principalType:"teacher",nonDutyPermission:false})) throw new Error("Duty-only teacher must not view the report");
   if (!canViewMorningLatenessReport({principalType:"custom",customPermission:true})) throw new Error("Authorized custom user must view the report");
   if (canViewMorningLatenessReport({principalType:"custom",customPermission:false})) throw new Error("Custom user without permanent access must not view the report");
+  if (!canViewMorningLatenessReport({principalType:"teacher",nonDutyPermission:false,adminRecordsCenterAccess:true})) throw new Error("Explicit admin-records center access must allow report-only viewing");
+  if (canViewMorningLatenessReport({principalType:"teacher",nonDutyPermission:false,adminRecordsCenterAccess:false})) throw new Error("Report-only access must remain explicit");
 });
