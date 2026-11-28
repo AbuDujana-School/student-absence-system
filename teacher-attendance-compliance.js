@@ -342,7 +342,7 @@
       }).join("");
     }
     const summaryEl = document.getElementById("teachersActivitySummary");
-    if (summaryEl) summaryEl.innerHTML = '<span class="rounded-xl bg-slate-100 px-3 py-2">الفترة: <b>' + esc(period) + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي الحصص: <b>' + report.totalLessons + '</b></span><span class="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">رُصدت: <b>' + report.completeLessons + '</b></span><span class="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">لم تُرصد: <b>' + report.pendingLessons + '</b></span>';
+    if (summaryEl) summaryEl.innerHTML = '<span class="rounded-xl bg-slate-100 px-3 py-2">الفترة: <b>' + esc(period) + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي المعلمين: <b>' + report.teacherCount + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">معلمون دون حصص: <b>' + Math.max(0, report.teacherCount - rows.length) + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي الحصص: <b>' + report.totalLessons + '</b></span><span class="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">رُصدت: <b>' + report.completeLessons + '</b></span><span class="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">لم تُرصد: <b>' + report.pendingLessons + '</b></span>';
     const button = document.getElementById("teachersActivityPrintBtn");
     if (button) button.disabled = !rows.length;
   };
