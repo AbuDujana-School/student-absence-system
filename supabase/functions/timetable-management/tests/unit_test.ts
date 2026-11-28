@@ -696,7 +696,7 @@ Deno.test("manual batch selection updates virtual allocation and reranks later u
   const automatic=buildBatchSubstitutionPlan(common);
   equal(automatic.assignments[0].substituteTeacherName,"بديل أ","Lowest cumulative points wins the first period");
   equal(automatic.assignments[1].substituteTeacherName,"بديل ب","The virtual first allocation affects the next period");
-  const manual=buildBatchSubstitutionPlan({...common,manualAssignments:{"الغائب\\u00001":"بديل ب"}});
+  const manual=buildBatchSubstitutionPlan({...common,manualAssignments:{"الغائب\u00001":"بديل ب"}});
   equal(manual.assignments[0].substituteTeacherName,"بديل ب","The valid manual choice is retained");
   equal(manual.assignments[1].substituteTeacherName,"بديل أ","The remaining lesson is reranked after the manual allocation");
 });
