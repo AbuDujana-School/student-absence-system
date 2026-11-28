@@ -102,7 +102,7 @@ begin
         select coalesce(sum(points_delta),0) into v_emergency_net
         from public.timetable_substitution_points_ledger
         where teacher_name=v_assignment.absent_teacher_name
-          and event_key like v_emergency_prefix||'%';
+          and left(event_key,length(v_emergency_prefix))=v_emergency_prefix;
         if v_emergency_net<2.00 then
           insert into public.timetable_substitution_points_ledger(
             assignment_id,teacher_name,event_key,event_type,points_delta,period,weekday,assignment_date,absent_teacher_name
