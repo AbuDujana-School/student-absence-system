@@ -45,7 +45,7 @@ test("report action preserves the validation message for the user", () => {
 
 test("morning assembly report filters events to the exact selected date window and recalculates thresholds", () => {
   const helperStart = html.indexOf("function filterMorningAssemblyReportRowsByDate(");
-  const helperEnd = html.indexOf("\\nwindow.filterMorningAssemblyReportRowsByDate", helperStart);
+  const helperEnd = html.indexOf("\nwindow.filterMorningAssemblyReportRowsByDate", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "morning report date filter helper must exist");
   const helper = vm.runInNewContext("(" + html.slice(helperStart, helperEnd).trim() + ")");
   const rows = helper([{
@@ -69,18 +69,18 @@ test("morning assembly report filters events to the exact selected date window a
 
 test("administrative report actions validate every date range and constrain morning reports to one academic year", () => {
   const actionStart = html.indexOf("async function reportAction(k,from,to)");
-  const actionEnd = html.indexOf("\\nfunction statsView()", actionStart);
+  const actionEnd = html.indexOf("\nfunction statsView()", actionStart);
   assert.ok(actionStart >= 0 && actionEnd > actionStart, "report action dispatcher must exist");
   const source = html.slice(actionStart, actionEnd);
-  assert.match(source, /reportDateRangeDays\\(from,to\\)/);
-  assert.match(source, /academicYearForDate\\(from\\)!==academicYearForDate\\(to\\)/);
-  assert.match(source, /filterMorningAssemblyReportRowsByDate\\(morningAssemblyReportRows,from,to\\)/);
+  assert.match(source, /reportDateRangeDays\(from,to\)/);
+  assert.match(source, /academicYearForDate\(from\)!==academicYearForDate\(to\)/);
+  assert.match(source, /filterMorningAssemblyReportRowsByDate\(morningAssemblyReportRows,from,to\)/);
 });
 
 
 test("teacher activity report counts normalized multi-type behavior records", () => {
   const start = html.indexOf("function getTeachersActivityRows(");
-  const end = html.indexOf("\\nfunction renderTeachersActivity(", start);
+  const end = html.indexOf("\nfunction renderTeachersActivity(", start);
   assert.ok(start >= 0 && end > start, "teacher activity data adapter must exist");
   const source = html.slice(start, end);
   const context = {
