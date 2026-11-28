@@ -13,11 +13,14 @@ on:
       - feature/remove-daily-reserve-dashboard-tab-20261126
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
+      - fix/admin-report-center-independent-data-20261128
     paths:
       - "supabase/functions/timetable-management/**"
       - "supabase/functions/student-affairs/**"
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
+      - "teacher-attendance-compliance.js"
+      - "tests/admin_compliance_authoritative_data_test.mjs"
       - "reserve-workflow.js"
       - "tests/reserve_archive_refresh_test.ts"
       - "tests/substitution_single_screen_adapter_test.mjs"
@@ -31,6 +34,9 @@ on:
       - "supabase/functions/timetable-management/**"
       - "supabase/functions/student-affairs/**"
       - "index.html"
+      - "teacher-attendance-compliance.js"
+      - "tests/admin_compliance_authoritative_data_test.mjs"
+      - ".github/workflows/timetable-management-tests.yml"
       - "reserve-workflow.js"
       - "tests/substitution_single_screen_adapter_test.mjs"
       - "timetable-text.worker.js"
@@ -164,6 +170,8 @@ jobs:
         run: node --test tests/timetable_dashboard_navigation_test.mjs
       - name: Check teacher attendance compliance report JavaScript syntax
         run: node --check teacher-attendance-compliance.js
+      - name: Test authoritative administrative compliance report data source
+        run: node --test tests/admin_compliance_authoritative_data_test.mjs
       - name: Check reserve reason picker and post-save controls
         run: |
           grep -q 'data-tt-reason' reserve-workflow.js

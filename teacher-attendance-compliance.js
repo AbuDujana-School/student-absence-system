@@ -114,14 +114,22 @@
     }
 
     const saved = new Map();
-    Object.entries(db?.attendance || {}).forEach(([key, session]) => {
+    // Prefer the authoritative server response. The local dashboard cache is only
+    // a compatibility fallback for older endpoints and must never mask an empty
+    // server response (an empty array is an authoritative result).
+    const attendanceSessions = Array.isArray(data.attendance)
+      ? data.attendance
+      : Object.entries(db?.attendance || {}).map(([recordKey, session]) => ({ ...session, recordKey }));
+    attendanceSessions.forEach(session => {
       if (!session || typeof session !== "object") return;
-      const parsed = typeof parseAttendanceKey === "function" ? parseAttendanceKey(key) : null;
-      const date = String(parsed?.date || "");
-      const className = String(session.className || parsed?.className || "");
-      const period = Number(session.period || parsed?.period);
-      if (!date || date < from || date > to || date > today || !className || !Number.isInteger(period)) return;
-      saved.set(slotKey(date, period, className), normalize(session.teacher));
+      const key = String(session.recordKey || session.record_key || "");
+      const parsed = key && typeof parseAttendanceKey === "function" ? parseAttendanceKey(key) : null;
+      const date = String(session.date || session.date_str || parsed?.date || "");
+      const className = String(session.className || session.class_name || parsed?.className || "");
+      const period = Number(session.period ?? parsed?.period);
+      const teacher = String(session.teacherName || session.teacher_name || session.teacher || "");
+      if (!date || date < from || date > to || date > today || !className || !Number.isInteger(period) || !teacher) return;
+      saved.set(slotKey(date, period, className), normalize(teacher));
     });
 
     const rows = [];
