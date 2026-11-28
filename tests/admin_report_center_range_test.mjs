@@ -76,3 +76,32 @@ test("administrative report actions validate every date range and constrain morn
   assert.match(source, /academicYearForDate\\(from\\)!==academicYearForDate\\(to\\)/);
   assert.match(source, /filterMorningAssemblyReportRowsByDate\\(morningAssemblyReportRows,from,to\\)/);
 });
+
+
+test("teacher activity report counts normalized multi-type behavior records", () => {
+  const start = html.indexOf("function getTeachersActivityRows(");
+  const end = html.indexOf("\\nfunction renderTeachersActivity(", start);
+  assert.ok(start >= 0 && end > start, "teacher activity data adapter must exist");
+  const source = html.slice(start, end);
+  const context = {
+    db: {
+      teachers: [{ name: "معلم الاختبار" }],
+      customUsers: [],
+      attendance: { "2026-11-20_9/1_p1": { teacher: "معلم الاختبار", records: { طالب: "absent" } } },
+      behaviors: { "2026-11-20_9/1_p2": { teacher: "معلم الاختبار", records: {
+        طالب: { types: ["talking", "homework"], note: "" },
+        طالب2: { type: "normal" },
+      } } },
+    },
+    normalizeBehaviorRecord(record) {
+      const raw = Array.isArray(record?.types) ? record.types : [record?.type];
+      return { types: raw.map(String).filter(value => value && value !== "normal") };
+    },
+  };
+  const fn = vm.runInNewContext("(" + source + ")", context);
+  const rows = fn("2026-11-20", "2026-11-20");
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].absences, 1);
+  assert.equal(rows[0].behaviors, 1);
+  assert.equal(rows[0].total, 2);
+});
