@@ -189,6 +189,8 @@
   }
   async function loadReport() {
     const requestId = ++state.requestId;
+    state.lastReport = null;
+    document.getElementById("teachersActivityPrintBtn")?.setAttribute("disabled","disabled");
     const dates = getDates();
     if (!dates.from || !dates.to || dates.from > dates.to) {
       setStatus("تحقق من تاريخ البداية والنهاية.", "error"); return;
