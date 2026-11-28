@@ -235,14 +235,14 @@ export interface BatchAbsentTeacher { id:string; name:string; departmentId:strin
 export interface BatchSubstitutionPlanQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
   absentTeachers:BatchAbsentTeacher[]; weekday:string; assignmentDate:string; versionId:string;
-  includeOtherDepartments?:boolean; otherDepartmentTeacherIds?:string[];
+  includeOtherDepartments?:boolean; otherDepartmentTeacherIds?:string[]; manualAssignments?:Record<string,string>;
 }
 export interface BatchSubstitutionPlan {
   assignments:Array<{
     absentTeacherName:string; substituteTeacherName:string; weekday:string; period:number;
     className:string; subject?:string; points:number; pointsBalanceAfter:number; absentPointsBalanceAfter:number;
     substituteDailyTeachingCount:number; createsThreeConsecutive:boolean;
-    candidateOptions:Array<{teacherName:string;pointsBalance:number;weeklyQuota:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean}>;
+    candidateOptions:Array<{teacherName:string;pointsBalance:number;compensationBalance:number;candidateScore:number;effortPoints:number;streakPenalty:number;sameDayPenalty:number;weeklyQuota:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean;streakStatus:string;loadLabel:string;reasons:string[]}>;
   }>;
   unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string}>;
   assignedCount:number; unassignedCount:number;
@@ -300,27 +300,31 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       ...allSameDepartment.filter(option=>(option.dailySubstitutionCount??0)>=1),
       ...allOtherDepartments.filter(option=>(option.dailySubstitutionCount??0)>=1),
     ];
-    const candidate=rankedCandidates[0];
+    const manualKey=absent.name+"\\u0000"+lesson.period;
+    const manualName=query.manualAssignments?.[manualKey];
+    const manualCandidate=manualName?rankedOptions.find(option=>option.name===manualName):undefined;
+    const candidate=manualCandidate||rankedCandidates[0];
     if(!candidate){
       unassigned.push({absentTeacherName:absent.name,weekday:lesson.weekday,period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{})});
       continue;
     }
-    const points=getSubstitutionPeriodPoints(lesson.period);
+    const points=Number(candidate.effortPoints??(getSubstitutionPeriodPoints(lesson.period)*getSubstitutionDailyLoadFactor(candidate.dailyTeachingCount||0).factor));
     const teacher=mutableTeachers.find(t=>t.id===candidate.id)!;
-    teacher.pointsBalance=(teacher.pointsBalance??0)+points;
-    const absentTeacher=mutableTeachers.find(t=>t.id===absent.id);
-    if(absentTeacher) absentTeacher.pointsBalance=(absentTeacher.pointsBalance??0)-points;
+    teacher.pointsBalance=Number(((teacher.pointsBalance??0)+points).toFixed(2));
     assignments.push({
       absentTeacherName:absent.name,substituteTeacherName:candidate.name,weekday:lesson.weekday,
       period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{}),
-      points,pointsBalanceAfter:teacher.pointsBalance??0,absentPointsBalanceAfter:absentTeacher?.pointsBalance??0,
+      points,pointsBalanceAfter:teacher.pointsBalance??0,absentPointsBalanceAfter:Number(mutableTeachers.find(t=>t.id===absent.id)?.pointsBalance)||0,
       substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
       createsThreeConsecutive:candidate.wouldCreateTriple===true,
       candidateOptions:rankedOptions.map(option=>({
-        teacherName:option.name,pointsBalance:option.pointsBalance??0,weeklyQuota:option.weeklyQuota??0,
+        teacherName:option.name,pointsBalance:option.pointsBalance??0,compensationBalance:option.compensationBalance??0,
+        candidateScore:option.candidateScore??0,effortPoints:option.effortPoints??0,
+        streakPenalty:option.streakPenalty??0,sameDayPenalty:option.sameDayPenalty??0,weeklyQuota:option.weeklyQuota??0,
         dailyTeachingCount:option.dailyTeachingCount??0,dailySubstitutionCount:option.dailySubstitutionCount??0,
         occupiedPeriods:option.occupiedPeriods??[],adjacent:option.proximityScore===1,
-        createsThreeConsecutive:option.wouldCreateTriple===true,
+        createsThreeConsecutive:option.wouldCreateTriple===true,streakStatus:option.streakStatus||"متاح بسلاسة",
+        loadLabel:option.loadLabel||"",reasons:option.reasons||[],
       })),
     });
     simulatedAssignments.push({
