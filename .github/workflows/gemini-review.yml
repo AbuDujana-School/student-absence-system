@@ -18,9 +18,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gemini Review
-        uses: google-github-actions/run-gemini-cli@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          prompt: |
-            Review this pull request carefully and post clear, helpful feedback on bugs, edge cases, security, and maintainability.
+          node-version: '22'
+
+      - name: Run Gemini PR Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DIFF=$(git diff origin/main...HEAD)
+          if [ -z "$DIFF" ]; then
+            echo "No diff found."
+            exit 0
+          fi
+          REVIEW=$(printf "Review this pull request diff carefully and give clear, concise feedback on bugs, edge cases, security, and maintainability:\n\n%s" "$DIFF" | npx -y @google/gemini-cli)
+          gh pr comment "$PR_NUMBER" --body "$REVIEW"
