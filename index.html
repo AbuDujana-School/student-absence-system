@@ -2597,16 +2597,28 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 </style>
 
 <style id="admin-panel-universal-scroll-fix">
-/* Keep the admin dialog bounded so its content area can scroll on every tab. */
+/* The overlay is a second scroll surface if the dialog ever exceeds the viewport. */
+#adminModal{
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+}
 #adminModal > .glass-card{
+  box-sizing:border-box;
+  display:flex;
+  flex:0 0 auto;
+  flex-direction:column;
   height:92vh;
   max-height:92vh;
   min-height:0;
+  margin-block:auto;
 }
 #adminModal #adminContentSection{
   flex:1 1 0%;
+  height:0;
   min-height:0;
-  max-height:100%;
+  max-height:none;
   overflow-x:hidden!important;
   overflow-y:auto!important;
   overscroll-behavior-y:contain;
@@ -2617,8 +2629,11 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
   #adminModal > .glass-card{height:92dvh;max-height:92dvh}
 }
 @media(max-width:640px){
-  #adminModal{align-items:center}
-  #adminModal > .glass-card{height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);width:100%;}
+  #adminModal > .glass-card{
+    height:calc(100dvh - 16px);
+    max-height:calc(100dvh - 16px);
+    width:100%;
+  }
 }
 </style>
 </head>
