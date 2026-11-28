@@ -477,7 +477,7 @@ async function handle(req: Request) {
     directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId)
       .forEach((teacher:any)=>departmentMap.set(String(teacher.departmentId),String(teacher.departmentName||teacher.department||teacher.departmentId)));
     const departments=[...departmentMap.entries()].map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,"ar"));
-    const canViewSchoolwide=isSchoolwideReport||canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
+    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
     const canSelectAnyDepartment=principal.type==="admin";
     const canViewDepartmentArchive=canViewSchoolwide||Boolean(actor?.departmentId);
     return reply(200,{ok:true,canView:true,canViewDepartmentArchive,canViewSchoolwide,canSelectAnyDepartment,
@@ -510,7 +510,7 @@ async function handle(req: Request) {
     if(requestedArchiveScope&&!["department","school"].includes(requestedArchiveScope))
       return reply(400,{error:"نوع نطاق الأرشيف غير صحيح."});
     const requestedDepartmentId=String(body.departmentId||"").trim();
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
+    const canViewSchoolwide=isSchoolwideReport||canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
     if(requestedArchiveScope==="school"&&!canViewSchoolwide)
       return reply(403,{error:"أرشيف المدرسة الشامل يتطلب صلاحية الاطلاع على أرشيف الاحتياط الشامل أو صلاحية منسق احتياط مخوّل."});
     const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&principal.type==="admin");
