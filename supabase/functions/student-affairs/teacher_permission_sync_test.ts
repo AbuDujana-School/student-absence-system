@@ -88,14 +88,14 @@ Deno.test("report permissions are independent and legacy broad access is denied"
   const helperEnd = html.indexOf("function switchAdminTab", helperStart);
   assert(helperStart >= 0 && helperEnd > helperStart, "Could not locate report permission helpers");
   const helperSource = html.slice(helperStart, helperEnd);
-  const create = new Function("activeUser", "isAdminAuthorized", "isGeneralAdminUser", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
-    (user: Record<string, unknown>, isAdminAuthorized: () => boolean, isGeneralAdminUser: (user: Record<string, unknown>) => boolean) => {
+  const create = new Function("activeUser", "isAdminAuthorized", "isGeneralAdminUser", "isAdminRecordsCenterScopedAccess", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
+    (user: Record<string, unknown>, isAdminAuthorized: () => boolean, isGeneralAdminUser: (user: Record<string, unknown>) => boolean, isAdminRecordsCenterScopedAccess: () => boolean) => {
       canAccessReport: (key: string) => boolean;
       canAccessAnyReport: () => boolean;
     };
 
   const isGeneralAdminUser = (user: Record<string, unknown>) => user.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
-  const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false, isGeneralAdminUser);
+  const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false, isGeneralAdminUser, () => false);
   assert(!legacy.canAccessAnyReport(), "Legacy broad reports permission must not open the reports section");
   for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup", "reportSubstitutionDistribution"]) {
     assert(!legacy.canAccessReport(key), "Each report requires its own explicit permission");
@@ -107,11 +107,17 @@ Deno.test("report permissions are independent and legacy broad access is denied"
     reportStudentAffairs: true,
     reportComprehensiveAbsence: false,
     reportClassLatenessFollowup: false
-  } }, () => false, isGeneralAdminUser);
+  } }, () => false, isGeneralAdminUser, () => false);
   assert(limited.canAccessReport("reportStudentAffairs"), "The selected report must be accessible");
   assert(!limited.canAccessReport("reportMorningAssemblyLateness"), "Unselected morning report must be hidden");
   assert(!limited.canAccessReport("reportComprehensiveAbsence"), "Unselected absence report must be hidden");
   assert(!limited.canAccessReport("reportClassLatenessFollowup"), "Unselected class-lateness report must be hidden");
+
+  const centerOnly = create({ type: "teacher", permissions: { adminRecords: true } }, () => false, isGeneralAdminUser, () => true);
+  assert(centerOnly.canAccessReport("reportComprehensiveAbsence"), "Center access must enable the absence report while the center is open");
+  assert(centerOnly.canAccessReport("reportClassLatenessFollowup"), "Center access must enable the class-lateness report while the center is open");
+  assert(centerOnly.canAccessReport("reportSubstitutionDistribution"), "Center access must enable the reserve report while the center is open");
+  assert(!centerOnly.canAccessReport("reportStudentAffairs"), "Center access must not bypass Student Affairs report authorization");
 });
 
 Deno.test("only administrators can change report permissions in the teacher editor", () => {
