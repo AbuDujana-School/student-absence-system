@@ -17181,7 +17181,8 @@ function sync(){var c=document.getElementById('adminRecordsDashboardCard');if(c)
 function open(){if(!allowed()){showToast('لا تملك صلاحية الاطلاع على السجلات الإدارية.','error');return;}ensureModal();document.getElementById('dashboardSelectionView')?.classList.add('hidden');modal.classList.remove('hidden');document.body.style.overflow='hidden';hub();}
 function restoreRepPanel(){
  if(repPanelHome){var panel=document.getElementById('repStudentAffairsPanel');if(panel&&repPanelHome.parent){if(repPanelHome.next&&repPanelHome.next.parentNode===repPanelHome.parent)repPanelHome.parent.insertBefore(panel,repPanelHome.next);else repPanelHome.parent.appendChild(panel);}repPanelHome=null;}
- if(teacherActivityHome){var activity=document.getElementById('dashboardTeachersActivity');if(activity&&teacherActivityHome.parent){if(teacherActivityHome.next&&teacherActivityHome.next.parentNode===teacherActivityHome.parent)teacherActivityHome.parent.insertBefore(activity,teacherActivityHome.next);else teacherActivityHome.parent.appendChild(activity);}teacherActivityHome=null;}
+ if(typeof window.unmountAdminTeacherComplianceReport==='function')window.unmountAdminTeacherComplianceReport();
+ if(teacherActivityHome){teacherActivityHome=null;}
 }
  function close(){if(!modal)return;restoreRepPanel();modal.classList.add('hidden');document.body.style.overflow='';document.getElementById('dashboardSelectionView')?.classList.remove('hidden');view='hub';if(typeof refreshReportPanelsVisibility==='function')refreshReportPanelsVisibility();}
 function head(t,s,b,pulseHeader){modal.querySelector('#arcTitle').textContent=t;modal.querySelector('#arcSubtitle').textContent=s;modal.querySelector('#arcBack').classList.toggle('hidden',!b);modal.classList.toggle('arc-pulse-mode',!!pulseHeader);var h=modal.querySelector('.arc-head'),old=h.querySelector('#arcPulseMeta');if(old)old.remove();if(pulseHeader){var tools=document.createElement('div');tools.id='arcPulseMeta';tools.className='arc-pulse-meta';tools.innerHTML='<span class="arc-live"><i></i> بث مباشر</span><span class="arc-date">'+esc(getOmanLocalDate())+'</span><button type="button" class="arc-btn teal" data-arc-action="refresh"><i class="fa-solid fa-rotate"></i> تحديث</button>';h.insertBefore(tools,h.lastElementChild);}}
@@ -17230,18 +17231,11 @@ function openReportDateDialog(key){var report=reportCatalog().find(function(r){r
 function setReportDateShortcut(kind){var d=reportDateDefaults(),today=getOmanLocalDate(),from=d.from;if(kind==='7'){var x=new Date(today+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-6);from=x.toISOString().slice(0,10);}else if(kind==='month')from=today.slice(0,7)+'-01';modal.querySelector('#arcReportFrom').value=from;modal.querySelector('#arcReportTo').value=today;modal.querySelector('#arcReportDateError').textContent='';}
 function closeReportDateDialog(){modal?.querySelector('#arcReportDateDialog')?.classList.add('hidden');}
 async function teacherComplianceReportsView(from,to){
- var panel=document.getElementById('dashboardTeachersActivity');
- if(!panel||typeof window.loadTeachersActivityCompliance!=='function')throw Error('وحدة تقرير الالتزام برصد الغياب غير متاحة.');
- if(!teacherActivityHome)teacherActivityHome={parent:panel.parentNode,next:panel.nextSibling};
+ if(typeof window.mountAdminTeacherComplianceReport!=='function')throw Error('وحدة تقرير الالتزام المستقلة غير متاحة.');
  view='teacherComplianceReports';head('تقرير الالتزام برصد الغياب','مطابقة الجدول الأسبوعي وتكليفات الاحتياط مع سجلات الرصد الفعلية',true);
  modal.querySelector('#arcBody').innerHTML='<div id="arcTeacherComplianceHost" class="min-w-0"></div>';
- panel.classList.remove('hidden');
- modal.querySelector('#arcTeacherComplianceHost').appendChild(panel);
- var fromInput=document.getElementById('teachersActivityFrom'),toInput=document.getElementById('teachersActivityTo');
- if(fromInput)fromInput.value=from;if(toInput)toInput.value=to;
- var range=document.getElementById('teachersActivityRange');if(range)range.classList.remove('hidden');
- document.getElementById('teachersActivityTodayBtn')?.classList.remove('bg-slate-900','text-white');
- document.getElementById('teachersActivityRangeBtn')?.classList.add('bg-slate-900','text-white');
+ var host=modal.querySelector('#arcTeacherComplianceHost');
+ await window.mountAdminTeacherComplianceReport(host);
  await window.loadTeachersActivityCompliance(from,to);
 }
 async function studentAffairsReportsView(from,to){
