@@ -90,7 +90,7 @@ test("Student Affairs reports open inside the records center without granting da
   const actionEnd = actionStart + 700;
   assert.ok(actionStart >= 0);
   assert.ok(!centerScript.slice(actionStart, actionEnd > actionStart ? actionEnd : actionStart + 500).includes("openAdminModal"));
-  assert.ok(centerScript.includes("admin_records_center:true"));
+  assert.ok(html.includes("admin_records_center:true"));
   assert.ok(edge.includes("hasAdminRecordsCenterAccess(appPrincipal.type, appPrincipal.permissions"));
   assert.ok(edge.includes("permissionsFor(p, false, adminRecordsCenterAccess)"));
   assert.ok(edge.includes("mode === \"notice_issue_commit\""));
