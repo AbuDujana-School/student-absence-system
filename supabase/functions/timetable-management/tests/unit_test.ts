@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
-import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, getSubstitutionDailyLoadFactor, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, getSubstitutionDailyLoadFactor, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher, type SubstitutionAssignment } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -363,7 +363,7 @@ Deno.test("three consecutive lessons are avoided before adjacent-period preferen
   const triple=ranked.find(t=>t.id==="triple")!;
   const safe=ranked.find(t=>t.id==="far")!;
   equal(triple.streakPenalty,15,"Three consecutive periods add 15 ranking points");
-  equal(triple.candidateScore,safe.candidateScore+15,"Three-consecutive penalty is applied to ranking only");
+  equal(triple.candidateScore,(safe.candidateScore??0)+15,"Three-consecutive penalty is applied to ranking only");
   equal(ranked[ranked.length-1].id,"triple","The exhausting three-period option ranks last");
 });
 
