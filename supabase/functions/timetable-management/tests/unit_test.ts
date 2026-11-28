@@ -586,3 +586,117 @@ Deno.test("manual override options retain teachers who already have one daily co
   equal(plan.assignments[0].candidateOptions[0].teacherName,"بديل جديد","Dropdown must put the first daily-cover tier ahead of second daily-cover options");
   equal(plan.assignments[0].candidateOptions[1].teacherName,"بديل بحصة","Second daily-cover option remains available after first-cover candidates");
 });
+
+
+Deno.test("daily load factors match the approved 2, 3, 4 and 5+ thresholds",()=>{
+  equal(getSubstitutionDailyLoadFactor(2).factor,1,"Two periods");
+  equal(getSubstitutionDailyLoadFactor(3).factor,1.25,"Three periods");
+  equal(getSubstitutionDailyLoadFactor(4).factor,1.6,"Four periods");
+  equal(getSubstitutionDailyLoadFactor(5).factor,2.2,"Five periods");
+  equal(getSubstitutionDailyLoadFactor(5).overloaded,true,"Five periods require emergency fallback");
+});
+
+Deno.test("candidate score equals cumulative balance plus actual weighted effort",()=>{
+  const teacher:SubstitutionTeacher={id:"t",name:"معلم",departmentId:"science",pointsBalance:3};
+  const timetable:TimetableEntry[]=[
+    {teacherId:"t",weekday:"الأحد",period:1,className:"1/1",status:"teaching"},
+    {teacherId:"t",weekday:"الأحد",period:3,className:"1/2",status:"teaching"},
+    {teacherId:"t",weekday:"الأحد",period:5,className:"1/3",status:"teaching"},
+    {teacherId:"t",weekday:"الأحد",period:7,className:"",status:"free"},
+  ];
+  const ranked=getAvailableSubstitutionCandidates({teachers:[teacher],timetable,assignments:[],
+    absentTeacherId:"absent",weekday:"الأحد",period:7,departmentId:"science"});
+  equal(ranked[0].effortPoints,5,"Period 7 weight 4 multiplied by 3-period factor 1.25");
+  equal(ranked[0].candidateScore,8,"Cumulative 3 plus actual effort 5; no organizational penalty");
+});
+
+Deno.test("same-day reserve adds ten ranking points without increasing actual effort credit",()=>{
+  const teachers:SubstitutionTeacher[]=[
+    {id:"fresh",name:"بدون احتياط",departmentId:"science",pointsBalance:0},
+    {id:"used",name:"احتياط سابق",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[
+    {teacherId:"fresh",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"used",weekday:"الأحد",period:3,className:"",status:"free"},
+  ];
+  const assignments:SubstitutionAssignment[]=[{
+    substituteTeacherId:"used",weekday:"الأحد",period:1,assignmentDate:"2026-11-15",
+    versionId:"active",assignmentType:"substitution",status:"assigned",
+  }];
+  const ranked=getAvailableSubstitutionCandidates({teachers,timetable,assignments,absentTeacherId:"absent",
+    weekday:"الأحد",period:3,departmentId:"science",assignmentDate:"2026-11-15",versionId:"active"});
+  equal(ranked[0].id,"fresh","Teacher without a same-day reserve ranks first");
+  equal(ranked.find(t=>t.id==="used")?.sameDayPenalty,10,"Same-day penalty is ten");
+  equal(ranked.find(t=>t.id==="used")?.effortPoints,1.5,"Organizational penalty is not part of effort credit");
+});
+
+Deno.test("emergency compensation balance creates a modest future priority",()=>{
+  const teachers:SubstitutionTeacher[]=[
+    {id:"normal",name:"رصيد عادي",departmentId:"science",pointsBalance:0},
+    {id:"compensating",name:"رصيد تعويض",departmentId:"science",pointsBalance:0,compensationBalance:2},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:3,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({teachers,timetable,assignments:[],absentTeacherId:"absent",
+    weekday:"الأحد",period:3,departmentId:"science"});
+  equal(ranked[0].id,"compensating","Emergency compensation gives a modest priority");
+  equal(ranked.find(t=>t.id==="compensating")?.candidateScore,0,"Two compensation points reduce the ranking score by 1.5");
+});
+
+Deno.test("five-or-more daily teaching periods are excluded unless every alternative is overloaded",()=>{
+  const teachers:SubstitutionTeacher[]=[
+    {id:"heavy",name:"نصاب ثقيل",departmentId:"science"},
+    {id:"normal",name:"نصاب مناسب",departmentId:"science"},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const p of [1,2,3,4,5])timetable.push({teacherId:"heavy",weekday:"الأحد",period:p,className:"1/1",status:"teaching"});
+  timetable.push({teacherId:"heavy",weekday:"الأحد",period:6,className:"",status:"free"});
+  timetable.push({teacherId:"normal",weekday:"الأحد",period:6,className:"",status:"free"});
+  let ranked=getAvailableSubstitutionCandidates({teachers,timetable,assignments:[],absentTeacherId:"absent",
+    weekday:"الأحد",period:6,departmentId:"science"});
+  equal(ranked.length,1,"The five-period teacher is omitted while a lighter alternative exists");
+  equal(ranked[0].id,"normal","Normal-load teacher remains eligible");
+
+  ranked=getAvailableSubstitutionCandidates({teachers:[teachers[0]],timetable,assignments:[],absentTeacherId:"absent",
+    weekday:"الأحد",period:6,departmentId:"science"});
+  equal(ranked.length,1,"An overloaded teacher is available only as a last resort");
+  equal(ranked[0].emergencyFallback,true,"Emergency fallback is explicitly marked");
+});
+
+Deno.test("four consecutive periods rank behind a non-exhausting available teacher",()=>{
+  const teachers:SubstitutionTeacher[]=[
+    {id:"streak",name:"تتالي مرهق",departmentId:"science"},
+    {id:"safe",name:"متاح بسلاسة",departmentId:"science"},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const p of [1,2,3,4])timetable.push({teacherId:"streak",weekday:"الأحد",period:p,className:"1/1",status:"teaching"});
+  timetable.push({teacherId:"streak",weekday:"الأحد",period:5,className:"",status:"free"});
+  timetable.push({teacherId:"safe",weekday:"الأحد",period:1,className:"1/1",status:"teaching"});
+  timetable.push({teacherId:"safe",weekday:"الأحد",period:5,className:"",status:"free"});
+  const ranked=getAvailableSubstitutionCandidates({teachers,timetable,assignments:[],absentTeacherId:"absent",
+    weekday:"الأحد",period:5,departmentId:"science"});
+  equal(ranked.length,1,"A four-period continuous run is held back when a non-exhausting teacher exists");
+  equal(ranked[0].id,"safe","Safe alternative ranks first");
+});
+
+Deno.test("manual batch selection updates virtual allocation and reranks later unapproved lessons",()=>{
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"الغائب",departmentId:"science",pointsBalance:0},
+    {id:"a",name:"بديل أ",departmentId:"science",pointsBalance:0},
+    {id:"b",name:"بديل ب",departmentId:"science",pointsBalance:5},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(const period of [1,2]){
+      const teaching=teacher.id==="absent";
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:teaching?"1/1":"",status:teaching?"teaching":"free"});
+    }
+  }
+  const common={teachers,timetable,assignments:[],absentTeachers:[{id:"absent",name:"الغائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active"};
+  const automatic=buildBatchSubstitutionPlan(common);
+  equal(automatic.assignments[0].substituteTeacherName,"بديل أ","Lowest cumulative points wins the first period");
+  equal(automatic.assignments[1].substituteTeacherName,"بديل ب","The virtual first allocation affects the next period");
+  const manual=buildBatchSubstitutionPlan({...common,manualAssignments:{"الغائب\\u00001":"بديل ب"}});
+  equal(manual.assignments[0].substituteTeacherName,"بديل ب","The valid manual choice is retained");
+  equal(manual.assignments[1].substituteTeacherName,"بديل أ","The remaining lesson is reranked after the manual allocation");
+});
