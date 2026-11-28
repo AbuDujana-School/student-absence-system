@@ -5803,7 +5803,59 @@ function saBuildPrintHtml(data){
   sections+
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلبة: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
-  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script></body></html>';
+  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script>
+<style id="admin-scroll-architecture-fix-20261128">
+/* One predictable scroll owner for the admin panel on touch and desktop. */
+html,body{min-height:100%;overscroll-behavior-y:auto}
+#adminModal{
+  position:fixed!important;inset:0!important;z-index:99990!important;
+  box-sizing:border-box!important;display:flex;align-items:center;justify-content:center;
+  padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))!important;
+  overflow:hidden!important;overscroll-behavior:contain!important;
+}
+#adminModal.hidden{display:none!important}
+#adminModal>.glass-card{
+  box-sizing:border-box!important;display:flex!important;flex:0 1 auto!important;
+  flex-direction:column!important;width:min(96vw,1440px)!important;
+  height:calc(100vh - 24px)!important;height:calc(100dvh - max(24px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))!important;
+  min-height:0!important;max-height:none!important;margin:0 auto!important;
+  overflow:hidden!important;
+}
+#adminModal>.glass-card>div:first-child{flex:0 0 auto!important}
+#adminModal #adminAuthSection{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+#adminModal #adminContentSection{
+  display:flex;flex:1 1 0!important;flex-direction:column!important;
+  width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;scrollbar-gutter:stable;
+}
+#adminModal #adminContentSection.hidden{display:none!important}
+#adminModal #adminContentSection>[id^="sec-"]{flex:0 0 auto!important;min-height:min-content!important}
+#studentAffairsView{
+  position:relative!important;width:100%!important;height:auto!important;
+  min-height:0!important;max-height:none!important;overflow:visible!important;
+  contain:none!important;
+}
+#studentAffairsView #saContent,
+#studentAffairsView #saContent>.sa-main-pane,
+#studentAffairsView #saResults{
+  min-height:0!important;max-height:none!important;overflow:visible!important;
+}
+@media(max-width:640px){
+  #adminModal{align-items:stretch!important;justify-content:center!important;padding:max(6px,env(safe-area-inset-top)) 6px max(6px,env(safe-area-inset-bottom))!important}
+  #adminModal>.glass-card{
+    width:100%!important;height:calc(100vh - 12px)!important;
+    height:calc(100dvh - max(12px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 8px))!important;
+    max-height:none!important;border-radius:18px!important;margin:0!important;
+  }
+  #adminModal #adminContentSection{padding:12px!important;overscroll-behavior-y:contain!important}
+}
+@media(min-width:641px){
+  #adminModal #adminContentSection{padding:20px 24px!important}
+}
+</style>
+</body></html>';
 }
 async function saPrint(){
   const p=saReportPermissions||{};
