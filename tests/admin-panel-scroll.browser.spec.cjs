@@ -113,3 +113,25 @@ for (const viewport of viewports) {
     }
   });
 }
+
+const printPinStart = source.indexOf("function printPinCredentials()");
+const printPinEnd = source.indexOf("async function copyPinAndClose()", printPinStart);
+if (printPinStart < 0 || printPinEnd < 0) throw new Error("Could not locate the production PIN print function.");
+const printPinFunction = source.slice(printPinStart, printPinEnd);
+
+test("new login credentials remain printable when popups are blocked", async ({ page }) => {
+  await page.setContent(
+    '<div id="pinDisplayModal" data-pin="731946" data-name="Test Teacher"></div>' +
+    '<button id="printPinButton" type="button" onclick="printPinCredentials()">طباعة بيانات الدخول</button>'
+  );
+  await page.addScriptTag({ content:
+    "window.showToast = function () {}; window.open = function () { return null; };\\n" + printPinFunction
+  });
+  await page.locator("#printPinButton").click();
+  const frame = page.locator('iframe[title="طباعة بيانات الدخول"]');
+  await expect(frame).toHaveCount(1);
+  await expect.poll(() => frame.evaluate(el => el.contentDocument && el.contentDocument.body ? el.contentDocument.body.innerText : ""))
+    .toContain("731946");
+  await expect.poll(() => frame.evaluate(el => el.contentDocument && el.contentDocument.body ? el.contentDocument.body.innerText : ""))
+    .toContain("Test Teacher");
+});
