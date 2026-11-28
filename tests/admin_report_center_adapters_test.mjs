@@ -44,3 +44,15 @@ test("the report center uses the detachable registry for catalog and dispatch",(
 test("the adapter module is metadata and dispatch only; it performs no school-data writes",()=>{
  assert.doesNotMatch(adapterSource,/\.insert\s*\(|\.update\s*\(|\.delete\s*\(|fetch\s*\(/);
 });
+
+test("all seven source handlers are registered and the original fallback remains available",()=>{
+ const start=html.indexOf("async function reportAction(k,from,to)");
+ const end=html.indexOf("\\nfunction statsView()",start);
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end);
+ for(const key of ["absence","behavior","late","morning","reserve","sa","teachers"]) assert.ok(source.includes(key+":async function"),"Missing report handler: "+key);
+ assert.match(source,/else if\(typeof handlers\[k\]==='function'\)await handlers\[k\]\(\)/);
+ const catalogStart=html.indexOf("function reportCatalog()");
+ const catalogEnd=html.indexOf("\\nfunction reportsView()",catalogStart);
+ assert.match(html.slice(catalogStart,catalogEnd),/return \[/);
+});
