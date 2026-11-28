@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "admin-report-center-adapters.js"
       - "tests/admin_report_center_range_test.mjs"
+      - "tests/admin_report_center_adapters_test.mjs"
       - ".github/workflows/admin-report-center-range-tests.yml"
   push:
     branches:
@@ -26,4 +28,4 @@ jobs:
         with:
           node-version: 20
       - name: Test report date range boundaries
-        run: node --test tests/admin_report_center_range_test.mjs
+        run: node --test tests/admin_report_center_range_test.mjs tests/admin_report_center_adapters_test.mjs
