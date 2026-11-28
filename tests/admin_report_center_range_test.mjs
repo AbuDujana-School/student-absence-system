@@ -108,12 +108,18 @@ test("teacher activity report counts normalized multi-type behavior records", ()
 });
 
 
-test("administrative records center mounts the timetable-backed compliance report instead of printing stale local totals", () => {
+test("administrative compliance report mounts its own reader and does not borrow the dashboard report panel", () => {
   assert.ok(html.includes("async function teacherComplianceReportsView(from,to)"));
-  assert.ok(html.includes("await window.loadTeachersActivityCompliance(from,to)"));
+  assert.ok(html.includes("window.mountTeachersActivityCompliance(host,from,to)"));
   assert.ok(html.includes("await teacherComplianceReportsView(from,to)"));
-  assert.ok(html.includes("dashboardTeachersActivity"));
+  const start = html.indexOf("async function teacherComplianceReportsView(from,to)");
+  const end = html.indexOf("\nasync function studentAffairsReportsView", start);
+  const source = html.slice(start, end);
+  assert.doesNotMatch(source, /dashboardTeachersActivity/);
   assert.ok(complianceModule.includes("timetable_activity_report_data"));
   assert.ok(complianceModule.includes("reportRequest.admin_records_center = true"));
   assert.ok(complianceModule.includes("async function loadReport(fromOverride, toOverride)"));
+  assert.ok(complianceModule.includes("window.mountTeachersActivityCompliance = mountStandalone"));
+  assert.ok(complianceModule.includes("data.attendance"));
+  assert.doesNotMatch(complianceModule, /db\?\.attendance/);
 });
