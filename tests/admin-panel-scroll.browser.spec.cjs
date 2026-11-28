@@ -62,15 +62,15 @@ for (const viewport of viewports) {
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, isMobile: viewport.width < 640, hasTouch: viewport.width < 640 });
     const page = await context.newPage();
     await page.setContent(fixture, { waitUntil: "domcontentloaded" });
-    await page.evaluate(() => {
+    await page.evaluate(sectionIds => {
       const modal = document.getElementById("adminModal");
       const content = document.getElementById("adminContentSection");
       modal.classList.remove("hidden");
       document.getElementById("adminAuthSection").classList.add("hidden");
       content.classList.remove("hidden");
-      content.innerHTML = adminSectionIds.map(id => `<section id="${id}" style="display:none"><div style="height:2600px;flex:none;padding:16px">synthetic scroll fixture — ${id}</div></section>`).join("");
-      document.getElementById(adminSectionIds[0]).style.display = "block";
-    });
+      content.innerHTML = sectionIds.map(id => `<section id="${id}" style="display:none"><div style="height:2600px;flex:none;padding:16px">synthetic scroll fixture — ${id}</div></section>`).join("");
+      document.getElementById(sectionIds[0]).style.display = "block";
+    }, adminSectionIds);
 
     const metrics = await page.evaluate(() => {
       const modal = document.getElementById("adminModal");
