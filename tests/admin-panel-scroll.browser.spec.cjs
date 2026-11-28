@@ -46,6 +46,7 @@ const fixture = `<!doctype html>
 </style>
 ${styleBlock("admin-panel-universal-scroll-fix")}
 ${styleBlock("admin-report-behavior-scroll-fix")}
+${styleBlock("admin-dashboard-universal-scroll-fix")}
 </head>
 <body>${modalMarkup}</body>
 </html>`;
@@ -132,36 +133,40 @@ const longPanelCases = [
   { id: "sec-behaviorstats", label: "behavior", markup: behaviorStatsMarkup }
 ];
 
+
 for (const panel of longPanelCases) {
   for (const viewport of viewports) {
-    test(`admin ${panel.label} section scrolls — ${viewport.label}`, async ({ page }) => {
+    test(`admin ${panel.label} section scrolls with full dashboard layout — ${viewport.label}`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.setContent(fixture, { waitUntil: "domcontentloaded" });
-      await page.evaluate(({ markup, id }) => {
+      await page.evaluate(({ id }) => {
         const modal = document.getElementById("adminModal");
         const content = document.getElementById("adminContentSection");
         modal.classList.remove("hidden");
         document.getElementById("adminAuthSection").classList.add("hidden");
         content.classList.remove("hidden");
-        content.innerHTML = markup;
-        const panel = document.getElementById(id);
-        panel.classList.remove("hidden");
+        content.querySelectorAll('[id^="sec-"]').forEach(section => section.classList.add("hidden"));
+        const section = document.getElementById(id);
+        section.classList.remove("hidden");
         if (id === "sec-behaviorstats") {
-          const classes = panel.querySelector("#behaviorReportClassesContainer");
+          const classes = section.querySelector("#behaviorReportClassesContainer");
           classes.innerHTML = Array.from({ length: 10 }, (_, i) =>
             `<div style="height:280px;min-height:280px;padding:16px;border:1px solid #ddd">صف تجريبي ${i + 1}</div>`
           ).join("");
+        } else {
+          section.insertAdjacentHTML("beforeend",
+            '<div data-scroll-fixture style="height:2600px;min-height:2600px;width:100%">تقارير تجريبية طويلة</div>');
         }
-      }, { markup: panel.markup, id: panel.id });
+      }, { id: panel.id });
 
       const metrics = await page.evaluate((id) => {
         const content = document.getElementById("adminContentSection");
         const section = document.getElementById(id);
         return {
-          viewportHeight: window.innerHeight,
           contentHeight: content.clientHeight,
           contentScrollHeight: content.scrollHeight,
           contentOverflowY: getComputedStyle(content).overflowY,
+          contentDisplay: getComputedStyle(content).display,
           sectionHeight: section.getBoundingClientRect().height,
           sectionOverflowY: getComputedStyle(section).overflowY,
           sectionDisplay: getComputedStyle(section).display
@@ -169,8 +174,9 @@ for (const panel of longPanelCases) {
       }, panel.id);
 
       expect(metrics.contentHeight, "admin content viewport must be bounded").toBeGreaterThan(100);
-      expect(metrics.contentScrollHeight, "real panel content must exceed the viewport").toBeGreaterThan(metrics.contentHeight);
+      expect(metrics.contentScrollHeight, "full dashboard panel must exceed the viewport").toBeGreaterThan(metrics.contentHeight);
       expect(metrics.contentOverflowY).toBe("auto");
+      expect(metrics.contentDisplay).toBe("block");
       expect(metrics.sectionOverflowY).toBe("visible");
       expect(metrics.sectionDisplay).toBe("block");
 
