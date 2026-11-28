@@ -357,7 +357,7 @@
     if (!el("teachersActivityReportHeader")) {
       const header = document.createElement("section");
       header.id = domId("teachersActivityReportHeader");
-      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
+      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="' + domId("teachersActivityHeaderPeriod") + '"></div>';
       summary.parentElement.insertBefore(header, summary);
     }
     if (!el("teachersActivityKpis")) {
