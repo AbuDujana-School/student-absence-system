@@ -13,6 +13,7 @@ on:
       - feature/remove-daily-reserve-dashboard-tab-20261126
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
+      - test/cumulative-substitution-fairness-20261128
     paths:
       - "supabase/functions/timetable-management/**"
       - "supabase/functions/student-affairs/**"
