@@ -1,15 +1,17 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
 export interface SubstitutionTeacher {
   id:string; name:string; departmentId:string; weeklyQuota?:number;
-  pointsBalance?:number; dailyTeachingCount?:number; dailySubstitutionCount?:number;
+  pointsBalance?:number; compensationBalance?:number; dailyTeachingCount?:number; dailySubstitutionCount?:number;
   substitutionsCount?:number; workloadScore?:number; historicalWorkloadScore?:number;
   proximityScore?:number; wouldCreateTriple?:boolean; occupiedPeriods?:number[];
+  candidateScore?:number; effortPoints?:number; streakPenalty?:number; sameDayPenalty?:number;
+  streakStatus?:string; loadLabel?:string; reasons?:string[]; emergencyFallback?:boolean;
 }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
 export interface SubstitutionAssignment {
   substituteTeacherId:string; absentTeacherId?:string; weekday:string; period:number;
-  assignmentDate?:string|null; versionId?:string; assignmentType?:string;
+  assignmentDate?:string|null; versionId?:string; assignmentType?:string; absenceReason?:string;
   status?:"assigned"|"confirmed"|"cancelled"|"completed";
 }
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
@@ -24,8 +26,9 @@ function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:numb
 
 /** School-approved points for a single substitute lesson (periods 1–8). */
 export function getSubstitutionPeriodPoints(period:number):number {
-  return ({1:1,2:1,3:2,4:2,5:4,6:3,7:5,8:7} as Record<number,number>)[period] ?? 0;
+  return ({1:1,2:1,3:1.5,4:1.5,5:3,6:2.5,7:4,8:5} as Record<number,number>)[period] ?? 0;
 }
+
 
 /** Strict ISO calendar-date validation; rejects normalized invalid dates such as February 30. */
 export function isValidSubstitutionDate(value:unknown):value is string {
