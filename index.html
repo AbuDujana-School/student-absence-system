@@ -2665,6 +2665,39 @@ body:not(.login-mode)>main{height:auto!important;min-height:100dvh!important;max
 @media(max-width:640px){#adminModal:not(.hidden){padding:8px!important}#adminModal>.glass-card{width:100%!important;min-height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important;border-radius:18px!important}}
 @media(min-width:641px){#adminModal>.glass-card{min-height:min(620px,calc(100dvh - 32px))!important}}
 </style>
+
+<style id="admin-report-behavior-scroll-fix">
+/* Keep the two long admin panels in the parent scroll flow.
+   Their content must grow naturally; the admin content viewport owns vertical scrolling. */
+#adminModal #adminContentSection:not(.hidden){
+  min-height:0!important;
+  max-height:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}
+#adminModal #adminContentSection>#sec-reports:not(.hidden),
+#adminModal #adminContentSection>#sec-behaviorstats:not(.hidden){
+  display:block!important;
+  position:relative!important;
+  box-sizing:border-box!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:max-content!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  contain:none!important;
+}
+#adminModal #adminContentSection>#sec-reports:not(.hidden) *,
+#adminModal #adminContentSection>#sec-behaviorstats:not(.hidden) *{
+  scroll-margin-block:12px;
+}
+</style>
+
 </head>
 <body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
