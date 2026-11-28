@@ -84,7 +84,7 @@ test("every report preserves the original section PDF or print view instead of u
 
 test("Student Affairs and teacher-compliance PDF actions are the original section renderers",()=>{
  const saStart=html.indexOf("async function repPrint()");
- const saEnd=html.indexOf("\\nconst REPORT_PERMISSION_KEYS",saStart);
+ const saEnd=html.indexOf("\nconst REPORT_PERMISSION_KEYS",saStart);
  assert.ok(saStart>=0&&saEnd>saStart,"Student Affairs original PDF renderer must exist");
  assert.ok(html.includes('onclick="repPrint()"'),"Student Affairs panel must retain its original PDF button");
  const compliance=fs.readFileSync(new URL("../teacher-attendance-compliance.js",import.meta.url),"utf8");
