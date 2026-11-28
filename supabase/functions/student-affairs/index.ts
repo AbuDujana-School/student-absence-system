@@ -15,7 +15,7 @@ import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
-import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
+import { canAccessReportPermission, hasAdminRecordsCenterAccess } from "../_shared/report_access_policy.ts";
 import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
 import { omanActivityDateRange, omanTodayIsoDate } from "./activity_monitor_policy.ts";
 import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "../_shared/admin_principal_policy.ts";
@@ -218,8 +218,8 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   }
   return null;
 }
-async function permissionsFor(p: { type: string; name: string; permissions?: Record<string, unknown> }, strictCompetition = false) {
-  if (hasFullAdministrativeAccess(p)) {
+async function permissionsFor(p: { type: string; name: string; permissions?: Record<string, unknown> }, strictCompetition = false, adminRecordsCenterAccess = false) {
+  if (hasFullAdministrativeAccess(p) || adminRecordsCenterAccess) {
     const [{ data: classes }, { data: teachers }, { data: permissionRows }] = await Promise.all([
       db.from("classes").select("name"),
       db.from("teachers").select("name,role,permissions").neq("role", "custom"),
@@ -1837,6 +1837,7 @@ async function handle(req: Request) {
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let activitySessionHash: string | null = null;
   let p: { type: string; name: string };
+  let adminRecordsCenterAccess = false;
   if (body?.action === "reports_permissions" || body?.action === "reports") {
     const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
     if (appSession) {
@@ -1849,7 +1850,8 @@ async function handle(req: Request) {
       if (hasFullAdministrativeAccess(appPrincipal) && !(await adminStudentAffairsAccessEnabled())) {
         return reply(403, { error: "تم تعليق دخول مدير النظام إلى تقارير شؤون الطلبة مؤقتاً للاختبار." });
       }
-      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs", hasFullAdministrativeAccess(appPrincipal))) {
+      adminRecordsCenterAccess = body?.admin_records_center === true && hasAdminRecordsCenterAccess(appPrincipal.type, appPrincipal.permissions, hasFullAdministrativeAccess(appPrincipal));
+      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs", hasFullAdministrativeAccess(appPrincipal), adminRecordsCenterAccess)) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
       }
       p = appPrincipal;
@@ -1867,7 +1869,7 @@ async function handle(req: Request) {
       return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
     }
     if (body?.action === "reports_permissions") {
-      return reply(200, { permissions: await permissionsFor(p) });
+      return reply(200, { permissions: await permissionsFor(p, false, adminRecordsCenterAccess) });
     }
   } else {
     session = await getSession(req);
@@ -2261,7 +2263,7 @@ async function handle(req: Request) {
     }
   }
   if (body?.action === "reports") {
-    let permissions = await permissionsFor(p);
+    let permissions = await permissionsFor(p, false, adminRecordsCenterAccess);
     const targetName = String(body.supervision_teacher_name || "").trim();
     if (targetName) {
       const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
@@ -2281,6 +2283,7 @@ async function handle(req: Request) {
     if (!areClassesAllowed(requestedAttendance, [...allowedAttendance])) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى شعب الغياب المطلوبة" });
     if (!areClassesAllowed(requestedBehavior, [...allowedBehavior])) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى شعب السلوك المطلوبة" });
     const mode = body.report_mode || "view";
+    if (adminRecordsCenterAccess && mode === "notice_issue_commit") return reply(403, { error: "صلاحية القسم الإداري تتيح عرض التقارير وطباعتها، ولا تمنح صلاحية اعتماد إصدار تنبيهات رسمية جديدة." });
     if (mode === "activity_event") {
       const eventType = String(body.activity_type || "");
       if (eventType === "module_access") {

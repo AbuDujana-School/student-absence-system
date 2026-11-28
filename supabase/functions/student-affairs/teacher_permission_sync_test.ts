@@ -117,7 +117,7 @@ Deno.test("report permissions are independent and legacy broad access is denied"
   assert(centerOnly.canAccessReport("reportComprehensiveAbsence"), "Center access must enable the absence report while the center is open");
   assert(centerOnly.canAccessReport("reportClassLatenessFollowup"), "Center access must enable the class-lateness report while the center is open");
   assert(centerOnly.canAccessReport("reportSubstitutionDistribution"), "Center access must enable the reserve report while the center is open");
-  assert(!centerOnly.canAccessReport("reportStudentAffairs"), "Center access must not bypass Student Affairs report authorization");
+  assert(centerOnly.canAccessReport("reportStudentAffairs"), "Center access must enable Student Affairs reports while the center is open");
 });
 
 Deno.test("only administrators can change report permissions in the teacher editor", () => {

@@ -612,3 +612,31 @@ Deno.test("schoolwide archive-only teacher permission authenticates only the two
     throw new Error("Archive-only teacher permission must not authenticate reserve management actions");
   }
 });
+
+
+Deno.test("admin-records portal grant unlocks only the read-only reserve report action", async () => {
+  const session = { principal_type: "teacher", principal_name: "Records Viewer", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Records Viewer", role: "teacher", permissions: { adminRecords: true } },
+    access: false,
+    reserve: false,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, "admin_records_center:timetable_substitution_report");
+  if (principal?.type !== "teacher" || principal.reportReadOnly !== true || principal.adminRecordsCenterReportOnly !== true) {
+    throw new Error("Explicit admin-records access did not create the narrow report-only identity");
+  }
+  if (principal.reserveAccess === true || canUseTimetableAction("teacher", "timetable_substitution_save", false, principal.reserveAccess)) {
+    throw new Error("Report-only access must not grant reserve management");
+  }
+});
+
+Deno.test("Additional Admin alone does not grant the admin-records reserve report", async () => {
+  const session = { principal_type: "teacher", principal_name: "Additional Only", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Additional Only", role: "teacher", permissions: { additionalAdmin: true } },
+    access: false,
+    reserve: false,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, "admin_records_center:timetable_substitution_report");
+  if (principal !== null) throw new Error("Additional Admin alone must not gain report-only access");
+});

@@ -7,6 +7,10 @@ export interface TimetablePrincipal {
   portalOnly?: boolean;
   /** May view schoolwide reserve statistics; does not itself grant reserve management. */
   schoolwideReserveStats?: boolean;
+  /** Narrow read-only report capability; never grants reserve mutation. */
+  reportReadOnly?: boolean;
+  /** Marks report-only access originating from the admin-records portal grant. */
+  adminRecordsCenterReportOnly?: boolean;
   /** Has only the schoolwide reserve-statistics view, with no other timetable grant. */
   reserveStatsOnly?: boolean;
   /** Can only read the timetable context needed to compose an authorized duty report. */
@@ -109,6 +113,15 @@ export async function resolveTimetablePrincipal(
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
+  const additionalOverrides = permissions.additionalAdminOverrides && typeof permissions.additionalAdminOverrides === "object"
+    ? permissions.additionalAdminOverrides as Record<string, unknown> : {};
+  const hasAdminRecordsCenterGrant = permissions.adminRecords === true || permissions.canViewAdminRecords === true || additionalOverrides.adminRecords === true;
+  if (requestedAction === "admin_records_center:timetable_substitution_report" && hasAdminRecordsCenterGrant) {
+    return { type, name, permissions, reportReadOnly: true, adminRecordsCenterReportOnly: true };
+  }
+  if (requestedAction === "timetable_substitution_report" && permissions.reportSubstitutionDistribution === true) {
+    return { type, name, permissions, reportReadOnly: true };
+  }
   // Delegated full administrators remain teacher identities in app_sessions,
   // but receive administrator authority for timetable management actions.
   if (type === "teacher" && permissions.admin === true) {

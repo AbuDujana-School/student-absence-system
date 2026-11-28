@@ -358,9 +358,11 @@ async function handle(req: Request) {
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
   const action = String(body.action || "");
-  const principal = await requirePrincipal(req, action);
+  const authAction = action === "timetable_substitution_report" && body.admin_records_center === true
+    ? "admin_records_center:timetable_substitution_report" : action;
+  const principal = await requirePrincipal(req, authAction);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-  if (principal.type === "admin" && action.startsWith("timetable_substitution_")) {
+  if (principal.type === "admin" && action.startsWith("timetable_substitution_") && action !== "timetable_substitution_report") {
     try {
       if (!(await isAdminReserveAccessEnabled())) {
         return reply(403, { error: "تم إيقاف صلاحية إدارة الاحتياط للمدير العام مؤقتاً لأغراض التشخيص." });
@@ -375,7 +377,7 @@ async function handle(req: Request) {
     action.startsWith("timetable_substitution_") && principal.reserveAccess === true;
   // Only archive actions need the separate timetable grant; avoid this
   // permission query for every ordinary read while preserving the archive recheck.
-  const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
+  const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access", "timetable_substitution_report"].includes(action);
   const hasTimetableGrant = needsArchiveGrant &&
     (principal.type === "teacher" || principal.type === "custom")
       ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
@@ -393,13 +395,16 @@ async function handle(req: Request) {
     principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
-    principal.type === "admin" ||
-    principal.permissions?.teachers === true
+    principal.type === "admin" || principal.permissions?.teachers === true || principal.adminRecordsCenterReportOnly === true
+  );
+  const hasSubstitutionReportPermission = action === "timetable_substitution_report" && (
+    principal.type === "admin" || principal.reportReadOnly === true || hasReservePermission || hasTimetableGrant || hasExplicitSchoolwideArchivePermission
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission
     && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)
-    && !hasTeacherActivityPermission) {
+    && !hasTeacherActivityPermission
+    && !hasSubstitutionReportPermission) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية توزيع الاحتياط أو حساب منسق غياب مخوّل." });
   }
 
@@ -482,8 +487,9 @@ async function handle(req: Request) {
 
   // Archive is independent of the currently active timetable version: historical
   // reserve records remain printable even after a new timetable is activated.
-  if (action === "timetable_substitution_archive") {
-    if (!hasArchivePermission) return reply(403,{error:"لا تملك صلاحية عرض أرشيف الاحتياط."});
+  if (action === "timetable_substitution_archive" || action === "timetable_substitution_report") {
+    const isSchoolwideReport = action === "timetable_substitution_report";
+    if (isSchoolwideReport ? !hasSubstitutionReportPermission : !hasArchivePermission) return reply(403,{error:isSchoolwideReport?"لا تملك صلاحية عرض تقرير توزيع الاحتياط.":"لا تملك صلاحية عرض أرشيف الاحتياط."});
     const dateFrom=String(body.dateFrom||"").trim(),dateTo=String(body.dateTo||"").trim();
     if(!isValidSubstitutionDate(dateFrom)||!isValidSubstitutionDate(dateTo)||dateFrom>dateTo) {
       return reply(400,{error:"حدد فترة زمنية صحيحة لأرشيف الاحتياط."});
@@ -500,11 +506,11 @@ async function handle(req: Request) {
     if(activeVersion.error)throw activeVersion.error;
     const actor=directory.find((teacher:any)=>teacher.name===principal.name);
     const homeToday=body.homeToday===true;
-    const requestedArchiveScope=String(body.archiveScope||"").trim().toLowerCase();
+    const requestedArchiveScope=isSchoolwideReport?"school":String(body.archiveScope||"").trim().toLowerCase();
     if(requestedArchiveScope&&!["department","school"].includes(requestedArchiveScope))
       return reply(400,{error:"نوع نطاق الأرشيف غير صحيح."});
     const requestedDepartmentId=String(body.departmentId||"").trim();
-    const canViewSchoolwide=canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
+    const canViewSchoolwide=isSchoolwideReport||canViewSchoolwideReserveArchive(principal.type,hasSchoolwideArchiveGrant);
     if(requestedArchiveScope==="school"&&!canViewSchoolwide)
       return reply(403,{error:"أرشيف المدرسة الشامل يتطلب صلاحية الاطلاع على أرشيف الاحتياط الشامل أو صلاحية منسق احتياط مخوّل."});
     const schoolwide=requestedArchiveScope==="school"||(requestedArchiveScope===""&&principal.type==="admin");
