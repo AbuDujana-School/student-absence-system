@@ -136,9 +136,25 @@ for (const viewport of viewports) {
       card.style.maxHeight = "none";
       modal.scrollTop = 0;
     });
+    const fallbackMetrics = await page.locator("#adminModal").evaluate(el => {
+      const card = el.querySelector(".glass-card");
+      return {
+        clientHeight: el.clientHeight,
+        scrollHeight: el.scrollHeight,
+        overflowY: getComputedStyle(el).overflowY,
+        alignItems: getComputedStyle(el).alignItems,
+        cardTop: card.getBoundingClientRect().top,
+        cardBottom: card.getBoundingClientRect().bottom,
+        cardHeight: card.getBoundingClientRect().height
+      };
+    });
+    expect(fallbackMetrics.scrollHeight, JSON.stringify(fallbackMetrics)).toBeGreaterThan(fallbackMetrics.clientHeight);
+    await page.locator("#adminModal").evaluate(el => { el.scrollTop = 200; });
+    await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
+    await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
     await page.mouse.move(10, viewport.height - 10);
     await page.mouse.wheel(0, 500);
-    await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+    await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
 
     // On phones, also swipe the overlay padding to validate its fallback touch surface.
     if (viewport.width < 640) {
