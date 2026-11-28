@@ -1,0 +1,87 @@
+name: One-off admin dashboard scroll layout repair
+on:
+  push:
+    branches:
+      - fix/admin-dashboard-scroll-layout-20261128
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message != 'fix: admin scroll layout from card'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply the structural scroll fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("index.html")
+          source = path.read_text(encoding="utf-8")
+          start_token = '<style id="admin-dashboard-universal-scroll-fix">'
+          start = source.find(start_token)
+          if start < 0:
+              raise SystemExit("Expected admin scroll style block was not found")
+          end_tag = source.find("</style>", start)
+          if end_tag < 0:
+              raise SystemExit("Admin scroll style block is not closed")
+          end = end_tag + len("</style>")
+          if source.find(start_token, start + 1) >= 0:
+              raise SystemExit("Duplicate admin scroll style blocks detected")
+          replacement = """<style id="admin-dashboard-universal-scroll-fix">
+/* The admin panels are siblings of #adminContentSection inside .glass-card.
+   Make the card the single bounded scroll owner and flatten the wrapper so
+   the active panel participates in the same scroll flow. */
+#adminModal:not(.hidden) .glass-card {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 92vh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+#adminModal:not(.hidden) .glass-card > #adminContentSection:not(.hidden) {
+  display: contents !important;
+}
+#adminModal:not(.hidden) .glass-card > #adminContentSection.hidden {
+  display: none !important;
+}
+#adminModal:not(.hidden) .glass-card > .bg-emerald-900 {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  flex: none !important;
+}
+#adminModal:not(.hidden) .glass-card > [id^="sec-"]:not(.hidden) {
+  display: block !important;
+  position: relative !important;
+  flex: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: max-content !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  contain: none !important;
+}
+</style>"""
+          path.write_text(source[:start] + replacement + source[end:], encoding="utf-8")
+          print("Updated admin modal scroll owner; preserved all application data and business logic.")
+          PY
+      - name: Commit the one-off repair and remove this workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-off-admin-scroll-layout-repair.yml
+          git add index.html
+          git commit -m "fix: admin scroll layout from card"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
