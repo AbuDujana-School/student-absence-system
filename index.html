@@ -2698,6 +2698,49 @@ body:not(.login-mode)>main{height:auto!important;min-height:100dvh!important;max
 }
 </style>
 
+<style id="admin-dashboard-universal-scroll-fix">
+/* The admin panels are split between #adminContentSection and its sibling
+   sections inside .glass-card. Flatten the wrapper and let the card own the
+   single bounded scroll area so every dashboard section remains reachable. */
+#adminModal:not(.hidden) > .glass-card{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:92vh!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+#adminModal:not(.hidden) > .glass-card > #adminContentSection:not(.hidden){
+  display:contents!important;
+}
+#adminModal:not(.hidden) > .glass-card > #adminContentSection.hidden{
+  display:none!important;
+}
+#adminModal:not(.hidden) > .glass-card > .bg-emerald-900{
+  position:sticky!important;
+  top:0!important;
+  z-index:40!important;
+  flex:none!important;
+}
+#adminModal:not(.hidden) > .glass-card > [id^="sec-"]:not(.hidden),
+#adminModal:not(.hidden) > .glass-card > #adminContentSection > [id^="sec-"]:not(.hidden){
+  display:block!important;
+  position:relative!important;
+  flex:none!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:max-content!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  contain:none!important;
+}
+</style>
 </head>
 <body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
