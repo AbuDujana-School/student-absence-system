@@ -113,15 +113,18 @@
       }
     }
 
+    if (!Array.isArray(data.attendanceSessions)) {
+      throw new Error("لم تصل مفاتيح جلسات الحفظ من خدمة التقرير؛ أعد تحديث الصفحة.");
+    }
+    // The Edge Function returns identity-only attendance rows; student records remain server-side.
     const saved = new Map();
-    Object.entries(db?.attendance || {}).forEach(([key, session]) => {
-      if (!session || typeof session !== "object") return;
-      const parsed = typeof parseAttendanceKey === "function" ? parseAttendanceKey(key) : null;
-      const date = String(parsed?.date || "");
-      const className = String(session.className || parsed?.className || "");
-      const period = Number(session.period || parsed?.period);
-      if (!date || date < from || date > to || date > today || !className || !Number.isInteger(period)) return;
-      saved.set(slotKey(date, period, className), normalize(session.teacher));
+    data.attendanceSessions.forEach(session => {
+      const date = String(session?.date || "");
+      const className = String(session?.className || "");
+      const period = Number(session?.period);
+      const teacherName = String(session?.teacherName || "");
+      if (!date || date < from || date > to || date > today || !className || !teacherName || !Number.isInteger(period)) return;
+      saved.set(slotKey(date, period, className), normalize(teacherName));
     });
 
     const rows = [];
@@ -129,7 +132,9 @@
       const complete = [], pending = [];
       for (const [key, slot] of item.slots) {
         const savedTeacher = saved.get(key);
-        const label = slot.className + " — الحصة " + slot.period;
+        const [year, month, day] = slot.date.split("-").map(Number);
+        const dayMonth = String(day).padStart(2,"0") + "/" + String(month).padStart(2,"0");
+        const label = dayMonth + " · " + slot.className + " — الحصة " + slot.period;
         if (savedTeacher && savedTeacher === normalize(item.name)) complete.push(label);
         else pending.push(label);
       }
@@ -188,8 +193,8 @@
     if (!dates.from || !dates.to || dates.from > dates.to) {
       setStatus("تحقق من تاريخ البداية والنهاية.", "error"); return;
     }
-    if (dates.from > dates.today) {
-      setStatus("لا يمكن إعداد تقرير لفترة مستقبلية.", "error"); return;
+    if (dates.from > dates.today || dates.to > dates.today) {
+      setStatus("لا يمكن إعداد تقرير يتضمن تواريخ مستقبلية.", "error"); return;
     }
     if ((Date.parse(dates.to+"T00:00:00Z") - Date.parse(dates.from+"T00:00:00Z")) / 86400000 > 366) {
       setStatus("الفترة القصوى للتقرير 367 يوماً.", "error"); return;
@@ -220,47 +225,52 @@
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
-    const rows = report.rows.map(row => {
-      const status = row.percentage === 100 ? 'full' : row.complete.length === 0 ? 'zero' : 'partial';
-      const chunkSize = 6;
-      const chunks = values => {
-        const result = [];
-        for (let i = 0; i < values.length; i += chunkSize) result.push(values.slice(i, i + chunkSize));
-        return result.length ? result : [[]];
-      };
-      const completeChunks = chunks(row.complete);
-      const pendingChunks = chunks(row.pending);
-      const count = Math.max(completeChunks.length, pendingChunks.length);
-      return Array.from({ length: count }, (_, index) => {
-        const complete = completeChunks[index] || [];
-        const pending = pendingChunks[index] || [];
-        const first = index === 0;
-        return '<tr class="status-' + status + '"><td class="name">'+(first ? esc(row.name) : '<span class="continuation">تكملة</span>')+'</td>'+
-          '<td class="num">'+(first ? row.total : '')+'</td>'+
-          '<td>'+complete.map(esc).join("<br>")+'</td><td>'+pending.map(esc).join("<br>")+'</td>'+
-          '<td class="pct">'+(first ? row.percentage.toFixed(1)+'%' : '')+'</td></tr>';
-      }).join("");
+    const fmtDate = value => {
+      const [year, month, day] = String(value || "").split("-");
+      return day && month && year ? day + "/" + month + "/" + year : String(value || "");
+    };
+    const number = value => Number(value || 0).toLocaleString("en-US");
+    const list = values => values.length
+      ? '<ul>' + values.map(value => '<li>' + esc(value) + '</li>').join("") + '</ul>'
+      : '<span class="empty">—</span>';
+    const rows = report.rows.map((row, index) => {
+      const status = row.percentage === 100 ? "full" : row.complete.length === 0 ? "zero" : "partial";
+      const label = status === "full" ? "رصد جميع الحصص" : status === "zero" ? "لم يرصد الغياب" : "رصد بعض الحصص";
+      return '<tr class="status-' + status + '">' +
+        '<td class="teacher"><span class="serial">' + (index + 1) + '</span>' + esc(row.name) + '<small>' + label + '</small></td>' +
+        '<td class="num">' + number(row.total) + '</td>' +
+        '<td class="complete">' + list(row.complete) + '</td>' +
+        '<td class="pending">' + list(row.pending) + '</td>' +
+        '<td class="pct">' + row.percentage.toFixed(1) + '%</td>' +
+        '</tr>';
     }).join("");
-    const period = report.from === report.to ? report.from : report.from + " — " + report.to;
-    const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير الالتزام برصد الغياب</title>'+
-      '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>'+
-      '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
-      'body{font-family:Tajawal,Arial,sans-serif;color:#172b35;font-size:14px;margin:0}header{text-align:center;border:2px solid #183653;padding:10px 12px;margin-bottom:10px}'+
-      'header strong{display:block;font-size:14px;line-height:1.8}header h1{font-size:18px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-weight:700}'+
-      '.summary{display:flex;gap:8px;justify-content:space-between;margin:8px 0 12px}.summary span{flex:1;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px;font-weight:800}'+
-      'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:4px 5px;vertical-align:top;overflow-wrap:anywhere;font-size:14px;line-height:1.5}th{background:#eaf1f6;color:#183653;font-weight:900;text-align:center}'+
-      'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900;font-size:16px}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}.status-full{background:#ecfdf5!important}.status-partial{background:#fffbeb!important}.status-zero{background:#fff1f2!important}'+
-      'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
-      ' .print-toolbar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0;padding:12px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:13px}.print-toolbar button{border:0;border-radius:8px;background:#164e63;color:#fff;font:inherit;font-weight:900;padding:11px 18px;cursor:pointer;white-space:nowrap}@media print{.print-toolbar{display:none!important}header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
-      '</style></head><body><header><strong>سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
-      '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
-      '<div class="summary"><span>المعلمون الذين رصدوا جميع الحصص: '+report.rows.filter(r=>r.percentage===100).length+'</span><span>المعلمون الذين رصدوا بعض الحصص: '+report.rows.filter(r=>r.complete.length>0&&r.percentage<100).length+'</span><span>المعلمون الذين لم يرصدوا الغياب: '+report.rows.filter(r=>r.complete.length===0).length+'</span></div>' + '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
-      '<table><thead><tr><th style="width:22%">المعلم</th><th style="width:8%">عدد الحصص</th><th style="width:25%">رصد الغياب</th><th style="width:33%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      '<div class="signatures"><span>مساعد مدير المدرسة: ....................................</span><span>مدير المدرسة: ....................................</span></div>'+
-      '<div class="print-toolbar" role="region" aria-label="أدوات الطباعة"><strong>هذه معاينة التقرير. لحفظه بصيغة PDF اضغط الزر ثم اختر «حفظ كملف PDF» من خيارات الطباعة.</strong><button type="button" onclick="window.focus();window.print();">طباعة / حفظ PDF</button></div>'+
-      '<script>function openPrintDialog(){window.focus();window.print();}window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(openPrintDialog,650);});});<\/script></body></html>';
-    w.document.open(); w.document.write(html); w.document.close();
-    w.focus();
+    const period = report.from === report.to ? fmtDate(report.from) : fmtDate(report.from) + " إلى " + fmtDate(report.to);
+    const full = report.rows.filter(row => row.percentage === 100).length;
+    const partial = report.rows.filter(row => row.complete.length > 0 && row.percentage < 100).length;
+    const zero = report.rows.filter(row => row.complete.length === 0).length;
+    const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تقرير الالتزام برصد الغياب</title>' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>' +
+      '@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'body{font-family:Tajawal,Arial,sans-serif;color:#183653;font-size:13px;margin:0;direction:rtl}.report{width:100%}' +
+      'header{border:1px solid #b9cbd7;border-top:5px solid #183653;border-radius:9px;padding:9px 13px;margin-bottom:8px;background:#f7fafc;text-align:center}' +
+      'header strong{display:block;font-size:13px;line-height:1.65;font-weight:900}header h1{font-size:18px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-size:12px;font-weight:800}' +
+      '.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:7px 0}.summary span{display:block;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px 5px;font-weight:800;font-size:11px}.summary b{display:block;font-size:16px;color:#183653;margin-top:3px}' +
+      '.categories{display:flex;gap:7px;flex-wrap:wrap;margin:7px 0 9px}.categories span{flex:1;text-align:center;border:1px solid #d8e2e8;border-radius:7px;padding:6px 8px;background:#f8fbfd;font-weight:900;font-size:11px}' +
+      'table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th{background:#183653;color:#fff;padding:7px 5px;font-size:13px;font-weight:900;border:1px solid #d6e0e7;text-align:center}td{border:1px solid #dce5ea;padding:6px 7px;vertical-align:top;font-size:13px;line-height:1.45;overflow-wrap:anywhere}' +
+      'tbody tr:nth-child(even){background:#f6f9fb}.status-full{background:#effaf4!important}.status-partial{background:#fffaf0!important}.status-zero{background:#fff3f4!important}.teacher{font-weight:900;font-size:14px}.teacher small{display:block;font-size:10px;margin-top:4px;color:#52697b}.serial{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;border-radius:5px;background:#e8eef3;color:#183653;font-size:10px}' +
+      '.num,.pct{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}.pct{font-size:14px;color:#183653;background:#edf4fa}.complete ul,.pending ul{margin:0;padding:0 17px 0 0}.complete li,.pending li{margin:0 0 3px;break-inside:avoid}.complete li{color:#146c43}.pending li{color:#a51d32}.empty{color:#9aa7b2}' +
+      'tr{break-inside:avoid;page-break-inside:avoid}td,th{page-break-inside:avoid}.signatures{display:flex;justify-content:space-between;gap:35px;margin-top:22px;break-inside:avoid;page-break-inside:avoid}.signatures span{width:44%;text-align:center;font-weight:900;font-size:12px;border-top:1px solid #6b7f8d;padding-top:7px}.note{margin-top:9px;color:#667b8b;font-size:9px;line-height:1.6}' +
+      '.print-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;padding:10px 12px;border:1px solid #bfdbfe;border-radius:9px;background:#eff6ff;color:#1e3a8a;font-size:12px}.print-toolbar button{border:0;border-radius:8px;background:#164e63;color:#fff;font:inherit;font-weight:900;padding:10px 16px;cursor:pointer;white-space:nowrap}' +
+      '@media print{.print-toolbar{display:none!important}header,tbody tr,.signatures{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}}' +
+      '</style></head><body><main class="report"><header><strong>سلطنة عُمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين (9-12)</strong><h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: ' + esc(period) + '</p></header>' +
+      '<section class="summary"><span>إجمالي المعلمين<b>' + number(report.rows.length) + '</b></span><span>إجمالي الحصص<b>' + number(report.totalLessons) + '</b></span><span>إجمالي الحصص المرصودة<b>' + number(report.completeLessons) + '</b></span><span>إجمالي الحصص غير المرصودة<b>' + number(report.pendingLessons) + '</b></span></section>' +
+      '<section class="categories"><span>رصد جميع الحصص: ' + number(full) + '</span><span>رصد بعض الحصص: ' + number(partial) + '</span><span>لم يرصد الغياب: ' + number(zero) + '</span></section>' +
+      '<table><thead><tr><th style="width:22%">م / اسم المعلم</th><th style="width:8%">عدد الحصص</th><th style="width:25%">الحصص المرصودة</th><th style="width:33%">الحصص غير المرصودة</th><th style="width:12%">نسبة الرصد</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="note">تُحتسب الحصة مرصودة عند وجود سجل حفظ مطابق للتاريخ والصف والحصة واسم المعلم المكلف، حتى إذا لم يوجد غياب. وتُنقل مسؤولية الحصة إلى معلم الاحتياط المكلف دون احتسابها على المعلم الغائب.<br>تُحتسب أيام الأحد إلى الخميس وفق الجدول الأسبوعي؛ لا يتوفر في إعدادات النظام تقويم مستقل لاستبعاد العطلات غير المسجلة.</div>' +
+      '<footer class="signatures"><span>مساعد مدير المدرسة<br><br>التوقيع: ....................................</span><span>مدير المدرسة<br><br>التوقيع: ....................................</span></footer></main>' +
+      '<div class="print-toolbar"><strong>لحفظ التقرير بصيغة PDF اختر «حفظ كملف PDF» من نافذة الطباعة.</strong><button type="button" onclick="window.focus();window.print();">طباعة / حفظ PDF</button></div>' +
+      '<script>function openPrintDialog(){window.focus();window.print();}window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(openPrintDialog,650);});});<\\/script></body></html>';
+    w.document.open(); w.document.write(html); w.document.close(); w.focus();
   }
   window.setTeachersActivityMode = setMode;
   window.loadTeachersActivityCompliance = loadReport;
