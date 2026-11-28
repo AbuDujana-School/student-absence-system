@@ -131,7 +131,8 @@ for (const viewport of viewports) {
       const modal = document.getElementById("adminModal");
       const card = modal.querySelector(".glass-card");
       const content = document.getElementById("adminContentSection");
-      content.style.overflowY = "hidden";
+      content.style.overflowY = "visible";
+      content.scrollTop = 0;
       card.style.height = "120vh";
       card.style.maxHeight = "none";
       modal.scrollTop = 0;
@@ -152,7 +153,7 @@ for (const viewport of viewports) {
     await page.locator("#adminModal").evaluate(el => { el.scrollTop = 200; });
     await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
     await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
-    await page.mouse.move(10, viewport.height - 10);
+    await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
     await page.mouse.wheel(0, 500);
     await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
 
@@ -160,8 +161,9 @@ for (const viewport of viewports) {
     if (viewport.width < 640) {
       await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
       const cdp = await context.newCDPSession(page);
-      const overlayX = 8;
-      const overlayY = Math.max(24, viewport.height - 30);
+      const overlayBox = await page.locator("#adminContentSection").boundingBox();
+      const overlayX = Math.round(overlayBox.x + Math.min(80, overlayBox.width / 2));
+      const overlayY = Math.round(overlayBox.y + Math.min(180, overlayBox.height - 20));
       await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: overlayX, y: overlayY, id: 2 }] });
       await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: overlayX, y: overlayY - 220, id: 2 }] });
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
