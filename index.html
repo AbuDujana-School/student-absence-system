@@ -11907,7 +11907,7 @@ function getTeachersActivityRows(fromDate,toDate) {
   const inRange=function(key){if(!fromDate&&!toDate)return true;const m=String(key||'').match(/^(\d{4}-\d{2}-\d{2})/);if(!m)return false;return (!fromDate||m[1]>=fromDate)&&(!toDate||m[1]<=toDate);};
   (db.teachers||[]).forEach(function(t){ensure(t?.name);});(db.customUsers||[]).forEach(function(t){ensure(t?.name);});
   Object.entries(db.attendance||{}).forEach(function(pair){if(!inRange(pair[0]))return;const session=pair[1],row=ensure(session?.teacher);if(!row)return;Object.values(session.records||{}).forEach(function(status){const value=typeof status==='string'?status:status?.status;if(value==='absent')row.absences++;});});
-  Object.entries(db.behaviors||{}).forEach(function(pair){if(!inRange(pair[0]))return;const session=pair[1],row=ensure(session?.teacher);if(!row)return;Object.values(session.records||{}).forEach(function(record){if(record&&typeof record==='object'&&String(record.type||'').trim()&&record.type!=='normal')row.behaviors++;});});
+  Object.entries(db.behaviors||{}).forEach(function(pair){if(!inRange(pair[0]))return;const session=pair[1],row=ensure(session?.teacher);if(!row)return;Object.values(session.records||{}).forEach(function(record){if(typeof normalizeBehaviorRecord==='function'?normalizeBehaviorRecord(record).types.length>0:(record&&typeof record==='object'&&String(record.type||'').trim()&&record.type!=='normal'))row.behaviors++;});});
   const rows=Array.from(totals.values());rows.forEach(function(row){row.total=row.absences+row.behaviors;row.active=row.total>0;});return rows.sort(function(a,b){return b.total-a.total||b.absences-a.absences||a.name.localeCompare(b.name,'ar');});
 }
 function renderTeachersActivity(fromDate,toDate) {
