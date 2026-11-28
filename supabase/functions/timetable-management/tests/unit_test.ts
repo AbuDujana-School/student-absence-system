@@ -700,3 +700,16 @@ Deno.test("manual batch selection updates virtual allocation and reranks later u
   equal(manual.assignments[0].substituteTeacherName,"بديل ب","The valid manual choice is retained");
   equal(manual.assignments[1].substituteTeacherName,"بديل أ","The remaining lesson is reranked after the manual allocation");
 });
+
+
+Deno.test("four or more consecutive periods carry a fifty-point ranking penalty",()=>{
+  const teacher:SubstitutionTeacher={id:"streak",name:"تتالي طويل",departmentId:"science",pointsBalance:0};
+  const timetable:TimetableEntry[]=[
+    ...[1,2,3,4].map(period=>({teacherId:"streak",weekday:"الأحد",period,className:"1/1",status:"teaching" as const})),
+    {teacherId:"streak",weekday:"الأحد",period:5,className:"",status:"free"},
+  ];
+  const ranked=getAvailableSubstitutionCandidates({teachers:[teacher],timetable,assignments:[],
+    absentTeacherId:"absent",weekday:"الأحد",period:5,departmentId:"science"});
+  equal(ranked[0].streakPenalty,50,"Four or more consecutive periods add fifty ranking points");
+  equal(ranked[0].effortPoints,1,"The ranking penalty is not included in actual effort points");
+});
