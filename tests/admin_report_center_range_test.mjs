@@ -109,11 +109,11 @@ test("teacher activity report counts normalized multi-type behavior records", ()
 
 
 test("administrative records center mounts the timetable-backed compliance report instead of printing stale local totals", () => {
-  assert.match(html, /async function teacherComplianceReportsView\\(from,to\\)/);
-  assert.match(html, /await window\\.loadTeachersActivityCompliance\\(from,to\\)/);
-  assert.match(html, /await teacherComplianceReportsView\\(from,to\\)/);
-  assert.match(html, /dashboardTeachersActivity/);
-  assert.match(complianceModule, /timetable_activity_report_data/);
-  assert.match(complianceModule, /reportRequest\\.admin_records_center = true/);
-  assert.match(complianceModule, /async function loadReport\\(fromOverride, toOverride\\)/);
+  assert.ok(html.includes("async function teacherComplianceReportsView(from,to)"));
+  assert.ok(html.includes("await window.loadTeachersActivityCompliance(from,to)"));
+  assert.ok(html.includes("await teacherComplianceReportsView(from,to)"));
+  assert.ok(html.includes("dashboardTeachersActivity"));
+  assert.ok(complianceModule.includes("timetable_activity_report_data"));
+  assert.ok(complianceModule.includes("reportRequest.admin_records_center = true"));
+  assert.ok(complianceModule.includes("async function loadReport(fromOverride, toOverride)"));
 });
