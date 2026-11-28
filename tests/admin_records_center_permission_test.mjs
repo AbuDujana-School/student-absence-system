@@ -88,10 +88,13 @@ test("Student Affairs and morning-assembly reports retain their independent acce
 test("Student Affairs reports open inside the records center without granting dashboard entry", () => {
   assert.ok(centerScript.includes("async function studentAffairsReportsView(from,to)"));
   assert.ok(centerScript.includes("modal.querySelector('#arcStudentAffairsReportHost').appendChild(panel)"));
-  const actionStart = centerScript.indexOf("else if(k==='sa'&&rep('reportStudentAffairs'))");
-  const actionEnd = actionStart + 700;
-  assert.ok(actionStart >= 0);
-  assert.ok(!centerScript.slice(actionStart, actionEnd > actionStart ? actionEnd : actionStart + 500).includes("openAdminModal"));
+  const actionStart = centerScript.indexOf("sa:async function()");
+  const actionEnd = centerScript.indexOf("teachers:async function()", actionStart);
+  assert.ok(actionStart >= 0 && actionEnd > actionStart, "Student Affairs report must remain a dedicated center handler");
+  const action = centerScript.slice(actionStart, actionEnd);
+  assert.ok(action.includes("rep('reportStudentAffairs')"), "Student Affairs handler must retain its report permission");
+  assert.ok(action.includes("studentAffairsReportsView(from,to)"), "Student Affairs handler must use its original report view");
+  assert.ok(!action.includes("openAdminModal"), "Student Affairs report must not open the dashboard admin panel");
   assert.ok(html.includes("admin_records_center:true"));
   assert.ok(edge.includes("hasAdminRecordsCenterAccess(appPrincipal.type, appPrincipal.permissions"));
   assert.ok(edge.includes("permissionsFor(p, false, adminRecordsCenterAccess)"));
