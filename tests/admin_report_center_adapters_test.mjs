@@ -74,7 +74,7 @@ test("every report preserves the original section PDF or print view instead of u
   assert.ok(item.pdfRenderer.includes(renderer), "Wrong PDF renderer for "+key);
  }
  const start=html.indexOf("async function reportAction(k,from,to)");
- const end=html.indexOf("\\nfunction statsView()",start);
+ const end=html.indexOf("\nfunction statsView()",start);
  assert.ok(start>=0&&end>start);
  const source=html.slice(start,end);
  for(const renderer of ["printHorizontalReport()","printHorizontalBehaviorReport()","printLateFollowupReport()","printMorningAssemblyLatenessReport()","printSubstitutionDistributionReport()","studentAffairsReportsView(from,to)","teacherComplianceReportsView(from,to)"]){
