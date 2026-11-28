@@ -28,6 +28,8 @@ function divElementById(id) {
 }
 
 const modalMarkup = divElementById("adminModal");
+const adminSectionIds = [...modalMarkup.matchAll(/id="(sec-[^"]+)"/g)].map(match => match[1]);
+if (!adminSectionIds.length) throw new Error("No admin sections found for scroll coverage.");
 const fixture = `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -56,8 +58,9 @@ const viewports = [
 mkdirSync(path.join(__dirname, "..", "test-results"), { recursive: true });
 
 for (const viewport of viewports) {
-  test(`admin panel scroll works — ${viewport.label}`, async ({ page }) => {
-    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  test(`admin panel scroll works — ${viewport.label}`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, isMobile: viewport.width < 640, hasTouch: viewport.width < 640 });
+    const page = await context.newPage();
     await page.setContent(fixture, { waitUntil: "domcontentloaded" });
     await page.evaluate(() => {
       const modal = document.getElementById("adminModal");
@@ -65,7 +68,8 @@ for (const viewport of viewports) {
       modal.classList.remove("hidden");
       document.getElementById("adminAuthSection").classList.add("hidden");
       content.classList.remove("hidden");
-      content.innerHTML = '<div style="height:2600px;flex:none;padding:16px">synthetic scroll fixture</div>';
+      content.innerHTML = adminSectionIds.map(id => `<section id="${id}" style="display:none"><div style="height:2600px;flex:none;padding:16px">synthetic scroll fixture — ${id}</div></section>`).join("");
+      document.getElementById(adminSectionIds[0]).style.display = "block";
     });
 
     const metrics = await page.evaluate(() => {
@@ -95,6 +99,32 @@ for (const viewport of viewports) {
     await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
     await page.mouse.wheel(0, 550);
     await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+
+    // Exercise every actual admin tab section through the same content scroll host.
+    for (const sectionId of adminSectionIds) {
+      await page.evaluate(id => {
+        document.querySelectorAll("#adminContentSection [id^=sec-]").forEach(section => section.style.display = "none");
+        document.getElementById(id).style.display = "block";
+        document.getElementById("adminContentSection").scrollTop = 0;
+      }, sectionId);
+      await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
+      await page.mouse.wheel(0, 180);
+      await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+    }
+
+    // Real touch gesture on phone viewports (not a mouse-wheel substitute).
+    if (viewport.width < 640) {
+      await page.locator("#adminContentSection").evaluate(el => { el.scrollTop = 0; });
+      const touchBox = await page.locator("#adminContentSection").boundingBox();
+      const touchX = Math.round(touchBox.x + Math.min(80, touchBox.width / 2));
+      const touchY = Math.round(touchBox.y + Math.min(180, touchBox.height - 20));
+      const cdp = await context.newCDPSession(page);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: touchX, y: touchY, id: 1 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: touchX, y: touchY - 220, id: 1 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+      await cdp.detach();
+    }
 
     // Verify the overlay remains a fallback scroll surface if content cannot scroll.
     await page.evaluate(() => {
