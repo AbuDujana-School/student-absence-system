@@ -3568,7 +3568,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
     </div>
     <section class="rounded-3xl border border-fuchsia-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
       <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700 text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-users"></i></div><div><h3 class="font-black text-slate-800 dark:text-white">اختر الصف</h3><p class="text-[11px] text-slate-500">تظهر الصفوف والطلاب من سجلات المدرسة الحالية</p></div></div>
-      <div id="morningAssemblyGradeFilters" class="flex flex-wrap gap-2" aria-label="تصفية الصفوف"></div><div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+      <div id="morningAssemblyGradeFilters" class="flex flex-wrap gap-2" aria-label="تصفية الصفوف"></div><div id="morningAssemblyClassesGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2"></div>
     </section>
     <section class="rounded-3xl border border-violet-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><div class="flex items-center gap-2"><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span><button id="morningAssemblyMultiSelectToggle" type="button" onclick="toggleMorningAssemblyBulkMode()" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-extrabold text-indigo-800">اختر معاً</button></div></div><div id="morningAssemblyBulkBar" class="hidden rounded-2xl border border-indigo-200 bg-indigo-50/80 p-3 flex flex-wrap items-center justify-between gap-2"><span id="morningAssemblyBulkCount" class="text-xs font-extrabold text-slate-700">تم تحديد 0 طالب</span><div class="flex gap-2"><button type="button" onclick="clearMorningAssemblyBulkSelection()" class="rounded-xl px-3 py-2 text-xs font-bold text-slate-600">إلغاء التحديد</button><button type="button" onclick="commitMorningAssemblyBulkSelection()" class="rounded-xl bg-[#354c63] px-4 py-2 text-xs font-extrabold text-white">رصد المحددين</button></div></div>
@@ -9363,11 +9363,11 @@ function renderMorningAssemblyClasses() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.dataset.morningClass = className;
-    btn.className = 'rounded-2xl border p-3 text-center font-black text-sm transition-all ' +
+    btn.className = 'min-h-[62px] rounded-xl border p-2 flex flex-col items-center justify-center text-center font-black text-sm transition-all ' +
       (morningAssemblySelectedClass === className
         ? 'bg-[#354c63] text-white border-[#354c63] shadow-lg'
         : 'bg-white/85 dark:bg-slate-700/80 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:border-[#5b6ee1] hover:bg-indigo-50/70 dark:hover:bg-slate-600');
-    btn.innerHTML = '<span class="block text-[10px] opacity-75 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
+    btn.innerHTML = '<span class="block text-[9px] leading-none opacity-70 mb-1">الصف</span><span dir="ltr" class="text-base leading-tight">' + escapeHtml(formatClassName(className)) + '</span>';
     btn.onclick = () => { morningAssemblySelectedClass = className; renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); };
     grid.appendChild(btn);
   });
