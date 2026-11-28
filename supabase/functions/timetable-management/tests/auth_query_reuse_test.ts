@@ -64,7 +64,7 @@ Deno.test("self-scoped timetable and daily notice actions defer authorization to
 
 Deno.test("request handler reuses the principal snapshot instead of issuing duplicate permission reads", () => {
   const handler = section("async function handle(req: Request)", 'if (action === "timetable_duty_report_context") {');
-  if (!handler.includes("requirePrincipal(req, authAction)") || !handler.includes("const authAction = action === \\"timetable_substitution_report\\"")) {
+  if (!handler.includes("requirePrincipal(req, authAction)") || !handler.includes('const authAction = action === "timetable_substitution_report"')) {
     throw new Error("The requested action, including the narrowly scoped report context, must be supplied to principal resolution");
   }
   if (!handler.includes("principal.reserveAccess === true")) {
