@@ -2,7 +2,12 @@
    behavior records are never accessed. */
 (function () {
   "use strict";
-  const state = { mode: "today", requestId: 0, lastReport: null, loading: false };
+  const state = { mode: "today", requestId: 0, lastReport: null, loading: false, root: null };
+  const domId = id => state.root && id.startsWith("teachersActivity")
+    ? "arc" + id.charAt(0).toUpperCase() + id.slice(1) : id;
+  const el = id => state.root
+    ? state.root.querySelector("#" + domId(id))
+    : document.getElementById(id);
   const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
   const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -16,12 +21,12 @@
   const slotKey = (date, period, className) => date + "|" + Number(period) + "|" + normalize(className);
   function getDates() {
     const today = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
-    const from = state.mode === "today" ? today : (document.getElementById("teachersActivityFrom")?.value || "");
-    const to = state.mode === "today" ? today : (document.getElementById("teachersActivityTo")?.value || "");
+    const from = state.mode === "today" ? today : (el("teachersActivityFrom")?.value || "");
+    const to = state.mode === "today" ? today : (el("teachersActivityTo")?.value || "");
     return { from, to, today };
   }
   function setStatus(message, kind) {
-    const el = document.getElementById("teachersActivityStatus");
+    const el = el("teachersActivityStatus");
     if (!el) return;
     el.textContent = message;
     el.className = "rounded-xl border px-4 py-3 text-xs font-bold " +
@@ -32,16 +37,16 @@
   }
   function setMode(mode) {
     state.mode = mode === "range" ? "range" : "today";
-    const range = document.getElementById("teachersActivityRange");
+    const range = el("teachersActivityRange");
     range?.classList.toggle("hidden", state.mode !== "range");
-    document.getElementById("teachersActivityTodayBtn")?.classList.toggle("bg-slate-900", state.mode === "today");
-    document.getElementById("teachersActivityTodayBtn")?.classList.toggle("text-white", state.mode === "today");
-    document.getElementById("teachersActivityRangeBtn")?.classList.toggle("bg-slate-900", state.mode === "range");
-    document.getElementById("teachersActivityRangeBtn")?.classList.toggle("text-white", state.mode === "range");
+    el("teachersActivityTodayBtn")?.classList.toggle("bg-slate-900", state.mode === "today");
+    el("teachersActivityTodayBtn")?.classList.toggle("text-white", state.mode === "today");
+    el("teachersActivityRangeBtn")?.classList.toggle("bg-slate-900", state.mode === "range");
+    el("teachersActivityRangeBtn")?.classList.toggle("text-white", state.mode === "range");
     if (state.mode === "range") {
       const today = getOmanLocalDate();
-      const from = document.getElementById("teachersActivityFrom");
-      const to = document.getElementById("teachersActivityTo");
+      const from = el("teachersActivityFrom");
+      const to = el("teachersActivityTo");
       if (from && !from.value) from.value = today;
       if (to && !to.value) to.value = today;
     }
@@ -159,7 +164,7 @@
     ).join("") + '</ul>';
   }
   function render(report) {
-    const body = document.getElementById("teachersActivityTableBody");
+    const body = el("teachersActivityTableBody");
     if (!body) return;
     const rows = report.rows;
     if (!rows.length) {
@@ -176,13 +181,13 @@
       ).join("");
     }
     const rangeLabel = report.from === report.to ? report.from : report.from + " إلى " + report.to;
-    const summary = document.getElementById("teachersActivitySummary");
+    const summary = el("teachersActivitySummary");
     if (summary) summary.innerHTML =
       '<span class="rounded-xl bg-slate-100 px-3 py-2">الفترة: <b>'+esc(rangeLabel)+'</b></span>'+
       '<span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي الحصص: <b>'+report.totalLessons+'</b></span>'+
       '<span class="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">رُصدت: <b>'+report.completeLessons+'</b></span>'+
       '<span class="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">لم تُرصد: <b>'+report.pendingLessons+'</b></span>';
-    const printButton = document.getElementById("teachersActivityPrintBtn");
+    const printButton = el("teachersActivityPrintBtn");
     if (printButton) printButton.disabled = !rows.length;
   }
   async function loadReport(fromOverride, toOverride) {
@@ -200,7 +205,7 @@
     if ((Date.parse(dates.to+"T00:00:00Z") - Date.parse(dates.from+"T00:00:00Z")) / 86400000 > 366) {
       setStatus("الفترة القصوى للتقرير 367 يوماً.", "error"); return;
     }
-    const body = document.getElementById("teachersActivityTableBody");
+    const body = el("teachersActivityTableBody");
     if (body) body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ احتساب الحصص والتحقق من كشوف الرصد...</td></tr>';
     setStatus("جارٍ تحميل الجدول الأسبوعي وتكليفات الاحتياط وسجلات الحفظ.", "info");
     try {
@@ -221,7 +226,7 @@
       if (requestId !== state.requestId) return;
       if (body) body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-rose-700">'+esc(error?.message || "تعذر تحميل التقرير.")+'</td></tr>';
       state.lastReport = null;
-      document.getElementById("teachersActivityPrintBtn")?.setAttribute("disabled","disabled");
+      el("teachersActivityPrintBtn")?.setAttribute("disabled","disabled");
       setStatus(error?.message || "تعذر تحميل التقرير.", "error");
     }
   }
@@ -295,42 +300,73 @@
       '</main><script>window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(function(){window.focus();window.print()},500)})});<\\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close(); w.focus();
   }
+  function mountReport(container) {
+    if (!container) throw new Error("تعذر تجهيز مساحة تقرير الالتزام.");
+    state.root = container;
+    container.innerHTML =
+      '<section class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl space-y-5" dir="rtl">' +
+      '<div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100">' +
+      '<div><h3 class="font-black text-lg text-slate-800">تقرير الالتزام برصد الغياب</h3><p class="text-xs text-slate-500 font-bold">مطابقة الحصص التدريسية وتكليفات الاحتياط مع كشوف الرصد المحفوظة</p></div>' +
+      '<button id="arcTeachersActivityPrintBtn" onclick="printTeachersActivityPDF()" disabled class="disabled:opacity-40 bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-black"><i class="fa-solid fa-file-pdf ml-2"></i>طباعة التقرير PDF</button></div>' +
+      '<div class="flex flex-wrap items-center justify-between gap-3"><div class="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs font-black">' +
+      '<button id="arcTeachersActivityTodayBtn" onclick="setTeachersActivityMode(\'today\')" class="rounded-lg px-4 py-2">تقرير اليوم</button>' +
+      '<button id="arcTeachersActivityRangeBtn" onclick="setTeachersActivityMode(\'range\')" class="rounded-lg bg-slate-900 px-4 py-2 text-white">من تاريخ إلى تاريخ</button></div>' +
+      '<button onclick="loadTeachersActivityCompliance()" class="rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-black text-teal-800"><i class="fa-solid fa-rotate ml-1"></i>تحديث البيانات</button></div>' +
+      '<div id="arcTeachersActivityRange" class="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">' +
+      '<label class="text-xs font-bold text-slate-600">من تاريخ<input id="arcTeachersActivityFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold"></label>' +
+      '<label class="text-xs font-bold text-slate-600">إلى تاريخ<input id="arcTeachersActivityTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold"></label>' +
+      '<div class="sm:col-span-2"><button onclick="loadTeachersActivityCompliance()" class="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white">عرض الفترة المحددة</button></div></div>' +
+      '<div id="arcTeachersActivitySummary" class="flex flex-wrap gap-2 text-xs font-bold"></div>' +
+      '<div id="arcTeachersActivityStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>' +
+      '<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white"><table class="w-full min-w-[900px] text-xs text-right"><thead class="bg-slate-50 text-slate-700 font-black border-b"><tr><th class="p-3">المعلم</th><th class="p-3 text-center">عدد الحصص</th><th class="p-3">رصد الغياب</th><th class="p-3">لم يرصد الغياب</th><th class="p-3 text-center">نسبة الالتزام</th></tr></thead><tbody id="arcTeachersActivityTableBody"><tr><td colspan="5" class="p-8 text-center text-slate-400">جارٍ تجهيز التقرير...</td></tr></tbody></table></div>' +
+      '<p class="text-[10px] leading-5 text-slate-500">تُحتسب الحصة مرصودة عند وجود سجل حفظ مطابق للتاريخ والصف والحصة، حتى إذا لم يوجد غياب.</p></section>';
+    const today = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
+    const from = el("teachersActivityFrom"), to = el("teachersActivityTo");
+    if (from) from.value = today;
+    if (to) to.value = today;
+    state.mode = "range";
+    return loadReport(today, today);
+  }
+  window.mountAdminTeacherComplianceReport = mountReport;
+  window.unmountAdminTeacherComplianceReport = function () { state.root = null; state.lastReport = null; };
   window.setTeachersActivityMode = setMode;
   window.loadTeachersActivityCompliance = loadReport;
   window.printTeachersActivityPDF = printReport;
   window.renderTeachersActivity = loadReport;
   document.addEventListener("DOMContentLoaded", () => {
     const today = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
-    const from = document.getElementById("teachersActivityFrom");
-    const to = document.getElementById("teachersActivityTo");
+    const from = el("teachersActivityFrom");
+    const to = el("teachersActivityTo");
     if (from && !from.value) from.value = today;
     if (to && !to.value) to.value = today;
     loadReport();
   });
 
   function installComplianceModernUI() {
-    if (document.getElementById("teacherComplianceModernStyles")) return;
+    const styleId = state.root ? "arcTeacherComplianceModernStyles" : "teacherComplianceModernStyles";
+    if (document.getElementById(styleId)) return;
     const style = document.createElement("style");
-    style.id = "teacherComplianceModernStyles";
+    style.id = styleId;
     style.textContent = "#teachersActivityReportHeader{direction:rtl;text-align:center;padding:16px 12px;margin:0 0 14px;border:1px solid #dbe4ee;border-radius:16px;background:linear-gradient(145deg,#fff,#f4f8fc);color:#17324d}#teachersActivityReportHeader .official-lines{font-size:clamp(12px,2vw,16px);font-weight:800;line-height:1.85}#teachersActivityReportHeader h2{font-size:clamp(18px,2.5vw,24px);font-weight:900;margin:8px 0 2px;color:#123653}#teachersActivityReportHeader .report-period{font-size:12px;color:#64748b;font-weight:700}#teachersActivityKpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px;direction:rtl}#teachersActivityKpis .kpi{border:1px solid;border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}#teachersActivityKpis .kpi-label{font-size:12px;font-weight:800;line-height:1.5}#teachersActivityKpis .kpi-value{font-size:28px;font-weight:900;line-height:1}#teachersActivityKpis .kpi--full{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}#teachersActivityKpis .kpi--partial{background:#fffbeb;border-color:#fde68a;color:#92400e}#teachersActivityKpis .kpi--zero{background:#fff1f2;border-color:#fecdd3;color:#9f1239}#teachersActivityTableBody tr.compliance-row--full{background:#ecfdf5!important}#teachersActivityTableBody tr.compliance-row--partial{background:#fffbeb!important}#teachersActivityTableBody tr.compliance-row--zero{background:#fff1f2!important}#teachersActivityTableBody .compliance-status{display:inline-flex;border-radius:99px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}#teachersActivityTableBody .compliance-status--full{background:#d1fae5;color:#065f46}#teachersActivityTableBody .compliance-status--partial{background:#fef3c7;color:#92400e}#teachersActivityTableBody .compliance-status--zero{background:#ffe4e6;color:#9f1239}#teachersActivityTableBody .compliance-progress{height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:7px;min-width:60px}#teachersActivityTableBody .compliance-progress>span{display:block;height:100%;border-radius:99px}#teachersActivityTableBody .compliance-row--full .compliance-progress>span{background:#059669}#teachersActivityTableBody .compliance-row--partial .compliance-progress>span{background:#d97706}#teachersActivityTableBody .compliance-row--zero .compliance-progress>span{background:#e11d48}.teachers-activity-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}.teachers-activity-table-scroll table{min-width:850px;width:100%}#teachersActivityTableBody td{overflow-wrap:anywhere;line-height:1.7}@media(max-width:640px){#teachersActivityKpis{gap:6px}#teachersActivityKpis .kpi{display:block;text-align:center;padding:9px 6px}#teachersActivityKpis .kpi-label{font-size:10px;min-height:30px;display:flex;align-items:center;justify-content:center}#teachersActivityKpis .kpi-value{font-size:24px;margin-top:5px}#teachersActivityReportHeader{padding:12px 8px}#teachersActivityReportHeader .official-lines{font-size:11px}}@media print{#teachersActivityReportHeader{box-shadow:none;border:1.5px solid #183653;border-radius:0;padding:7px;margin-bottom:7px}#teachersActivityKpis{gap:6px;margin-bottom:7px}#teachersActivityKpis .kpi{padding:6px 8px;border-radius:5px}.teachers-activity-table-scroll{overflow:visible!important}.teachers-activity-table-scroll table{min-width:0!important;width:100%!important}#teachersActivityTableBody tr{break-inside:avoid;page-break-inside:avoid}}";
     style.textContent += "#teachersActivityTableBody td{font-size:14px!important;padding:8px 9px!important;line-height:1.55!important}#teachersActivityTableBody td:first-child{font-size:16px!important;font-weight:900!important;color:#172b45!important}#teachersActivityTableBody .compliance-status{font-size:12px!important;padding:5px 10px!important}#teachersActivityTableBody .compliance-empty{font-size:14px;color:#64748b}#teachersActivityTableBody .compliance-lesson-list{display:flex;flex-direction:column;align-items:stretch;gap:4px;list-style:none;margin:0;padding:0}#teachersActivityTableBody .compliance-lesson-list li{display:flex;align-items:flex-start;gap:7px;font-size:14px;line-height:1.45;padding:2px 0;overflow-wrap:anywhere}#teachersActivityTableBody .lesson-marker{flex:0 0 17px;font-weight:900;color:#047857}#teachersActivityTableBody td:nth-child(4) .lesson-marker{color:#be123c}#teachersActivityKpis .kpi-label{font-size:14px!important;line-height:1.45!important}#teachersActivityKpis .kpi{min-height:76px;padding:12px 14px!important}@media(max-width:640px){#teachersActivityTableBody td{font-size:14px!important;padding:8px!important}#teachersActivityTableBody td:first-child{font-size:16px!important}#teachersActivityKpis .kpi-label{font-size:12px!important;min-height:42px}#teachersActivityKpis .kpi{min-height:84px}}@media print{#teachersActivityTableBody td{font-size:14px!important}#teachersActivityTableBody td:first-child{font-size:16px!important}}";
     style.textContent += "#teachersActivityTableBody{font-size:14px!important}#teachersActivityTableBody tr{height:auto}#teachersActivityTableBody td.compliance-cell{padding:5px 6px!important;vertical-align:top!important;font-size:14px!important;line-height:1.45!important;min-width:0!important}#teachersActivityTableBody td.compliance-cell--name{width:23%;min-width:135px;font-size:16px!important;font-weight:900!important;line-height:1.55!important}#teachersActivityTableBody td.compliance-cell--count{width:8%;min-width:48px;white-space:nowrap}#teachersActivityTableBody td.compliance-cell--lessons{min-width:0}#teachersActivityTableBody td.compliance-cell--lessons:nth-child(3){width:25%}#teachersActivityTableBody td.compliance-cell--lessons:nth-child(4){width:31%}#teachersActivityTableBody td.compliance-cell--percentage{width:13%;min-width:76px;white-space:nowrap}#teachersActivityTableBody .compliance-lesson-list{gap:2px!important;margin:0!important;padding:0!important}#teachersActivityTableBody .compliance-lesson-list li{gap:4px!important;padding:1px 0!important;font-size:14px!important;line-height:1.4!important}#teachersActivityTableBody .lesson-marker{flex-basis:13px!important}#teachersActivityTableBody .compliance-status{padding:4px 7px!important;font-size:12px!important}#teachersActivityTableBody .compliance-progress{margin-top:5px!important;height:4px!important}.teachers-activity-table-scroll table{width:100%!important;min-width:620px!important;table-layout:fixed!important;border-collapse:collapse!important}.teachers-activity-table-scroll th{padding:7px 5px!important;font-size:13px!important;line-height:1.35!important;white-space:normal!important}.teachers-activity-table-scroll th:nth-child(1){width:23%!important}.teachers-activity-table-scroll th:nth-child(2){width:8%!important}.teachers-activity-table-scroll th:nth-child(3){width:25%!important}.teachers-activity-table-scroll th:nth-child(4){width:31%!important}.teachers-activity-table-scroll th:nth-child(5){width:13%!important}@media(max-width:640px){.teachers-activity-table-scroll table{min-width:620px!important}.teachers-activity-table-scroll{overflow-x:auto!important}.teachers-activity-table-scroll th{font-size:13px!important}#teachersActivityTableBody td.compliance-cell{padding:5px!important}#teachersActivityTableBody td.compliance-cell--name{min-width:135px;font-size:16px!important}}@media print{.teachers-activity-table-scroll{overflow:visible!important}.teachers-activity-table-scroll table{min-width:0!important;width:100%!important;table-layout:fixed!important}#teachersActivityTableBody td.compliance-cell{padding:4px 5px!important;font-size:14px!important}#teachersActivityTableBody td.compliance-cell--name{font-size:16px!important}#teachersActivityTableBody .compliance-lesson-list li{font-size:13px!important;line-height:1.35!important}}";
+    if (state.root) style.textContent = style.textContent.replace(/#teachersActivity/g, "#arcTeachersActivity");
     document.head.appendChild(style);
-    const summary = document.getElementById("teachersActivitySummary");
+    const summary = el("teachersActivitySummary");
     if (!summary) return;
-    if (!document.getElementById("teachersActivityReportHeader")) {
+    if (!el("teachersActivityReportHeader")) {
       const header = document.createElement("section");
-      header.id = "teachersActivityReportHeader";
-      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
+      header.id = domId("teachersActivityReportHeader");
+      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="${domId('teachersActivityHeaderPeriod')}"></div>';
       summary.parentElement.insertBefore(header, summary);
     }
-    if (!document.getElementById("teachersActivityKpis")) {
+    if (!el("teachersActivityKpis")) {
       const kpis = document.createElement("section");
-      kpis.id = "teachersActivityKpis";
-      kpis.innerHTML = '<div class="kpi kpi--full"><div class="kpi-label">المعلمون الملتزمون بالكامل</div><div class="kpi-value" id="teachersActivityFullCount">0</div></div><div class="kpi kpi--partial"><div class="kpi-label">المعلمون برصد جزئي</div><div class="kpi-value" id="teachersActivityPartialCount">0</div></div><div class="kpi kpi--zero"><div class="kpi-label">المعلمون الذين لم يرصدوا الغياب</div><div class="kpi-value" id="teachersActivityZeroCount">0</div></div>';
+      kpis.id = domId("teachersActivityKpis");
+      kpis.innerHTML = '<div class="kpi kpi--full"><div class="kpi-label">المعلمون الملتزمون بالكامل</div><div class="kpi-value" id="arcTeachersActivityFullCount">0</div></div><div class="kpi kpi--partial"><div class="kpi-label">المعلمون برصد جزئي</div><div class="kpi-value" id="arcTeachersActivityPartialCount">0</div></div><div class="kpi kpi--zero"><div class="kpi-label">المعلمون الذين لم يرصدوا الغياب</div><div class="kpi-value" id="arcTeachersActivityZeroCount">0</div></div>';
       summary.parentElement.insertBefore(kpis, summary);
     }
-    const table = document.getElementById("teachersActivityTableBody")?.closest("table");
+    const table = el("teachersActivityTableBody")?.closest("table");
     if (table && table.parentElement && !table.parentElement.classList.contains("teachers-activity-table-scroll")) {
       const wrap = document.createElement("div");
       wrap.className = "teachers-activity-table-scroll";
@@ -340,7 +376,7 @@
   }
   render = function(report) {
     installComplianceModernUI();
-    const body = document.getElementById("teachersActivityTableBody");
+    const body = el("teachersActivityTableBody");
     if (!body) return;
     const rows = report.rows;
     const full = rows.filter(r => r.percentage === 100).length;
@@ -361,9 +397,9 @@
         return '<tr class="align-top compliance-row--' + status + '"><td class="compliance-cell compliance-cell--name font-black text-slate-800">' + esc(row.name) + '<div class="mt-2"><span class="compliance-status compliance-status--' + status + '">' + label + '</span></div></td><td class="compliance-cell compliance-cell--count text-center font-black tabular-nums">' + row.total + '</td><td class="compliance-cell compliance-cell--lessons">' + listHtml(row.complete,"complete") + '</td><td class="compliance-cell compliance-cell--lessons">' + listHtml(row.pending,"pending") + '</td><td class="compliance-cell compliance-cell--percentage text-center"><span class="compliance-status compliance-status--' + status + '">' + row.percentage.toFixed(1) + '%</span><div class="compliance-progress"><span style="width:' + row.percentage + '%"></span></div></td></tr>';
       }).join("");
     }
-    const summaryEl = document.getElementById("teachersActivitySummary");
+    const summaryEl = el("teachersActivitySummary");
     if (summaryEl) summaryEl.innerHTML = '<span class="rounded-xl bg-slate-100 px-3 py-2">الفترة: <b>' + esc(period) + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي الحصص: <b>' + report.totalLessons + '</b></span><span class="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">رُصدت: <b>' + report.completeLessons + '</b></span><span class="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">لم تُرصد: <b>' + report.pendingLessons + '</b></span>';
-    const button = document.getElementById("teachersActivityPrintBtn");
+    const button = el("teachersActivityPrintBtn");
     if (button) button.disabled = !rows.length;
   };
   document.addEventListener("DOMContentLoaded", installComplianceModernUI);
