@@ -17230,19 +17230,11 @@ function openReportDateDialog(key){var report=reportCatalog().find(function(r){r
 function setReportDateShortcut(kind){var d=reportDateDefaults(),today=getOmanLocalDate(),from=d.from;if(kind==='7'){var x=new Date(today+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-6);from=x.toISOString().slice(0,10);}else if(kind==='month')from=today.slice(0,7)+'-01';modal.querySelector('#arcReportFrom').value=from;modal.querySelector('#arcReportTo').value=today;modal.querySelector('#arcReportDateError').textContent='';}
 function closeReportDateDialog(){modal?.querySelector('#arcReportDateDialog')?.classList.add('hidden');}
 async function teacherComplianceReportsView(from,to){
- var panel=document.getElementById('dashboardTeachersActivity');
- if(!panel||typeof window.loadTeachersActivityCompliance!=='function')throw Error('وحدة تقرير الالتزام برصد الغياب غير متاحة.');
- if(!teacherActivityHome)teacherActivityHome={parent:panel.parentNode,next:panel.nextSibling};
- view='teacherComplianceReports';head('تقرير الالتزام برصد الغياب','مطابقة الجدول الأسبوعي وتكليفات الاحتياط مع سجلات الرصد الفعلية',true);
+ if(typeof window.mountTeachersActivityCompliance!=='function')throw Error('وحدة تقرير الالتزام المستقلة غير متاحة.');
+ view='teacherComplianceReports';head('تقرير الالتزام برصد الغياب','قراءة مستقلة من الجدول الأسبوعي وتكليفات الاحتياط وسجلات الرصد المحفوظة',true);
  modal.querySelector('#arcBody').innerHTML='<div id="arcTeacherComplianceHost" class="min-w-0"></div>';
- panel.classList.remove('hidden');
- modal.querySelector('#arcTeacherComplianceHost').appendChild(panel);
- var fromInput=document.getElementById('teachersActivityFrom'),toInput=document.getElementById('teachersActivityTo');
- if(fromInput)fromInput.value=from;if(toInput)toInput.value=to;
- var range=document.getElementById('teachersActivityRange');if(range)range.classList.remove('hidden');
- document.getElementById('teachersActivityTodayBtn')?.classList.remove('bg-slate-900','text-white');
- document.getElementById('teachersActivityRangeBtn')?.classList.add('bg-slate-900','text-white');
- await window.loadTeachersActivityCompliance(from,to);
+ var host=modal.querySelector('#arcTeacherComplianceHost');
+ await window.mountTeachersActivityCompliance(host,from,to);
 }
 async function studentAffairsReportsView(from,to){
  var panel=document.getElementById('repStudentAffairsPanel');
