@@ -9674,7 +9674,7 @@ async function callMorningAssemblyLatenessApi(body) {
   if (!token) throw new Error('جلسة الدخول الآمنة غير متاحة. سجل الخروج ثم الدخول مجدداً.');
   const response = await fetch(SUPABASE_URL + '/functions/v1/morning-assembly-lateness', {
     method:'POST', headers:{'Content-Type':'application/json',apikey:SA_API_KEY,Authorization:'Bearer '+token},
-    body:JSON.stringify(body),cache:'no-store'
+    body:JSON.stringify(body?.action==='report'&&isAdminRecordsCenterScopedAccess(activeUser)?{...body,admin_records_center:true}:body),cache:'no-store'
   });
   let data = {}; try { data = await response.json(); } catch (e) {}
   if (!response.ok) { const error = new Error(data.error || 'تعذر تنفيذ العملية.'); error.status = response.status; error.data = data; throw error; }
@@ -10441,7 +10441,9 @@ async function loadSubstitutionDistributionReport(silent) {
   setSubstitutionDistributionReportStatus('جارٍ تحميل جميع توزيعات الاحتياط من قاعدة البيانات...', 'info');
   try {
     const token = appAuthSession?.token || readAppAuthToken();
-    const result = await appAuthRequest({ action: 'timetable_substitution_report', dateFrom: from, dateTo: to }, token);
+    const reportRequest = { action: 'timetable_substitution_report', dateFrom: from, dateTo: to };
+    if (isAdminRecordsCenterScopedAccess(activeUser)) reportRequest.admin_records_center = true;
+    const result = await appAuthRequest(reportRequest, token);
     reserveDistributionReportRows = Array.isArray(result.archive) ? result.archive : [];
     renderSubstitutionDistributionReport();
     setSubstitutionDistributionReportStatus(reserveDistributionReportRows.length
@@ -11075,7 +11077,9 @@ async function updateAdvancedAnalytics() {
   if (typeof canAccessReport === 'function' && canAccessReport('reportSubstitutionDistribution') && token) {
     jobs.push((async () => {
       try {
-        const report = await appAuthRequest({ action: 'timetable_substitution_report', dateFrom: visibleDates[0], dateTo: visibleDates[visibleDates.length - 1] }, token);
+        const reportRequest = { action: 'timetable_substitution_report', dateFrom: visibleDates[0], dateTo: visibleDates[visibleDates.length - 1] };
+        if (isAdminRecordsCenterScopedAccess(activeUser)) reportRequest.admin_records_center = true;
+        const report = await appAuthRequest(reportRequest, token);
         const rows = Array.isArray(report?.archive) ? report.archive : [];
         rows.forEach(row => {
           const date = String(row?.assignmentDate || '');
@@ -11483,6 +11487,7 @@ function hasGranularReportPermissions(permissions) {
 }
 function canViewMorningAssemblyLatenessReport(user = activeUser) {
   if (!user) return false;
+  if (isAdminRecordsCenterScopedAccess(user)) return true;
   if (isGeneralAdminUser(user)) return true;
   const p = user.permissions && typeof user.permissions === 'object' ? user.permissions : {};
   if (user.type === 'custom') return p.morningAssemblyLateness === true;
