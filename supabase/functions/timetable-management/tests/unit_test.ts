@@ -711,5 +711,5 @@ Deno.test("four or more consecutive periods carry a fifty-point ranking penalty"
   const ranked=getAvailableSubstitutionCandidates({teachers:[teacher],timetable,assignments:[],
     absentTeacherId:"absent",weekday:"الأحد",period:5,departmentId:"science"});
   equal(ranked[0].streakPenalty,50,"Four or more consecutive periods add fifty ranking points");
-  equal(ranked[0].effortPoints,1,"The ranking penalty is not included in actual effort points");
+  equal(ranked[0].effortPoints,4.8,"Actual effort remains period weight 3 multiplied by the four-period load factor 1.6; the streak penalty is ranking-only");
 });
