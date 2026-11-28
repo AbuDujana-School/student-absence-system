@@ -54,6 +54,18 @@ begin
     raise exception 'Points ledger must retain two decimal places; got scale %',v_scale;
   end if;
 
+  -- The pre-migration seed deliberately stored 0.75. Four teaching periods
+  -- and period six must be recalculated to 2.50 x 1.60 = 4.00.
+  select count(*) into v_scale
+  from public.timetable_substitution_points_ledger
+  where teacher_name='__cum_backfill__'
+    and assignment_date=date '2026-11-29'
+    and event_key like 'assignment:%:coverage'
+    and points_delta=4.00;
+  if v_scale<>1 then
+    raise exception 'Historical coverage points were not recalculated from the saved timetable; matching rows: %',v_scale;
+  end if;
+
   insert into public.timetable_assignments(
     version_id,teacher_name,assignment_type,weekday,period,assignment_date,
     absent_teacher_name,absence_reason,status,created_by
