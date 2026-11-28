@@ -133,6 +133,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
       const load=getSubstitutionDailyLoadFactor(dailyTeachingCount);
       const streak=getStreakMetrics(occupied,period);
       const periodWeight=getSubstitutionPeriodPoints(period);
+      // Actual effort is kept separate from streak and same-day ranking penalties.
       const effortPoints=Number((periodWeight*load.factor).toFixed(2));
       const cumulativePoints=Number(t.pointsBalance)||0;
       const compensationBalance=Math.max(0,Number(t.compensationBalance)||0);
