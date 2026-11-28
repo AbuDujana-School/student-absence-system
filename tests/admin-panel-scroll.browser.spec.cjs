@@ -155,8 +155,9 @@ for (const viewport of viewports) {
     await page.mouse.wheel(0, 500);
     await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
 
-    // On phones, also swipe the overlay padding to validate its fallback touch surface.
+    // On phones, swipe inside the inner content at its end and verify scroll chaining.
     if (viewport.width < 640) {
+      await page.locator("#adminContentSection").evaluate(el => { el.scrollTop = el.scrollHeight; });
       await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
       const cdp = await context.newCDPSession(page);
       const overlayBox = await page.locator("#adminContentSection").boundingBox();
