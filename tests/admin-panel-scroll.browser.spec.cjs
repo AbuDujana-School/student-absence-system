@@ -1,20 +1,20 @@
 const { test, expect } = require("@playwright/test");
-const { readFileSync, mkdirSync } = require("node:fs");
+const { readFileSync } = require("node:fs");
 const path = require("node:path");
 
 const source = readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function styleBlock(id) {
-  const start = source.indexOf(`<style id="${id}">`);
-  if (start < 0) throw new Error(`Missing style block: ${id}`);
+  const start = source.indexOf(\`<style id="\${id}">\`);
+  if (start < 0) throw new Error(\`Missing style block: \${id}\`);
   const end = source.indexOf("</style>", start);
-  if (end < 0) throw new Error(`Unclosed style block: ${id}`);
+  if (end < 0) throw new Error(\`Unclosed style block: \${id}\`);
   return source.slice(start, end + "</style>".length);
 }
 
 function divElementById(id) {
-  const start = source.indexOf(`<div id="${id}"`);
-  if (start < 0) throw new Error(`Missing element: ${id}`);
+  const start = source.indexOf(\`<div id="\${id}"\`);
+  if (start < 0) throw new Error(\`Missing element: \${id}\`);
   const tags = /<\/?div\b[^>]*>/gi;
   tags.lastIndex = start;
   let depth = 0;
@@ -24,13 +24,11 @@ function divElementById(id) {
     else if (!match[0].endsWith("/>")) depth += 1;
     if (depth === 0) return source.slice(start, tags.lastIndex);
   }
-  throw new Error(`Unclosed element: ${id}`);
+  throw new Error(\`Unclosed element: \${id}\`);
 }
 
 const modalMarkup = divElementById("adminModal");
-const reportsMarkup = divElementById("sec-reports");
-const behaviorStatsMarkup = divElementById("sec-behaviorstats");
-const fixture = `<!doctype html>
+const fixture = \`<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -41,15 +39,15 @@ const fixture = `<!doctype html>
 .items-center{align-items:center}.justify-center{justify-content:center}.flex-col{flex-direction:column}
 .w-full{width:100%}.max-w-6xl{max-width:72rem}.overflow-hidden{overflow:hidden}
 .flex-grow{flex-grow:1}.p-4{padding:1rem}.p-5{padding:1.25rem}.rounded-3xl{border-radius:1.5rem}
-.max-h-\\[92vh\\]{max-height:92vh}.shadow-2xl{box-shadow:0 20px 30px #0003}
-.glass-card{background:#fff;border:1px solid #ddd}.bg-slate-900\\/60{background:#0f172a99}
+.max-h-\\\\[92vh\\\\]{max-height:92vh}.shadow-2xl{box-shadow:0 20px 30px #0003}
+.glass-card{background:#fff;border:1px solid #ddd}.bg-slate-900\\\\/60{background:#0f172a99}
 </style>
-${styleBlock("admin-panel-universal-scroll-fix")}
-${styleBlock("admin-report-behavior-scroll-fix")}
-${styleBlock("admin-dashboard-universal-scroll-fix")}
+\${styleBlock("admin-panel-universal-scroll-fix")}
+\${styleBlock("admin-report-behavior-scroll-fix")}
+\${styleBlock("admin-dashboard-universal-scroll-fix")}
 </head>
-<body>${modalMarkup}</body>
-</html>`;
+<body>\${modalMarkup}</body>
+</html>\`;
 
 const viewports = [
   { label: "phone portrait", width: 390, height: 844 },
@@ -57,174 +55,76 @@ const viewports = [
   { label: "desktop", width: 1366, height: 768 }
 ];
 
-mkdirSync(path.join(__dirname, "..", "test-results"), { recursive: true });
+async function openAdminPanel(page, id) {
+  await page.setContent(fixture, { waitUntil: "domcontentloaded" });
+  await page.evaluate((panelId) => {
+    const modal = document.getElementById("adminModal");
+    const card = modal.querySelector(".glass-card");
+    const content = document.getElementById("adminContentSection");
+    modal.classList.remove("hidden");
+    document.getElementById("adminAuthSection").classList.add("hidden");
+    content.classList.remove("hidden");
 
-for (const viewport of viewports) {
-  test(`admin panel scroll works — ${viewport.label}`, async ({ page }) => {
-    await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.setContent(fixture, { waitUntil: "domcontentloaded" });
-    await page.evaluate(() => {
-      const modal = document.getElementById("adminModal");
-      const content = document.getElementById("adminContentSection");
-      modal.classList.remove("hidden");
-      document.getElementById("adminAuthSection").classList.add("hidden");
-      content.classList.remove("hidden");
-      content.innerHTML = '<div style="height:2600px;flex:none;padding:16px">synthetic scroll fixture</div>';
-    });
+    Array.from(card.children)
+      .filter(child => child.id && child.id.startsWith("sec-"))
+      .forEach(section => section.classList.add("hidden"));
 
-    const metrics = await page.evaluate(() => {
-      const modal = document.getElementById("adminModal");
-      const card = modal.querySelector(".glass-card");
-      const content = document.getElementById("adminContentSection");
-      const rect = content.getBoundingClientRect();
-      return {
-        contentHeight: content.clientHeight,
-        contentScrollHeight: content.scrollHeight,
-        contentTop: rect.top,
-        contentBottom: rect.bottom,
-        modalOverflowY: getComputedStyle(modal).overflowY,
-        contentOverflowY: getComputedStyle(content).overflowY,
-        cardHeight: card.getBoundingClientRect().height,
-        cardTop: card.getBoundingClientRect().top,
-        cardBottom: card.getBoundingClientRect().bottom,
-        viewportHeight: window.innerHeight,
-        touchAction: getComputedStyle(content).touchAction
-      };
-    });
-
-    expect(metrics.contentHeight, "content must receive a bounded height").toBeGreaterThan(100);
-    expect(metrics.contentScrollHeight).toBeGreaterThan(metrics.contentHeight);
-    expect(metrics.modalOverflowY).toBe("auto");
-    expect(metrics.contentOverflowY).toBe("auto");
-    expect(metrics.touchAction).toBe("pan-y");
-    if (viewport.width <= 640) {
-      expect(metrics.cardTop, "mobile dialog must start inside the viewport").toBeGreaterThanOrEqual(0);
-      expect(metrics.cardBottom, "mobile dialog must not extend below the viewport").toBeLessThanOrEqual(metrics.viewportHeight);
+    const panel = document.getElementById(panelId);
+    if (!panel || panel.parentElement !== card) {
+      throw new Error(\`Expected direct admin panel not found: \${panelId}\`);
     }
-
-    const box = await page.locator("#adminContentSection").boundingBox();
-    await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
-    await page.mouse.wheel(0, 550);
-    await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-
-    // Verify the overlay remains a fallback scroll surface if content cannot scroll.
-    await page.evaluate(() => {
-      const modal = document.getElementById("adminModal");
-      const card = modal.querySelector(".glass-card");
-      const content = document.getElementById("adminContentSection");
-      content.style.overflowY = "hidden";
-      card.style.height = "120vh";
-      card.style.maxHeight = "none";
-      modal.scrollTop = 0;
-    });
-    await page.mouse.move(10, viewport.height - 10);
-    await page.mouse.wheel(0, 500);
-    await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-    await page.screenshot({
-      path: path.join(__dirname, "..", "test-results", `admin-scroll-${viewport.width}x${viewport.height}.png`),
-      fullPage: true
-    });
-  });
+    panel.classList.remove("hidden");
+    panel.insertAdjacentHTML(
+      "beforeend",
+      '<div data-scroll-fixture style="height:2600px;min-height:2600px;width:100%;padding:16px">محتوى تجريبي لاختبار التمرير</div>'
+    );
+  }, id);
 }
 
+for (const viewport of viewports) {
+  test(\`admin modal scrolls every dashboard section — \${viewport.label}\`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.setContent(fixture, { waitUntil: "domcontentloaded" });
 
-const longPanelCases = [
-  { id: "sec-reports", label: "reports", markup: reportsMarkup },
-  { id: "sec-behaviorstats", label: "behavior", markup: behaviorStatsMarkup }
-];
+    const panelIds = await page.locator(".glass-card > [id^='sec-']").evaluateAll(
+      elements => elements.map(element => element.id)
+    );
+    expect(panelIds.length, "real admin sections must be present in the fixture").toBeGreaterThan(5);
 
+    for (const id of panelIds) {
+      await openAdminPanel(page, id);
 
-for (const panel of longPanelCases) {
-  for (const viewport of viewports) {
-    test(`admin ${panel.label} section scrolls with full dashboard layout — ${viewport.label}`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.setContent(fixture, { waitUntil: "domcontentloaded" });
-      await page.evaluate(({ id }) => {
-        const modal = document.getElementById("adminModal");
-        const content = document.getElementById("adminContentSection");
-        modal.classList.remove("hidden");
-        document.getElementById("adminAuthSection").classList.add("hidden");
-        content.classList.remove("hidden");
-        content.querySelectorAll('[id^="sec-"]').forEach(section => section.classList.add("hidden"));
-        const section = document.getElementById(id);
-        section.classList.remove("hidden");
-        if (id === "sec-behaviorstats") {
-          const classes = section.querySelector("#behaviorReportClassesContainer");
-          classes.innerHTML = Array.from({ length: 10 }, (_, i) =>
-            `<div style="height:280px;min-height:280px;padding:16px;border:1px solid #ddd">صف تجريبي ${i + 1}</div>`
-          ).join("");
-        } else {
-          section.insertAdjacentHTML("beforeend",
-            '<div data-scroll-fixture style="height:2600px;min-height:2600px;width:100%">تقارير تجريبية طويلة</div>');
-        }
-      }, { id: panel.id });
-
-      const metrics = await page.evaluate((id) => {
-        const content = document.getElementById("adminContentSection");
-        const section = document.getElementById(id);
-        const ancestors = [];
-        let node = content;
-        while (node && ancestors.length < 7) {
-          const css = getComputedStyle(node);
-          const rect = node.getBoundingClientRect();
-          ancestors.push({
-            tag: node.tagName, id: node.id, className: String(node.className || "").slice(0, 100),
-            height: rect.height, clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
-            display: css.display, position: css.position, flex: css.flex, flexDirection: css.flexDirection,
-            heightCss: css.height, minHeight: css.minHeight, maxHeight: css.maxHeight,
-            overflowY: css.overflowY, alignItems: css.alignItems
-          });
-          node = node.parentElement;
-        }
-        const sectionAncestors = [];
-        node = section;
-        while (node && node !== content && sectionAncestors.length < 8) {
-          const css = getComputedStyle(node);
-          const rect = node.getBoundingClientRect();
-          sectionAncestors.push({
-            tag: node.tagName, id: node.id, className: String(node.className || "").slice(0, 120),
-            height: rect.height, clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
-            display: css.display, position: css.position, flex: css.flex, flexDirection: css.flexDirection,
-            heightCss: css.height, minHeight: css.minHeight, maxHeight: css.maxHeight,
-            overflowY: css.overflowY, alignItems: css.alignItems
-          });
-          node = node.parentElement;
-        }
-        const card = content.closest(".glass-card");
-        const cardChildren = Array.from(card.children).map(child => {
-          const css = getComputedStyle(child);
-          const rect = child.getBoundingClientRect();
-          return {
-            tag: child.tagName, id: child.id, className: String(child.className || "").slice(0, 120),
-            height: rect.height, clientHeight: child.clientHeight, scrollHeight: child.scrollHeight,
-            display: css.display, flex: css.flex, flexDirection: css.flexDirection,
-            position: css.position, overflowY: css.overflowY
-          };
-        });
+      const card = page.locator("#adminModal .glass-card");
+      const metrics = await card.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const css = getComputedStyle(element);
         return {
-          contentHeight: content.clientHeight,
-          contentScrollHeight: content.scrollHeight,
-          contentOverflowY: getComputedStyle(content).overflowY,
-          contentDisplay: getComputedStyle(content).display,
-          sectionHeight: section.getBoundingClientRect().height,
-          sectionOverflowY: getComputedStyle(section).overflowY,
-          sectionDisplay: getComputedStyle(section).display,
-          ancestors, sectionAncestors, cardChildren
+          height: element.clientHeight,
+          scrollHeight: element.scrollHeight,
+          overflowY: css.overflowY,
+          display: css.display,
+          flexDirection: css.flexDirection,
+          top: rect.top,
+          bottom: rect.bottom,
+          viewportHeight: window.innerHeight
         };
-      }, panel.id);
-      console.log("ADMIN_SCROLL_DIAGNOSTICS", panel.id, viewport.label, JSON.stringify(metrics));
+      });
 
-      expect(metrics.contentHeight, "admin content viewport must be bounded").toBeGreaterThan(100);
-      expect(metrics.contentScrollHeight, "full dashboard panel must exceed the viewport").toBeGreaterThan(metrics.contentHeight);
-      expect(metrics.contentOverflowY).toBe("auto");
-      expect(metrics.contentDisplay).toBe("block");
-      expect(metrics.sectionOverflowY).toBe("visible");
-      expect(metrics.sectionDisplay).toBe("block");
+      expect(metrics.height, \`\${id}: scroll viewport must be bounded\`).toBeGreaterThan(100);
+      expect(metrics.scrollHeight, \`\${id}: active panel must extend beyond the viewport\`).toBeGreaterThan(metrics.height);
+      expect(metrics.overflowY, \`\${id}: card must own vertical scrolling\`).toBe("auto");
+      expect(metrics.display, \`\${id}: card must remain a flex column\`).toBe("flex");
+      expect(metrics.flexDirection, \`\${id}: card flow must remain vertical\`).toBe("column");
+      expect(metrics.top, \`\${id}: dialog must remain inside the viewport\`).toBeGreaterThanOrEqual(0);
+      expect(metrics.bottom, \`\${id}: dialog must not extend below the viewport\`).toBeLessThanOrEqual(metrics.viewportHeight + 1);
 
-      const box = await page.locator("#adminContentSection").boundingBox();
-      await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(100, box.height / 2));
+      const box = await card.boundingBox();
+      await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(140, box.height / 2));
       await page.mouse.wheel(0, 650);
-      await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-    });
-  }
+      await expect.poll(
+        () => card.evaluate(element => element.scrollTop),
+        { message: \`\${id}: vertical wheel/touch scroll must move the admin card\` }
+      ).toBeGreaterThan(0);
+    }
+  });
 }
