@@ -1762,7 +1762,7 @@ async function handle(req: Request) {
           ...(assignmentRows||[]).filter((row:any)=>String(row.assignment_type||"")==="substitution"&&
             String(row.status||"")!=="cancelled"&&String(row.teacher_name||"")===teacherName&&
             String(row.assignment_date||"")).map((row:any)=>({date:String(row.assignment_date),kind:"cover" as const})),
-        ].sort((x,y)=>x.date.localeCompare(y.date)||(x.kind==="bonus"?-1:1));
+        ].sort((x,y)=>x.date.localeCompare(y.date)||(x.kind===y.kind?0:x.kind==="bonus"?-1:1));
         let balance=0;
         for(const event of timeline)balance=event.kind==="bonus"?balance+2:Math.max(0,balance-1);
         compensationBalanceByTeacher.set(teacherName,Number(balance.toFixed(2)));
