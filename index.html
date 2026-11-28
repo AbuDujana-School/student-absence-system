@@ -2623,7 +2623,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
   max-height:none;
   overflow-x:hidden!important;
   overflow-y:auto!important;
-  overscroll-behavior-y:contain;
+  /* Allow scroll chaining to the modal when the inner area reaches its edge. */
   -webkit-overflow-scrolling:touch;
   touch-action:pan-y;
 }
