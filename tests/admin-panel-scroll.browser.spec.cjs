@@ -28,6 +28,8 @@ function divElementById(id) {
 }
 
 const modalMarkup = divElementById("adminModal");
+const reportsMarkup = divElementById("sec-reports");
+const behaviorStatsMarkup = divElementById("sec-behaviorstats");
 const fixture = `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -43,6 +45,7 @@ const fixture = `<!doctype html>
 .glass-card{background:#fff;border:1px solid #ddd}.bg-slate-900\\/60{background:#0f172a99}
 </style>
 ${styleBlock("admin-panel-universal-scroll-fix")}
+${styleBlock("admin-report-behavior-scroll-fix")}
 </head>
 <body>${modalMarkup}</body>
 </html>`;
@@ -121,4 +124,59 @@ for (const viewport of viewports) {
       fullPage: true
     });
   });
+}
+
+
+const longPanelCases = [
+  { id: "sec-reports", label: "reports", markup: reportsMarkup },
+  { id: "sec-behaviorstats", label: "behavior", markup: behaviorStatsMarkup }
+];
+
+for (const panel of longPanelCases) {
+  for (const viewport of viewports) {
+    test(`admin ${panel.label} section scrolls — ${viewport.label}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.setContent(fixture, { waitUntil: "domcontentloaded" });
+      await page.evaluate(({ markup, id }) => {
+        const modal = document.getElementById("adminModal");
+        const content = document.getElementById("adminContentSection");
+        modal.classList.remove("hidden");
+        document.getElementById("adminAuthSection").classList.add("hidden");
+        content.classList.remove("hidden");
+        content.innerHTML = markup;
+        const panel = document.getElementById(id);
+        if (id === "sec-behaviorstats") {
+          const classes = panel.querySelector("#behaviorReportClassesContainer");
+          classes.innerHTML = Array.from({ length: 10 }, (_, i) =>
+            `<div style="height:280px;min-height:280px;padding:16px;border:1px solid #ddd">صف تجريبي ${i + 1}</div>`
+          ).join("");
+        }
+      }, { markup: panel.markup, id: panel.id });
+
+      const metrics = await page.evaluate((id) => {
+        const content = document.getElementById("adminContentSection");
+        const section = document.getElementById(id);
+        return {
+          viewportHeight: window.innerHeight,
+          contentHeight: content.clientHeight,
+          contentScrollHeight: content.scrollHeight,
+          contentOverflowY: getComputedStyle(content).overflowY,
+          sectionHeight: section.getBoundingClientRect().height,
+          sectionOverflowY: getComputedStyle(section).overflowY,
+          sectionDisplay: getComputedStyle(section).display
+        };
+      }, panel.id);
+
+      expect(metrics.contentHeight, "admin content viewport must be bounded").toBeGreaterThan(100);
+      expect(metrics.contentScrollHeight, "real panel content must exceed the viewport").toBeGreaterThan(metrics.contentHeight);
+      expect(metrics.contentOverflowY).toBe("auto");
+      expect(metrics.sectionOverflowY).toBe("visible");
+      expect(metrics.sectionDisplay).toBe("block");
+
+      const box = await page.locator("#adminContentSection").boundingBox();
+      await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(100, box.height / 2));
+      await page.mouse.wheel(0, 650);
+      await expect.poll(() => page.locator("#adminContentSection").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+    });
+  }
 }
