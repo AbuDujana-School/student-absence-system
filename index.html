@@ -17198,10 +17198,10 @@ function filterMorningAssemblyReportRowsByDate(rows,from,to){
  (Array.isArray(rows)?rows:[]).forEach(function(student){
   var events=(Array.isArray(student?.events)?student.events:[]).filter(function(event){
    var date=String(event?.late_date||'');
-   return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date>=from&&date<=to;
+   return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date>=from&&date<=to;
   });
   if(!events.length)return;
-  var key=String(student?.name||'')+'\\u001f'+String(student?.className||'');
+  var key=String(student?.name||'')+'\u001f'+String(student?.className||'');
   filtered.set(key,{...student,count:events.length,events:events,absenceDays:Math.floor(events.length/4),remaining:events.length%4});
  });
  return [...filtered.values()].sort(function(a,b){return b.count-a.count||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||String(a.name).localeCompare(String(b.name),'ar');});
