@@ -66,7 +66,7 @@ test("administrative-records access unlocks the center only while its modal is o
   assert.ok(html.includes("function isAdminRecordsCenterScopedAccess(user = activeUser)"));
   assert.ok(html.includes("return granted && !!modal && !modal.classList.contains('hidden')"));
   assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['studstats','behaviorstats','teachers'].includes(key)"));
-  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(key)"));
+  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(key)"));
   const panelStart = html.indexOf("function hasAdminPanelAccess(user = activeUser)");
   const panelEnd = html.indexOf("function getSingleAdminPanelPermission", panelStart);
   const panelAccess = html.slice(panelStart, panelEnd);
