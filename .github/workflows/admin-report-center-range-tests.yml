@@ -6,12 +6,15 @@ on:
     paths:
       - "index.html"
       - "admin-report-center-adapters.js"
+      - "teacher-attendance-compliance.js"
+      - "supabase/functions/timetable-management/index.ts"
       - "tests/admin_report_center_range_test.mjs"
       - "tests/admin_report_center_adapters_test.mjs"
       - ".github/workflows/admin-report-center-range-tests.yml"
   push:
     branches:
       - feature/admin-report-center-range-ui-20261126
+      - feature/admin-report-center-independent-readers-20261128
     paths:
       - "index.html"
       - "tests/admin_report_center_range_test.mjs"
