@@ -2665,6 +2665,33 @@ body:not(.login-mode)>main{height:auto!important;min-height:100dvh!important;max
 @media(max-width:640px){#adminModal:not(.hidden){padding:8px!important}#adminModal>.glass-card{width:100%!important;min-height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important;border-radius:18px!important}}
 @media(min-width:641px){#adminModal>.glass-card{min-height:min(620px,calc(100dvh - 32px))!important}}
 </style>
+
+<style id="admin-dashboard-section-scroll-fix">
+/* Keep the admin dashboard as one predictable vertical scroll surface.
+   The individual sec-* panels must retain their natural content height. */
+#adminModal:not(.hidden) #adminContentSection:not(.hidden){
+  display:block!important;
+  flex:1 1 0%!important;
+  width:100%!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+#adminModal:not(.hidden) #adminContentSection:not(.hidden)>[id^="sec-"]:not(.hidden){
+  display:block!important;
+  flex:none!important;
+  width:100%!important;
+  min-height:max-content!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+</style>
 </head>
 <body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
