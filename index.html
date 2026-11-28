@@ -2601,10 +2601,8 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
 #adminModal{
   overflow-x:hidden;
   overflow-y:auto;
-  align-items:flex-start;
   overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
 }
 #adminModal > .glass-card{
   box-sizing:border-box;
@@ -2615,12 +2613,7 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
   max-height:92vh;
   min-height:0;
   margin-block:auto;
-  /* Do not let the dialog shell cut off scroll chaining to the overlay. */
-  overflow:visible!important;
-}
-#adminModal > .glass-card > div:first-child{
-  border-top-left-radius:1.5rem;
-  border-top-right-radius:1.5rem;
+  min-height:0;
 }
 #adminModal #adminContentSection{
   flex:1 1 0%;
