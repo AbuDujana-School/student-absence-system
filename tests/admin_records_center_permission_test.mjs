@@ -58,12 +58,24 @@ test("additional-admin permission projection defaults to denied and preserves an
   assert.match(policy, /if \(typeof overrides\[key\] === "boolean"\) result\[key\] = overrides\[key\] as boolean;/);
 });
 
-test("report center remains bound to existing per-report authorization", () => {
-  for (const key of [
-    "reportComprehensiveAbsence",
-    "reportMorningAssemblyLateness",
-    "reportClassLatenessFollowup",
-    "reportSubstitutionDistribution",
-    "reportStudentAffairs",
-  ]) assert.ok(centerScript.includes("rep('" + key + "')"), "Missing permission gate for " + key);
+test("administrative-records access unlocks the center only while its modal is open", () => {
+  assert.match(html, /function isAdminRecordsCenterScopedAccess\\(user = activeUser\\)/);
+  assert.ok(html.includes("return granted && !!modal && !modal.classList.contains('hidden')"));
+  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['studstats','behaviorstats','teachers'].includes(key)"));
+  assert.ok(html.includes("isAdminRecordsCenterScopedAccess(user) && ['reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(key)"));
+  const panelStart = html.indexOf("function hasAdminPanelAccess(user = activeUser)");
+  const panelEnd = html.indexOf("function getSingleAdminPanelPermission", panelStart);
+  const panelAccess = html.slice(panelStart, panelEnd);
+  assert.ok(panelStart >= 0 && panelEnd > panelStart);
+  assert.match(panelAccess, /isGeneralAdminUser\\(user\\) \\|\\| ADMIN_TAB_PERMISSIONS\\.some\\(key => canAccessAdminTab\\(key, user\\)\\)/);
+  assert.doesNotMatch(panelAccess, /adminRecords/);
+  assert.match(html, /function isAdminAuthorized\\(\\) \\{ if \\(isGeneralAdminUser\\(\\) \\|\\| isAdditionalAdminUser\\(\\)\\) return true/);
+  assert.match(centerScript, /function close\\(\\)[\\s\\S]*?refreshReportPanelsVisibility\\(\\)/);
+});
+
+test("Student Affairs and morning-assembly reports retain their independent access checks", () => {
+  assert.ok(centerScript.includes("allowed:rep('reportStudentAffairs')"));
+  assert.ok(centerScript.includes("allowed:canViewMorningAssemblyLatenessReport(activeUser)"));
+  assert.ok(centerScript.includes("if(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser))") === false);
+  assert.match(centerScript, /function rep\\(k\\)\\{return k==='reportMorningAssemblyLateness'\\?canViewMorningAssemblyLatenessReport\\(activeUser\\):canAccessReport\\(k,activeUser\\);\\}/);
 });
