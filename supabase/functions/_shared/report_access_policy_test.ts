@@ -1,4 +1,4 @@
-import { canAccessReportPermission, hasExplicitReportPermissions } from "./report_access_policy.ts";
+import { canAccessReportPermission, hasAdminRecordsCenterAccess, hasExplicitReportPermissions } from "./report_access_policy.ts";
 
 Deno.test("legacy broad reports permission does not grant any individual report", () => {
   const legacy = { reports: true };
@@ -49,4 +49,14 @@ function assert(condition: boolean, message: string): asserts condition {
 
 Deno.test("reserve distribution report is detected as an explicit report permission", () => {
   assert(hasExplicitReportPermissions({ reportSubstitutionDistribution: false }), "reserve report flag should be part of granular report permissions");
+});
+
+
+Deno.test("administrative-records access is an explicit, center-scoped report grant", () => {
+  assert(hasAdminRecordsCenterAccess("teacher", { adminRecords: true }), "explicit adminRecords grant should be recognized");
+  assert(hasAdminRecordsCenterAccess("teacher", { additionalAdminOverrides: { adminRecords: true } }), "nested additional-admin override should be recognized");
+  assert(!hasAdminRecordsCenterAccess("teacher", { additionalAdmin: true }), "Additional Admin alone must not grant the records center");
+  assert(!hasAdminRecordsCenterAccess("teacher", {}), "accounts without the portal grant remain denied");
+  assert(canAccessReportPermission("teacher", {}, "reportStudentAffairs", false, true), "center grant should unlock Student Affairs reports within the center");
+  assert(!canAccessReportPermission("teacher", {}, "reportSubstitutionDistribution", false, true), "center report bypass must not become a generic per-report backend grant");
 });
