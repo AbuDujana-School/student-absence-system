@@ -3764,7 +3764,7 @@ body:not(.login-mode)>main{height:auto!important;min-height:100dvh!important;max
       <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border-2 border-amber-300"><div class="text-[10px] text-amber-700 dark:text-amber-300 font-bold mb-1">الرمز السري (يجب حفظه الآن)</div><div id="pinDisplayValue" class="font-mono font-black text-3xl tracking-widest text-amber-900 dark:text-amber-200"></div></div>
       <div class="text-[11px] text-red-600 font-bold bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl border border-red-200">⚠️ سيُطلب من المستخدم تغيير هذا الرمز عند أول دخول.</div>
     </div>
-    <button onclick="copyPinAndClose()" class="w-full mt-5 bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm"><i class="fa-solid fa-copy"></i> نسخ وإغلاق</button>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5"><button type="button" onclick="printPinCredentials()" class="bg-slate-800 hover:bg-slate-900 text-white font-black py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm"><i class="fa-solid fa-print ml-1"></i> طباعة بيانات الدخول</button><button type="button" onclick="copyPinAndClose()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm"><i class="fa-solid fa-copy ml-1"></i> نسخ وإغلاق</button></div>
   </div>
 </div>
 
@@ -12122,6 +12122,39 @@ function showBulkPinModal(created, skipped) {
   if (skipped.length > 0) v.innerHTML += `<div class="mt-3 p-2.5 bg-slate-100 rounded-xl text-[11px] text-slate-600 font-bold">تم تخطي ${skipped.length}: ${escapeHtml(skipped.slice(0, 5).join(', '))}${skipped.length > 5 ? '...' : ''}</div>`;
   m.classList.remove('hidden');
   m.dataset.bulkPins = JSON.stringify(created);
+}
+function printPinCredentials() {
+  const modal = document.getElementById('pinDisplayModal');
+  if (!modal) { showToast('نافذة بيانات الدخول غير متاحة.', 'error'); return; }
+  let rows = [];
+  try {
+    if (modal.dataset.bulkPins) {
+      const list = JSON.parse(modal.dataset.bulkPins);
+      if (Array.isArray(list)) rows = list.map(x => ({name:String(x.name || ''), category:String(x.category || ''), pin:String(x.pin || '')}));
+    } else if (modal.dataset.pin) {
+      rows = [{name:String(modal.dataset.name || ''), category:'', pin:String(modal.dataset.pin)}];
+    }
+  } catch (e) { showToast('تعذر تجهيز بيانات الطباعة.', 'error'); return; }
+  if (!rows.length) { showToast('لا توجد رموز دخول جديدة معروضة للطباعة.', 'error'); return; }
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const body = rows.map((r,i) => '<tr><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.category)+'</td><td class="pin">'+esc(r.pin)+'</td></tr>').join('');
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>بيانات الدخول</title><style>@page{size:A4 portrait;margin:14mm}*{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;color:#172b40;margin:0;font-size:12px}.head{text-align:center;border-bottom:3px double #168c85;padding-bottom:12px;margin-bottom:18px}.head h1{font-size:20px;margin:0 0 6px}.head p{margin:0;color:#526579}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:10px;text-align:right}th{background:#e6f4f2;color:#183653;font-weight:900}td.pin{font-family:monospace;font-size:17px;font-weight:900;letter-spacing:2px;text-align:center;direction:ltr}.notice{margin-top:18px;padding:10px;border:1px solid #e5c36a;background:#fff9e8;border-radius:8px;font-weight:700;text-align:center}.foot{margin-top:35px;display:flex;justify-content:space-between;font-weight:700}@media print{tr{break-inside:avoid;page-break-inside:avoid}}</style></head><body><header class="head"><h1>مدرسة أبو دجانة الأنصاري للبنين (9–12)</h1><p>كشف بيانات الدخول للحسابات التي أُنشئت للتو</p></header><table><thead><tr><th>م</th><th>اسم المستخدم</th><th>الفئة</th><th>الرمز السري</th></tr></thead><tbody>'+body+'</tbody></table><div class="notice">يرجى تسليم الرمز لصاحبه بسرية، وسيُطلب تغييره عند أول دخول.</div><div class="foot"><span>مسؤول النظام: ........................</span><span>التاريخ: ........................</span></div></body></html>';
+  let frame = null;
+  try {
+    frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    const cleanup = () => { try { frame?.remove(); } catch (_) {} };
+    frame.contentWindow.onafterprint = cleanup;
+    setTimeout(() => { try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { cleanup(); showToast('تعذرت الطباعة من هذا المتصفح.', 'error'); } }, 350);
+    setTimeout(cleanup, 60000);
+  } catch (e) {
+    try { frame?.remove(); } catch (_) {}
+    showToast('تعذرت تهيئة صفحة الطباعة.', 'error');
+  }
 }
 async function copyPinAndClose() {
   const m = document.getElementById('pinDisplayModal');
