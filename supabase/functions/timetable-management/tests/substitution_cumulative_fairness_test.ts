@@ -70,7 +70,7 @@ Deno.test("lower cumulative balance is preferred when candidates are otherwise e
 
 Deno.test("effort points use actual daily teaching load and do not absorb ranking penalties", () => {
   const t = teacher("four-period");
-  const timetable = [1, 2, 3, 4].map((p) => teaching(t.id, p)).concat(freeCell(t.id));
+  const timetable = [1, 2, 7, 8].map((p) => teaching(t.id, p)).concat(freeCell(t.id));
   const ranked = getAvailableSubstitutionCandidates(query([t], timetable));
   equal(ranked[0]?.effortPoints, 4.8, "period-five effort at four teaching periods");
   equal(ranked[0]?.streakPenalty, 0, "no streak penalty");
@@ -93,8 +93,8 @@ Deno.test("four consecutive periods are avoided when a non-exhausting option exi
   const rested = teacher("rested");
   const timetable = [
     freeCell(exhausted.id), freeCell(rested.id),
-    teaching(exhausted.id, 1), teaching(exhausted.id, 2),
-    teaching(exhausted.id, 3), teaching(rested.id, 1),
+    teaching(exhausted.id, 2), teaching(exhausted.id, 3),
+    teaching(exhausted.id, 4), teaching(rested.id, 1),
   ];
   const ranked = getAvailableSubstitutionCandidates(query([exhausted, rested], timetable));
   equal(ranked.length, 1, "exhausting candidate is excluded from preferred pool");
