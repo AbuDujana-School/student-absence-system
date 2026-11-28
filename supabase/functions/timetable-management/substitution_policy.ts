@@ -24,7 +24,7 @@ function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:numb
   return a.weekday===b.weekday && a.period===b.period;
 }
 
-/** School-approved points for a single substitute lesson (periods 1–8). */
+/** Approved effort weight for a single substitute lesson (periods 1–8). */
 export function getSubstitutionPeriodPoints(period:number):number {
   return ({1:1,2:1,3:1.5,4:1.5,5:3,6:2.5,7:4,8:5} as Record<number,number>)[period] ?? 0;
 }
