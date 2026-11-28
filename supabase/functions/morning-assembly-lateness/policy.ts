@@ -51,8 +51,8 @@ export function canUseMorningLateness(input: {
   });
 }
 
-export function canViewMorningLatenessReport(input:{principalType:"admin"|"teacher"|"custom"; nonDutyPermission?:boolean; customPermission?:boolean}):boolean {
-  if (input.principalType === "admin") return true;
+export function canViewMorningLatenessReport(input:{principalType:"admin"|"teacher"|"custom"; nonDutyPermission?:boolean; customPermission?:boolean; adminRecordsCenterAccess?:boolean}):boolean {
+  if (input.principalType === "admin" || input.adminRecordsCenterAccess === true) return true;
   if (input.principalType === "custom") return input.customPermission === true;
   if (input.principalType === "teacher") return input.nonDutyPermission === true;
   return false;
