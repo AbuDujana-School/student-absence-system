@@ -1498,7 +1498,7 @@ async function handle(req: Request) {
           .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name,cell_status,weekday,period")
           .eq("version_id",activeVersion.id).order("id").range(from,to)),
-        fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
+        fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta,event_key,event_type")
           .order("id").range(from,to)),
         loadSubstitutionPeriodTimings(),
       ]);
@@ -1625,7 +1625,7 @@ async function handle(req: Request) {
         .order("id").range(from,to));
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
-      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),absentTeacherId:String(x.absent_teacher_name||""),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
+      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),absentTeacherId:String(x.absent_teacher_name||""),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),absenceReason:String(x.absence_reason||""),status:x.status}));
       if(body.action==="timetable_substitution_archive"){
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
@@ -1737,13 +1737,40 @@ async function handle(req: Request) {
       }
       const pointsBalanceByTeacher=new Map<string,number>();
       for(const entry of pointsLedger||[]){
+        const eventKey=String(entry.event_key||"");
+        // Only coverage effort contributes to cumulative burden. Legacy absence debits
+        // and the former streak bonus remain in the ledger for audit, but are not penalties.
+        if(!eventKey.endsWith(":coverage")&&!eventKey.endsWith(":coverage-reversal"))continue;
         const name=String(entry.teacher_name||"");
-        pointsBalanceByTeacher.set(name,(pointsBalanceByTeacher.get(name)||0)+Number(entry.points_delta||0));
+        pointsBalanceByTeacher.set(name,Number(((pointsBalanceByTeacher.get(name)||0)+Number(entry.points_delta||0)).toFixed(2)));
+      }
+      const emergencyAbsenceDays=new Map<string,Set<string>>();
+      for(const row of assignmentRows||[]){
+        if(String(row.assignment_type||"")!=="substitution"||String(row.status||"")==="cancelled")continue;
+        const reason=String(row.absence_reason||"").trim();
+        if(!/طارئ/.test(reason))continue;
+        const absentName=String(row.absent_teacher_name||"").trim();
+        const absenceDate=String(row.assignment_date||"");
+        if(!absentName||!/^\\d{4}-\\d{2}-\\d{2}$/.test(absenceDate))continue;
+        if(!emergencyAbsenceDays.has(absentName))emergencyAbsenceDays.set(absentName,new Set());
+        emergencyAbsenceDays.get(absentName)!.add(absenceDate);
+      }
+      const compensationBalanceByTeacher=new Map<string,number>();
+      for(const [teacherName,dates] of emergencyAbsenceDays){
+        let balance=dates.size*2;
+        const laterCovers=(assignmentRows||[]).filter((row:any)=>
+          String(row.assignment_type||"")==="substitution"&&String(row.status||"")!=="cancelled"&&
+          String(row.teacher_name||"")===teacherName&&String(row.assignment_date||"")&&
+          [...dates].some(date=>String(row.assignment_date)>date)
+        ).length;
+        balance=Math.max(0,balance-laterCovers);
+        compensationBalanceByTeacher.set(teacherName,Number(balance.toFixed(2)));
       }
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher"&&activeTeachingTeacherNames.has(t.name)).map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
         weeklyQuota:weeklyQuotaByTeacher.get(t.name)||0,
         pointsBalance:pointsBalanceByTeacher.get(t.name)||0,
+        compensationBalance:compensationBalanceByTeacher.get(t.name)||0,
       }));
       if(body.action==="timetable_substitution_batch_save"){
         const assignmentDate=String(body.assignmentDate||"");
@@ -1806,6 +1833,9 @@ async function handle(req: Request) {
           teachers:scopedCandidates,timetable:planningTimetable,assignments,absentTeachers:selectedAbsent,weekday,
           assignmentDate,versionId:activeVersion.id,includeOtherDepartments:includeOtherDepartments||false,
           otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],
+          manualAssignments:body.manualAssignments&&typeof body.manualAssignments==="object"&&!Array.isArray(body.manualAssignments)
+            ?Object.fromEntries(Object.entries(body.manualAssignments).map(([key,value])=>[String(key),String(value||"")]).filter(([,value])=>value))
+            :{},
         });
         const existingAssignments=(assignmentRows||[]).filter((row:any)=>
           row.assignment_type==="substitution"&&selectedNames.includes(String(row.absent_teacher_name||""))&&
