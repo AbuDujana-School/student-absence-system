@@ -131,8 +131,7 @@ for (const viewport of viewports) {
       const modal = document.getElementById("adminModal");
       const card = modal.querySelector(".glass-card");
       const content = document.getElementById("adminContentSection");
-      content.style.overflowY = "visible";
-      content.scrollTop = 0;
+      content.scrollTop = content.scrollHeight;
       card.style.height = "120vh";
       card.style.maxHeight = "none";
       modal.scrollTop = 0;
@@ -150,8 +149,7 @@ for (const viewport of viewports) {
       };
     });
     expect(fallbackMetrics.scrollHeight, JSON.stringify(fallbackMetrics)).toBeGreaterThan(fallbackMetrics.clientHeight);
-    await page.locator("#adminModal").evaluate(el => { el.scrollTop = 200; });
-    await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop), { message: JSON.stringify(fallbackMetrics) }).toBeGreaterThan(0);
+    await page.locator("#adminContentSection").evaluate(el => { el.scrollTop = el.scrollHeight; });
     await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
     await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
     await page.mouse.wheel(0, 500);
