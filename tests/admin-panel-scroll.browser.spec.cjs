@@ -81,6 +81,9 @@ for (const viewport of viewports) {
         modalOverflowY: getComputedStyle(modal).overflowY,
         contentOverflowY: getComputedStyle(content).overflowY,
         cardHeight: card.getBoundingClientRect().height,
+        cardTop: card.getBoundingClientRect().top,
+        cardBottom: card.getBoundingClientRect().bottom,
+        viewportHeight: window.innerHeight,
         touchAction: getComputedStyle(content).touchAction
       };
     });
@@ -90,6 +93,10 @@ for (const viewport of viewports) {
     expect(metrics.modalOverflowY).toBe("auto");
     expect(metrics.contentOverflowY).toBe("auto");
     expect(metrics.touchAction).toBe("pan-y");
+    if (viewport.width <= 640) {
+      expect(metrics.cardTop, "mobile dialog must start inside the viewport").toBeGreaterThanOrEqual(0);
+      expect(metrics.cardBottom, "mobile dialog must not extend below the viewport").toBeLessThanOrEqual(metrics.viewportHeight);
+    }
 
     const box = await page.locator("#adminContentSection").boundingBox();
     await page.mouse.move(box.x + Math.min(40, box.width / 2), box.y + Math.min(80, box.height / 2));
