@@ -17213,6 +17213,8 @@ async function studentAffairsReportsView(from,to){
  modal.querySelector('#arcBody').innerHTML='<div id="arcStudentAffairsReportHost" class="min-w-0"></div>';
  panel.classList.remove('hidden');
  modal.querySelector('#arcStudentAffairsReportHost').appendChild(panel);
+ if(repReportsInitPromise){try{await repReportsInitPromise;}catch(e){}}
+ repReportsInitialized=false;repReportsInitPromise=null;
  await repInitStudentAffairsReports();
  if(typeof saSetReportDateInputs==='function')saSetReportDateInputs('rep',from,to,'custom');
  else{var sf=document.getElementById('repFrom'),st=document.getElementById('repTo');if(sf)sf.value=from;if(st)st.value=to;}
