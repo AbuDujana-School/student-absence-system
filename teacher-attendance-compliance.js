@@ -300,7 +300,7 @@
       '</main><script>window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(function(){window.focus();window.print()},500)})});<\\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close(); w.focus();
   }
-  function mountReport(container) {
+  function mountReport(container, fromOverride, toOverride) {
     if (!container) throw new Error("تعذر تجهيز مساحة تقرير الالتزام.");
     state.root = container;
     container.innerHTML =
@@ -322,10 +322,11 @@
       '<p class="text-[10px] leading-5 text-slate-500">تُحتسب الحصة مرصودة عند وجود سجل حفظ مطابق للتاريخ والصف والحصة، حتى إذا لم يوجد غياب.</p></section>';
     const today = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
     const from = el("teachersActivityFrom"), to = el("teachersActivityTo");
-    if (from) from.value = today;
-    if (to) to.value = today;
+    const fromValue = String(fromOverride || today), toValue = String(toOverride || today);
+    if (from) from.value = fromValue;
+    if (to) to.value = toValue;
     state.mode = "range";
-    return loadReport(today, today);
+    return loadReport(fromValue, toValue);
   }
   window.mountAdminTeacherComplianceReport = mountReport;
   window.unmountAdminTeacherComplianceReport = function () { state.root = null; state.lastReport = null; };
