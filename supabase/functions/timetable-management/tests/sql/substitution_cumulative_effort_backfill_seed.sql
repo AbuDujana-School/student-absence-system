@@ -33,10 +33,14 @@ begin
     '__cum_backfill_absent__','مرضية','assigned','cumulative-backfill-seed'
   ) returning id into v_assignment_id;
 
-  update public.timetable_substitution_points_ledger
-  set points_delta=1
-  where assignment_id=v_assignment_id
-    and event_key='assignment:'||v_assignment_id::text||':coverage';
+  insert into public.timetable_substitution_points_ledger(
+    assignment_id,teacher_name,event_key,event_type,points_delta,period,weekday,
+    assignment_date,absent_teacher_name
+  ) values (
+    v_assignment_id,'__cum_backfill__',
+    'assignment:'||v_assignment_id::text||':coverage',
+    'coverage_credit',1,6,'الأحد',date '2026-11-29','__cum_backfill_absent__'
+  ) on conflict(event_key) do update set points_delta=1;
 
   if not exists(
     select 1 from public.timetable_substitution_points_ledger
