@@ -13,10 +13,10 @@ permissions:
 
 jobs:
   review_on_pr:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -27,13 +27,22 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DIFF=$(git diff origin/main...HEAD | head -c 12000)
-          [ -z "$DIFF" ] && exit 0
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "GEMINI_API_KEY is not set; skipping review."
+            exit 0
+          fi
 
-          PAYLOAD=$(jq -n --arg diff "$DIFF" '{
+          DIFF=$(git diff origin/main...HEAD || true)
+          if [ -z "$DIFF" ]; then
+            exit 0
+          fi
+
+          SHORT_DIFF=$(printf "%s" "$DIFF" | head -c 25000)
+
+          PAYLOAD=$(jq -n --arg diff "$SHORT_DIFF" '{
             contents: [{
               parts: [{
-                text: ("راجع هذا التعديل البرمجي باختصار باللغة العربية، واذكر الأخطاء أو التحسينات المقترحة. أخبر المستخدم أنه يمكنه كتابة تعليق يبدأ بـ /gemini لتنفيذ التعديلات تلقائياً:\n\n" + $diff)
+                text: ("راجع الفروقات البرمجية التالية لطلب السحب واكتب مراجعة مختصرة ومفيدة بالعربية تشمل الملاحظات أو الأخطاء المحتملة والتحسينات. ثم أضف سطراً في النهاية يوضح إمكانية كتابة تعليق يبدأ بـ /gemini لتطبيق التعديلات تلقائياً:\n\n" + $diff)
               }]
             }]
           }')
@@ -43,52 +52,64 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
-          REVIEW=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
-          [ -n "$REVIEW" ] && gh pr comment "$PR_NUMBER" --body "$REVIEW"
+          REVIEW_TEXT=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          if [ -n "$REVIEW_TEXT" ]; then
+            gh pr comment "$PR_NUMBER" --body "$REVIEW_TEXT"
+          fi
 
   edit_on_command:
-    if: >
+    if: |
       github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
+      github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/gemini') &&
-      (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR')
+      (
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'
+      )
     runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.get_branch.outputs.branch }}
     steps:
       - name: Get PR Branch Info
-        id: pr
+        id: get_branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH=$(curl -fsSL \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
+          BRANCH=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}" | jq -r '.head.ref // empty')
           if [ -z "$BRANCH" ]; then
-            echo "Failed to fetch PR head branch for #${PR_NUMBER}" >&2
+            echo "Failed to resolve PR branch name."
             exit 1
           fi
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.branch }}
+          ref: ${{ steps.get_branch.outputs.branch }}
           fetch-depth: 0
 
       - name: Apply Code Edit via Gemini API
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PR_NUMBER: ${{ github.event.issue.number }}
-          USER_PROMPT: ${{ github.event.comment.body }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.get_branch.outputs.branch }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
           REPO: ${{ github.repository }}
-          BRANCH: ${{ steps.pr.outputs.branch }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
             gh pr comment "$PR_NUMBER" --body "❌ لم يتم العثور على مفتاح GEMINI_API_KEY في Secrets."
             exit 1
+          fi
+
+          USER_PROMPT=$(printf "%s" "$COMMENT_BODY" | sed 's|^/gemini[[:space:]]*||')
+          if [ -z "$USER_PROMPT" ]; then
+            USER_PROMPT="راجع الملفات المعدلة في هذا الطلب وطبّق أي تحسين واضح أو إصلاح للأسطر البرمجية إن لزم الأمر."
           fi
 
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
@@ -137,7 +158,7 @@ jobs:
             FILE_CONTENT=$(printf "%s" "$RAW_JSON" | jq -r ".files[$i].content // empty")
             if [ -n "$FILE_PATH" ]; then
               mkdir -p "$(dirname "$FILE_PATH")"
-              printf "%s" "$FILE_CONTENT" > "$FILE_PATH"
+              printf "%s\n" "$FILE_CONTENT" > "$FILE_PATH"
             fi
           done
 
@@ -146,16 +167,19 @@ jobs:
           git add .
 
           if git diff --staged --quiet; then
-            gh pr comment "$PR_NUMBER" --body "ℹ️ لم يطرأ أي تغيير فعلي على الملفات بعد تنفيذ الطلب."
+            gh pr comment "$PR_NUMBER" --body "ℹ️ لم ينتج عن التنفيذ أي تغيير جديد على الملفات."
             exit 0
           fi
 
-          git commit -m "chore: apply Gemini requested changes"
+          SUMMARY=$(printf "%s" "$RAW_JSON" | jq -r '.summary // "تطبيق تعديلات بواسطة Gemini"')
+          git commit -m "chore(gemini): ${SUMMARY}"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+
           if ! git push origin "HEAD:${BRANCH}"; then
-            gh pr comment "$PR_NUMBER" --body "❌ فشل رفع التعديل (git push) إلى الفرع ${BRANCH}. تأكد من صلاحيات Read and write ومن عدم وجود حماية تمنع الرفع."
+            gh pr comment "$PR_NUMBER" --body "❌ فشل رفع التعديل (git push) إلى الفرع \`${BRANCH}\`."
             exit 1
           fi
 
-          SUMMARY=$(printf "%s" "$RAW_JSON" | jq -r '.summary // "تم تحديث الملفات."')
-          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**"$'\n\n'"${SUMMARY}"
+          gh pr comment "$PR_NUMBER" --body "✅ **تم تنفيذ التعديل ورفعه إلى الفرع بنجاح:**
+- **الفرع:** \`${BRANCH}\`
+- **الملخص:** ${SUMMARY}"
