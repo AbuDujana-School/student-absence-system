@@ -184,6 +184,7 @@
   }
   async function loadReport(fromOverride, toOverride) {
     const requestId = ++state.requestId;
+    if (typeof fromOverride === "string" || typeof toOverride === "string") state.mode = "range";
     const dates = getDates();
     if (typeof fromOverride === "string") dates.from = fromOverride;
     if (typeof toOverride === "string") dates.to = toOverride;
