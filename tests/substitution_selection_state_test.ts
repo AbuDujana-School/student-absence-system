@@ -127,7 +127,10 @@ Deno.test("WhatsApp uses the requested department/date/absent-teacher/lesson mes
 
 
 Deno.test("substitution candidates expose transparent cumulative score and workload reasons",()=>{
-  const render=section("  window.timetableDailyRenderLessons = function () {","  host.querySelectorAll(\"[data-tt-approve]\")");
+  const renderStart=reserveWorkflow.indexOf("window.timetableDailyRenderLessons = function () {");
+  const renderEnd=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-approve]")',renderStart);
+  assert(renderStart>=0&&renderEnd>renderStart,"Reserve lesson renderer must exist");
+  const render=reserveWorkflow.slice(renderStart,renderEnd);
   assert(render.includes("شفافية ترتيب المرشحين"),"Every ranked candidate must have an expandable transparency card");
   assert(render.includes("candidate.candidateScore"),"Candidate priority score must be displayed");
   assert(render.includes("candidate.pointsBalance"),"Cumulative effort balance must be displayed");
@@ -137,10 +140,12 @@ Deno.test("substitution candidates expose transparent cumulative score and workl
 });
 
 Deno.test("manual candidate changes re-run the batch planner and preserve manual choices",()=>{
-  const preview=section("  async function fetchBatchPreview()","  window.timetableDailySetBusy = function");
+  const previewStart=reserveWorkflow.indexOf("async function fetchBatchPreview()");
+  const previewEnd=reserveWorkflow.indexOf("window.timetableDailySetBusy = function",previewStart);
+  const preview=reserveWorkflow.slice(previewStart,previewEnd);
   assert(preview.includes("manualAssignments: reserveManualChoices"),"Manual choices must be sent to the server-side batch planner");
-  const select=section('host.querySelectorAll("[data-tt-substitute]")',"host.querySelectorAll(\"[data-tt-approve]\")");
+  const selectStart=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-substitute]")');
+  const selectEnd=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-approve]")',selectStart);
+  const select=reserveWorkflow.slice(selectStart,selectEnd);
   assert(select.includes("window.timetableDailyRefreshAll()"),"A manual choice must refresh the remaining virtual allocations");
-  const planner= Deno.readTextFileSync ? "" : "";
-  assert(reserveWorkflow.includes("manualAssignments:reserveManualChoices")||reserveWorkflow.includes("manualAssignments: reserveManualChoices"),"Client preview must preserve the selected manual overrides");
 });
