@@ -162,6 +162,20 @@ for (const panel of longPanelCases) {
       const metrics = await page.evaluate((id) => {
         const content = document.getElementById("adminContentSection");
         const section = document.getElementById(id);
+        const ancestors = [];
+        let node = content;
+        while (node && ancestors.length < 7) {
+          const css = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          ancestors.push({
+            tag: node.tagName, id: node.id, className: String(node.className || "").slice(0, 100),
+            height: rect.height, clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
+            display: css.display, position: css.position, flex: css.flex, flexDirection: css.flexDirection,
+            heightCss: css.height, minHeight: css.minHeight, maxHeight: css.maxHeight,
+            overflowY: css.overflowY, alignItems: css.alignItems
+          });
+          node = node.parentElement;
+        }
         return {
           contentHeight: content.clientHeight,
           contentScrollHeight: content.scrollHeight,
@@ -169,9 +183,11 @@ for (const panel of longPanelCases) {
           contentDisplay: getComputedStyle(content).display,
           sectionHeight: section.getBoundingClientRect().height,
           sectionOverflowY: getComputedStyle(section).overflowY,
-          sectionDisplay: getComputedStyle(section).display
+          sectionDisplay: getComputedStyle(section).display,
+          ancestors
         };
       }, panel.id);
+      console.log("ADMIN_SCROLL_DIAGNOSTICS", panel.id, viewport.label, JSON.stringify(metrics));
 
       expect(metrics.contentHeight, "admin content viewport must be bounded").toBeGreaterThan(100);
       expect(metrics.contentScrollHeight, "full dashboard panel must exceed the viewport").toBeGreaterThan(metrics.contentHeight);
