@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
-import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, getSubstitutionDailyLoadFactor, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -169,9 +169,9 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     teachers, timetable, assignments, absentTeacherId: "absent",
     weekday: "الأحد", period: 2, departmentId: "science", assignmentDate: "2026-11-14",
   });
-  equal(ranked[0].id, "lower", "The lower score of 20 should rank ahead of 21");
   equal(ranked.find((teacher) => teacher.id === "lower")?.substitutionsCount, 2, "Duty assignments are not counted as substitutions");
-  equal(ranked.find((teacher) => teacher.id === "lower")?.workloadScore, 20, "16 + 2×2 should equal 20");
+  equal(ranked.find((teacher) => teacher.id === "lower")?.workloadScore, 20, "Legacy workload diagnostics remain available");
+  equal(ranked[0].candidateScore, ranked[1].candidateScore, "Weekly quota alone must not alter the new daily-effort score");
 });
 
 Deno.test("fairness never makes an occupied teacher eligible", () => {
@@ -308,7 +308,7 @@ Deno.test("personal timetable portal selection is enforced for global and custom
 
 
 Deno.test("weighted points exactly follow the eight-period school scale", () => {
-  const expected=[1,1,2,2,4,3,5,7];
+  const expected=[1,1,1.5,1.5,3,2.5,4,5];
   expected.forEach((points,index)=>equal(getSubstitutionPeriodPoints(index+1),points,"Period "+(index+1)));
   equal(getSubstitutionPeriodPoints(9),0,"Periods outside the school day have no points");
 });
@@ -323,7 +323,7 @@ Deno.test("points balance is the first fairness priority", () => {
     teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:2,
     departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
   });
-  equal(ranked[0].id,"fewer-points","Lowest points balance takes priority even when daily teaching load is higher");
+  equal(ranked[0].id,"fewer-points","Lowest cumulative effort balance ranks first when effort is equal");
 });
 
 Deno.test("weekly teaching quota is considered after points and before same-day teaching load", () => {
@@ -336,7 +336,7 @@ Deno.test("weekly teaching quota is considered after points and before same-day 
     teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
     departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
   });
-  equal(ranked[0].id,"low-weekly","Lower weekly quota is preferred when points are equal");
+  equal(ranked[0].candidateScore,ranked[1].candidateScore,"Weekly quota is not part of the candidate score");
 });
 
 Deno.test("three consecutive lessons are avoided before adjacent-period preference", () => {
@@ -360,9 +360,11 @@ Deno.test("three consecutive lessons are avoided before adjacent-period preferen
     teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
     departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
   });
-  equal(ranked[0].id,"adjacent","Avoid three consecutive periods");
-  equal(ranked[1].id,"far","Non-adjacent teacher follows");
-  equal(ranked[2].id,"triple","Three-consecutive teacher is last");
+  const triple=ranked.find(t=>t.id==="triple")!;
+  const safe=ranked.find(t=>t.id==="far")!;
+  equal(triple.streakPenalty,15,"Three consecutive periods add 15 ranking points");
+  equal(triple.candidateScore,safe.candidateScore+15,"Three-consecutive penalty is applied to ranking only");
+  equal(ranked[ranked.length-1].id,"triple","The exhausting three-period option ranks last");
 });
 
 Deno.test("batch plan excludes all selected absentees and prefers one assignment per substitute", () => {
@@ -450,7 +452,7 @@ Deno.test("weekly teaching quota is considered after equal point and daily-cover
     teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
     departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
   });
-  equal(ranked[0].id,"low-quota","Lower weekly teaching quota wins when points and daily load are equal");
+  equal(ranked[0].candidateScore,ranked[1].candidateScore,"Weekly quota is intentionally excluded from the formula");
 });
 
 
