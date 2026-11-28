@@ -2593,7 +2593,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       const panel=$("timetableSubstitutionPanel");
       const archiveHost=$("subxArchiveMountArea");
       if(!$("subxEditMountArea")||!archiveHost)return false;
-      panel?.classList.add("hidden");
+      if(panel)panel.classList.add("hidden");
       $("timetableDailyActivePanel")?.classList.add("hidden");
       $("timetableDailyArchivePanel")?.classList.add("hidden");
       return true;
