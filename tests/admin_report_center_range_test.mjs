@@ -40,7 +40,7 @@ test("report date range rejects invalid and reversed dates", () => {
 });
 
 test("report action preserves the validation message for the user", () => {
-  assert.match(html, /catch\(e\)\{delete window\.__arcReportRange;if\(msg\)msg\.textContent=e\.message/);
+  assert.match(html, /catch\\s*\\(e\\)\\s*\\{\\s*delete window\\.__arcReportRange;\\s*if\\(msg\\)msg\\.textContent=e\\.message/);
 });
 
 
