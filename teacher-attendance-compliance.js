@@ -182,9 +182,11 @@
     const printButton = document.getElementById("teachersActivityPrintBtn");
     if (printButton) printButton.disabled = !rows.length;
   }
-  async function loadReport() {
+  async function loadReport(fromOverride, toOverride) {
     const requestId = ++state.requestId;
     const dates = getDates();
+    if (typeof fromOverride === "string") dates.from = fromOverride;
+    if (typeof toOverride === "string") dates.to = toOverride;
     if (!dates.from || !dates.to || dates.from > dates.to) {
       setStatus("تحقق من تاريخ البداية والنهاية.", "error"); return;
     }
@@ -200,7 +202,11 @@
     try {
       const token = appAuthSession?.token || readAppAuthToken();
       if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
-      const data = await appAuthRequest({ action:"timetable_activity_report_data", dateFrom:dates.from, dateTo:dates.to }, token);
+      const reportRequest = { action:"timetable_activity_report_data", dateFrom:dates.from, dateTo:dates.to };
+      if (typeof isAdminRecordsCenterScopedAccess === "function" && isAdminRecordsCenterScopedAccess(activeUser)) {
+        reportRequest.admin_records_center = true;
+      }
+      const data = await appAuthRequest(reportRequest, token);
       if (requestId !== state.requestId) return;
       if (!data?.version) throw new Error("لا توجد نسخة جدول أسبوعي نشطة. لا يمكن احتساب الالتزام بدقة.");
       const report = makeReport(data, dates.from, dates.to, dates.today);
