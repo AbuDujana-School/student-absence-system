@@ -29,6 +29,19 @@ export function getSubstitutionPeriodPoints(period:number):number {
   return ({1:1,2:1,3:1.5,4:1.5,5:3,6:2.5,7:4,8:5} as Record<number,number>)[period] ?? 0;
 }
 
+export function getSubstitutionDailyLoadFactor(periodCount:number):{factor:number;label:string;overloaded:boolean} {
+  const count=Math.max(0,Math.floor(Number(periodCount)||0));
+  if(count<=2)return {factor:1,label:"نصاب خفيف (حصتان أو أقل)",overloaded:false};
+  if(count===3)return {factor:1.25,label:"نصاب متوسط (3 حصص)",overloaded:false};
+  if(count===4)return {factor:1.6,label:"نصاب مرتفع (4 حصص)",overloaded:false};
+  return {factor:2.2,label:"نصاب ثقيل ("+count+" حصص) — طوارئ فقط",overloaded:true};
+}
+
+const STREAK_PENALTY_3=15;
+const STREAK_PENALTY_4_PLUS=50;
+const SAME_DAY_PENALTY=10;
+const OVERLOAD_EMERGENCY_PENALTY=1000;
+
 
 /** Strict ISO calendar-date validation; rejects normalized invalid dates such as February 30. */
 export function isValidSubstitutionDate(value:unknown):value is string {
@@ -45,12 +58,14 @@ function assignmentBelongsToDate(
   return !versionId || !assignment.versionId || assignment.versionId===versionId;
 }
 
-function hasThreeConsecutive(periods:Set<number>, target:number):boolean {
-  const occupied=new Set(periods); occupied.add(target);
-  for(let start=Math.max(1,target-2);start<=target;start++){
-    if(occupied.has(start)&&occupied.has(start+1)&&occupied.has(start+2)) return true;
+function getStreakMetrics(periods:Set<number>,target:number):{maxStreak:number;createdBridge:boolean} {
+  const occupied=new Set(periods); occupied.add(Number(target));
+  let maxStreak=0,current=0;
+  for(let period=1;period<=8;period++){
+    if(occupied.has(period)){current++;maxStreak=Math.max(maxStreak,current);}
+    else current=0;
   }
-  return false;
+  return {maxStreak,createdBridge:occupied.has(target-1)&&occupied.has(target+1)};
 }
 /** Only explicit teaching cells are lessons that need a replacement. */
 export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:string,weekday:string):SubstitutionLesson[] {
