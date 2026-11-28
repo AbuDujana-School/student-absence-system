@@ -4002,8 +4002,8 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
           <div id="teachersActivityStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-inner">
             <table class="w-full min-w-[900px] text-xs text-right">
-              <thead class="bg-slate-50 text-slate-700 font-black border-b border-slate-200"><tr><th class="p-3">م / اسم المعلم</th><th class="p-3 text-center">عدد الحصص</th><th class="p-3">رصد الغياب</th><th class="p-3">لم يرصد الغياب</th><th class="p-3 text-center">نسبة الالتزام</th></tr></thead>
-              <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 font-bold"><tr><td colspan="5" class="p-8 text-center text-slate-400">جارٍ تحميل تقرير الالتزام...</td></tr></tbody>
+              <thead class="bg-slate-50 text-slate-700 font-black border-b border-slate-200"><tr><th class="p-3 text-center">م</th><th class="p-3">اسم المعلم</th><th class="p-3 text-center">عدد الحصص المكلف بها</th><th class="p-3 text-center">نسبة الرصد</th><th class="p-3">الحصص المرصودة</th><th class="p-3">الحصص غير المرصودة</th></tr></thead>
+              <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 font-bold"><tr><td colspan="6" class="p-8 text-center text-slate-400">جارٍ تحميل تقرير الالتزام...</td></tr></tbody>
             </table>
           </div>
           <p class="text-[10px] leading-5 text-slate-500">تُحتسب الحصة مكتملة عند حفظ كشف الغياب باسم المعلم المكلف، حتى إذا لم يوجد غياب. وتُضاف حصص الاحتياط النشطة إلى حصص المعلم الأصلية، ولا تُحتسب التكليفات الملغاة.</p>
@@ -11108,7 +11108,7 @@ function renderAdminOverview() {
     refreshUrgentCategoryCounts();
     void repeatedLateStudents;
   }
-  if (canTeachers) renderTeachersActivity();
+  if (canTeachers) { void loadTeachersActivityCompliance(); }
 }
 function initAdminDashboard() {
   const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
@@ -11778,6 +11778,110 @@ async function setCategoryDutyDay(category, day) {
 
 
 /* ============ Teachers Activity Report ============ */
+
+let teachersComplianceReportData=null,teachersComplianceMode='today',teachersComplianceRequestId=0;
+function setTeachersActivityMode(mode){
+ teachersComplianceMode=mode==='range'?'range':'today';
+ const range=document.getElementById('teachersActivityRange'),todayBtn=document.getElementById('teachersActivityTodayBtn'),rangeBtn=document.getElementById('teachersActivityRangeBtn');
+ if(range)range.classList.toggle('hidden',teachersComplianceMode!=='range');
+ if(todayBtn)todayBtn.className='rounded-lg px-4 py-2 '+(teachersComplianceMode==='today'?'bg-slate-900 text-white':'text-slate-700');
+ if(rangeBtn)rangeBtn.className='rounded-lg px-4 py-2 '+(teachersComplianceMode==='range'?'bg-slate-900 text-white':'text-slate-700');
+ const today=getOmanLocalDate(),from=document.getElementById('teachersActivityFrom'),to=document.getElementById('teachersActivityTo');
+ if(teachersComplianceMode==='today'){if(from)from.value=today;if(to)to.value=today;void loadTeachersActivityCompliance();}
+ else{if(from&&!from.value)from.value=today;if(to&&!to.value)to.value=today;}
+}
+function complianceEscape(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function complianceDays(from,to){
+ const out=[],start=new Date(from+'T00:00:00Z'),end=new Date(to+'T00:00:00Z');
+ if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start>end)return out;
+ for(let t=start.getTime();t<=end.getTime();t+=86400000){const d=new Date(t),date=d.toISOString().slice(0,10);out.push({date,weekday:['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][d.getUTCDay()]});}
+ return out;
+}
+function complianceClasses(values){
+ return (Array.isArray(values)?values:[]).map(v=>typeof v==='string'?v.trim():v&&typeof v==='object'?String(v.className||v.class_name||v.class||v.name||'').trim():'').filter(Boolean);
+}
+function buildTeachersComplianceReport(payload,from,to){
+ const days=complianceDays(from,to),versions=(payload.versions||[]).slice().sort((a,b)=>String(a.activatedDate||'').localeCompare(String(b.activatedDate||'')));
+ const teachers=Array.from(new Set((payload.teachers||[]).map(n=>String(n||'').trim()).filter(Boolean)));
+ const rowsByName=new Map(teachers.map(name=>[name,{name,assigned:[],observed:[],unobserved:[]}]));
+ const byVersion=new Map();(payload.cells||[]).forEach(c=>{const k=String(c.versionId);if(!byVersion.has(k))byVersion.set(k,[]);byVersion.get(k).push(c);});
+ const versionAt=date=>versions.filter(v=>String(v.activatedDate||'')<=date).slice(-1)[0],slots=new Map();
+ const key=(date,period,cls)=>[date,Number(period),String(cls).trim()].join('|');
+ days.filter(d=>['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'].includes(d.weekday)).forEach(day=>{
+  const version=versionAt(day.date);if(!version)return;
+  (byVersion.get(String(version.id))||[]).forEach(cell=>{
+   if(cell.status!=='teaching'||cell.weekday!==day.weekday)return;
+   const teacher=String(cell.teacherName||'').trim();if(!rowsByName.has(teacher))return;
+   complianceClasses(cell.classSections).forEach(cls=>slots.set(key(day.date,cell.period,cls),{date:day.date,weekday:day.weekday,period:Number(cell.period),className:cls,teacherName:teacher}));
+  });
+ });
+ (payload.assignments||[]).filter(a=>a.assignmentType==='substitution'&&['assigned','confirmed','completed'].includes(String(a.status||'').toLowerCase())&&a.assignmentDate&&a.teacherName).forEach(a=>{
+  const date=String(a.assignmentDate),day=days.find(d=>d.date===date);if(!day||!['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'].includes(day.weekday))return;
+  complianceClasses(a.classSections).forEach(cls=>{
+   const k=key(date,a.period,cls),original=slots.get(k),absent=String(a.absentTeacherName||'').trim();
+   if(original&&absent&&original.teacherName!==absent)return;
+   if(original)slots.delete(k);
+   const substitute=String(a.teacherName||'').trim();if(rowsByName.has(substitute))slots.set(k,{date,weekday:day.weekday,period:Number(a.period),className:cls,teacherName:substitute});
+  });
+ });
+ const saved=new Set((payload.attendanceSessions||[]).map(a=>[String(a.date),Number(a.period),String(a.className||'').trim(),String(a.teacherName||'').trim()].join('|'));
+ slots.forEach(slot=>{
+  const row=rowsByName.get(slot.teacherName);if(!row)return;
+  row.assigned.push(slot);const detail=slot.weekday+' · الحصة '+slot.period+' · '+slot.className;
+  (saved.has([slot.date,slot.period,slot.className,slot.teacherName].join('|'))?row.observed:row.unobserved).push({...slot,detail});
+ });
+ const rows=Array.from(rowsByName.values()).map(r=>{
+  const sort=(a,b)=>a.date.localeCompare(b.date)||a.period-b.period||a.className.localeCompare(b.className,'ar');
+  r.assigned.sort(sort);r.observed.sort(sort);r.unobserved.sort(sort);
+  const total=r.assigned.length,observedCount=r.observed.length,unobservedCount=r.unobserved.length;
+  return {...r,total,observedCount,unobservedCount,percentage:total?observedCount/total*100:0,
+   category:!total?'لا توجد حصص مكلف بها':observedCount===total?'رصد جميع الحصص':!observedCount?'لم يرصد الغياب':'رصد بعض الحصص'};
+ }).sort((a,b)=>b.percentage-a.percentage||b.observedCount-a.observedCount||a.name.localeCompare(b.name,'ar'));
+ return {fromDate:from,toDate:to,version:payload.version||null,rows,totalTeachers:rows.length,totalAssigned:rows.reduce((n,r)=>n+r.total,0),
+  totalObserved:rows.reduce((n,r)=>n+r.observedCount,0),totalUnobserved:rows.reduce((n,r)=>n+r.unobservedCount,0),
+  allComplete:rows.filter(r=>r.total>0&&r.observedCount===r.total).length,
+  someComplete:rows.filter(r=>r.observedCount>0&&r.observedCount<r.total).length,
+  noneComplete:rows.filter(r=>r.total>0&&r.observedCount===0).length};
+}
+function renderTeachersComplianceReport(report){
+ const body=document.getElementById('teachersActivityTableBody'),summary=document.getElementById('teachersActivitySummary');if(!body)return;
+ const num=n=>Number(n||0).toLocaleString('en-US');
+ if(summary)summary.innerHTML=[['إجمالي المعلمين',report.totalTeachers],['إجمالي الحصص المكلف بها',report.totalAssigned],['الحصص المرصودة',report.totalObserved],['الحصص غير المرصودة',report.totalUnobserved],['رصد جميع الحصص',report.allComplete],['رصد بعض الحصص',report.someComplete],['لم يرصد الغياب',report.noneComplete]].map(([l,v])=>'<span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">'+complianceEscape(l)+': <b class="text-slate-900">'+num(v)+'</b></span>').join('');
+ if(!report.rows.length){body.innerHTML='<tr><td colspan="6" class="p-8 text-center text-slate-400">لا توجد بيانات معلمين في الفترة المحددة.</td></tr>';return;}
+ body.innerHTML=report.rows.map((r,i)=>{
+  const details=list=>list.length?list.map(x=>'<div class="whitespace-nowrap">'+complianceEscape(x.detail)+'</div>').join(''):'—';
+  return '<tr class="align-top hover:bg-slate-50"><td class="p-3 text-center text-slate-500">'+(i+1)+'</td><td class="p-3 font-black text-slate-800">'+complianceEscape(r.name)+'<div class="mt-1 text-[10px] text-slate-500">'+complianceEscape(r.category)+'</div></td><td class="p-3 text-center font-black tabular-nums">'+num(r.total)+'</td><td class="p-3 text-center font-black text-teal-700 tabular-nums">'+(r.total?r.percentage.toFixed(1)+'%':'—')+'</td><td class="p-3 text-[10px] leading-5 text-emerald-800">'+details(r.observed)+'</td><td class="p-3 text-[10px] leading-5 text-rose-800">'+details(r.unobserved)+'</td></tr>';
+ }).join('');
+}
+async function loadTeachersActivityCompliance(){
+ const status=document.getElementById('teachersActivityStatus'),body=document.getElementById('teachersActivityTableBody'),printBtn=document.getElementById('teachersActivityPrintBtn');
+ const tell=(msg,bad=false)=>{if(!status)return;status.textContent=msg;status.classList.remove('hidden','border-rose-200','bg-rose-50','text-rose-800','border-teal-200','bg-teal-50','text-teal-800');status.classList.add(bad?'border-rose-200':'border-teal-200',bad?'bg-rose-50':'bg-teal-50',bad?'text-rose-800':'text-teal-800');};
+ const today=getOmanLocalDate(),from=teachersComplianceMode==='today'?today:String(document.getElementById('teachersActivityFrom')?.value||''),to=teachersComplianceMode==='today'?today:String(document.getElementById('teachersActivityTo')?.value||'');
+ if(!from||!to||from>to){tell('حدد تاريخ بداية ونهاية صحيحين للتقرير.',true);return;}
+ const id=++teachersComplianceRequestId;if(body)body.innerHTML='<tr><td colspan="6" class="p-8 text-center text-slate-400">جارٍ قراءة جدول المعلمين والتفريغات المحفوظة...</td></tr>';
+ tell('جارٍ مطابقة الحصص المكلف بها مع التفريغات المحفوظة...');
+ try{
+  const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error('انتهت جلسة الدخول. سجّل الدخول مجدداً.');
+  const payload=await appAuthRequest({action:'timetable_activity_report_data',dateFrom:from,dateTo:to},token);if(id!==teachersComplianceRequestId)return;
+  const report=buildTeachersComplianceReport(payload,from,to);teachersComplianceReportData=report;window.lastTeachersActivityData=report;renderTeachersComplianceReport(report);
+  tell('اكتمل التقرير · '+(report.version?.version?'نسخة الجدول '+report.version.version:'بيانات الجدول حسب تاريخ التفعيل')+' · '+from+' إلى '+to);if(printBtn)printBtn.disabled=!report.rows.length;
+ }catch(e){if(id!==teachersComplianceRequestId)return;if(body)body.innerHTML='<tr><td colspan="6" class="p-8 text-center text-rose-700">'+complianceEscape(e?.message||'تعذر تحميل التقرير.')+'</td></tr>';tell(e?.message||'تعذر تحميل تقرير الالتزام.',true);if(printBtn)printBtn.disabled=true;}
+}
+function printTeachersActivityPDF(){
+ const data=teachersComplianceReportData;if(!data){showToast('حمّل تقرير الالتزام أولاً قبل الطباعة.','error');return;}
+ const w=window.open('','_blank');if(!w){showToast('يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.','error');return;}
+ const esc=complianceEscape,num=n=>Number(n||0).toLocaleString('en-US');
+ const rows=data.rows.map((r,i)=>{const d=list=>list.length?list.map(x=>esc(x.detail)).join('<br>'):'—';return '<tr><td class="n">'+(i+1)+'</td><td class="teacher">'+esc(r.name)+'<small>'+esc(r.category)+'</small></td><td class="n">'+num(r.total)+'</td><td class="n pct">'+(r.total?r.percentage.toFixed(1)+'%':'—')+'</td><td class="observed">'+d(r.observed)+'</td><td class="missing">'+d(r.unobserved)+'</td></tr>';}).join('');
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تقرير الالتزام برصد الغياب</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><style>'+
+ '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;color:#172b35;font:12px Tajawal,Arial,sans-serif;direction:rtl}.header{text-align:center;border:1px solid #bfd8df;border-top:5px solid #183653;padding:12px 15px;margin-bottom:10px;background:#f5fafc}.ministry{font-size:12px;font-weight:800;line-height:1.8;color:#334155}.school{font-size:18px;font-weight:900;color:#183653;margin:4px 0}.title{font-size:17px;font-weight:900;color:#0f766e;margin:4px 0}.period{font-size:12px;font-weight:800;color:#475569}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.stat{border:1px solid #d6e2e7;padding:8px;text-align:center;border-radius:7px}.stat b{display:block;font-size:18px;color:#183653}.stat span{font-size:10px;font-weight:800;color:#475569}.categories{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}.categories span{padding:6px 9px;border:1px solid #dbe5e7;border-radius:6px;font-weight:800;font-size:10px}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th{background:#183653;color:#fff;font-size:11px;padding:8px 6px;border:1px solid #d0dce2}td{border:1px solid #dbe4e8;padding:6px;font-size:10px;line-height:1.65;vertical-align:top;overflow-wrap:anywhere}tbody tr:nth-child(even){background:#f6fafb}tr{break-inside:avoid;page-break-inside:avoid}.n{text-align:center;font-weight:800}.teacher{font-size:12px;font-weight:900}.teacher small{display:block;color:#64748b;font-size:9px;margin-top:3px}.pct{text-align:center;color:#0f766e;font-weight:900}.observed{color:#166534}.missing{color:#9f1239}.signatures{display:flex;justify-content:space-between;gap:25px;margin-top:24px;font-size:12px;font-weight:900}.signatures div{width:42%;text-align:center;padding-top:9px;border-top:1px solid #64748b}.note{margin-top:10px;font-size:9px;color:#64748b;text-align:center}@media print{.header,.stat,tbody tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}}</style></head><body><main>'+
+ '<header class="header"><div class="ministry">سلطنة عُمان · وزارة التعليم · المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق</div><h1 class="school">مدرسة أبو دجانة الأنصاري للبنين (9–12)</h1><div class="title">تقرير الالتزام برصد الغياب</div><div class="period">الفترة: '+esc(data.fromDate)+' إلى '+esc(data.toDate)+'</div></header>'+
+ '<section class="stats"><div class="stat"><b>'+num(data.totalTeachers)+'</b><span>إجمالي المعلمين</span></div><div class="stat"><b>'+num(data.totalAssigned)+'</b><span>إجمالي الحصص المكلف بها</span></div><div class="stat"><b>'+num(data.totalObserved)+'</b><span>إجمالي الحصص المرصودة</span></div><div class="stat"><b>'+num(data.totalUnobserved)+'</b><span>إجمالي الحصص غير المرصودة</span></div></section>'+
+ '<div class="categories"><span>رصد جميع الحصص: '+num(data.allComplete)+'</span><span>رصد بعض الحصص: '+num(data.someComplete)+'</span><span>لم يرصد الغياب: '+num(data.noneComplete)+'</span></div>'+
+ '<table><thead><tr><th style="width:5%">م</th><th style="width:19%">اسم المعلم</th><th style="width:9%">عدد الحصص</th><th style="width:9%">نسبة الرصد</th><th style="width:29%">تفاصيل الحصص المرصودة</th><th style="width:29%">تفاصيل الحصص غير المرصودة</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+ '<footer class="signatures"><div>مساعد مدير المدرسة<br><br>الاسم والتوقيع: ................................</div><div>مدير المدرسة<br><br>الاسم والتوقيع: ................................</div></footer><div class="note">يُحتسب التفريغ بوجود سجل الحصة المحفوظ، حتى إذا كانت جميع الحالات حاضرة. يعتمد المتوقع على جدول المعلم الساري وأيام الأحد إلى الخميس.</div></main><script>window.onload=()=>setTimeout(()=>window.print(),450);<\\/script></body></html>';
+ w.document.open();w.document.write(html);w.document.close();
+}
+
 function getTeachersActivityRows(fromDate,toDate) {
   const totals=new Map(),ensure=function(name){const clean=String(name||'').trim();if(!clean)return null;if(!totals.has(clean))totals.set(clean,{name:clean,absences:0,behaviors:0,total:0});return totals.get(clean);};
   const inRange=function(key){if(!fromDate&&!toDate)return true;const m=String(key||'').match(/^(\d{4}-\d{2}-\d{2})/);if(!m)return false;return (!fromDate||m[1]>=fromDate)&&(!toDate||m[1]<=toDate);};
