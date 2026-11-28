@@ -56,3 +56,28 @@ test("all seven source handlers are registered and the original fallback remains
  const catalogEnd=html.indexOf("\nfunction reportsView()",catalogStart);
  assert.match(html.slice(catalogStart,catalogEnd),/return \[/);
 });
+
+test("every report preserves the original section PDF or print view instead of using a replacement template",()=>{
+ const registry=loadRegistry();
+ const expected={
+  absence:"printHorizontalReport",
+  behavior:"printHorizontalBehaviorReport",
+  late:"printLateFollowupReport",
+  morning:"printMorningAssemblyLatenessReport",
+  reserve:"printSubstitutionDistributionReport",
+  sa:"studentAffairsReportsView",
+  teachers:"teacherComplianceReportsView"
+ };
+ for(const [key,renderer] of Object.entries(expected)){
+  const item=registry.get(key);
+  assert.ok(item, "Missing report adapter: "+key);
+  assert.ok(item.pdfRenderer.includes(renderer), "Wrong PDF renderer for "+key);
+ }
+ const start=html.indexOf("async function reportAction(k,from,to)");
+ const end=html.indexOf("\\nfunction statsView()",start);
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end);
+ for(const renderer of ["printHorizontalReport()","printHorizontalBehaviorReport()","printLateFollowupReport()","printMorningAssemblyLatenessReport()","printSubstitutionDistributionReport()","studentAffairsReportsView(from,to)","teacherComplianceReportsView(from,to)"]){
+  assert.ok(source.includes(renderer), "Center must call the original report output: "+renderer);
+ }
+});
