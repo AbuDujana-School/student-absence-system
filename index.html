@@ -17138,7 +17138,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function canViewAdminRecords(user=activeUser){if(!user)return false;var p=user.permissions||{};return isGeneralAdminUser(user)||user.canViewAdminRecords===true||p.canViewAdminRecords===true||p.adminRecords===true||p.additionalAdminOverrides?.adminRecords===true;}
 function allowed(){return canViewAdminRecords(activeUser);}
 function tab(k){return canAccessAdminTab(k,activeUser);}
-function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}
+function rep(k){return isAdminRecordsCenterScopedAccess(activeUser)&&['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'].includes(k)?true:(k==='reportMorningAssemblyLateness'?canViewMorningAssemblyLatenessReport(activeUser):canAccessReport(k,activeUser));}
 function dateKey(k,s){if(s&&s.date)return String(s.date);return String(parseAttendanceKey(k).date||'');}
 function injectStyle(){if(document.getElementById('arcStyles'))return;var s=document.createElement('style');s.id='arcStyles';s.textContent=
 '#adminRecordsCenterModal{position:fixed;inset:0;z-index:100500;padding:clamp(8px,2vw,22px);display:flex;background:rgba(7,19,33,.78);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}'+
