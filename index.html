@@ -2595,6 +2595,36 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
  #loginView.school-login *,#loginView.school-login *:before,#loginView.school-login *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
 </style>
+<style id="admin-dashboard-scroll-container-fix">
+/* Keep the admin panel within the viewport and give its content a real, shrinkable scroll area. */
+#adminModal > .glass-card{
+  height:min(92vh,900px);
+  height:min(92dvh,900px);
+  max-height:calc(100dvh - 32px);
+  min-height:0;
+}
+#adminModal > .glass-card > .bg-emerald-900{
+  flex:0 0 auto;
+}
+#adminModal #adminContentSection{
+  flex:1 1 0%;
+  min-height:0;
+  max-height:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+}
+@media(max-width:640px){
+  #adminModal{align-items:center;overflow-y:auto;}
+  #adminModal > .glass-card{
+    height:min(92vh,900px);
+    height:min(92dvh,900px);
+    max-height:calc(100dvh - 20px);
+    border-radius:1.25rem;
+  }
+}
+</style>
 </head>
 <body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
