@@ -2640,6 +2640,18 @@ body.login-mode>main{display:grid;place-items:center;align-content:center;width:
   }
 }
 </style>
+
+<style id="universal-app-scroll-recovery">
+html{min-height:100%;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important}
+body:not(.login-mode){min-height:100vh!important;height:auto!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:auto!important}
+body:not(.login-mode)>main{flex:1 0 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important}
+#studentAffairsView,#substitutionView,#teacherTimetableView,#morningAssemblyLatenessView,#attendanceView,#behaviorSessionView,#behaviorClassesView,#dutyView,#dutyClassesView,#classesView{min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important}
+#adminModal:not(.hidden){position:fixed!important;inset:0!important;z-index:2147483000!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;box-sizing:border-box!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-height:none!important;padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom))!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important}
+#adminModal:not(.hidden)>.glass-card{box-sizing:border-box!important;display:flex!important;flex:0 0 auto!important;flex-direction:column!important;width:min(100%,1152px)!important;height:calc(100vh - 20px)!important;height:calc(100dvh - max(20px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px))!important;min-height:0!important;max-height:calc(100vh - 20px)!important;max-height:calc(100dvh - max(20px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px))!important;margin:0 auto!important;overflow:hidden!important}
+#adminModal #adminContentSection:not(.hidden){display:block!important;flex:1 1 0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;position:relative!important}
+#adminModal #adminAuthSection:not(.hidden){flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+@media(max-width:640px){#adminModal:not(.hidden){padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))!important}#adminModal:not(.hidden)>.glass-card{width:100%!important;height:calc(100vh - 16px)!important;height:calc(100dvh - max(16px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))!important;max-height:calc(100vh - 16px)!important;max-height:calc(100dvh - max(16px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))!important}}
+</style>
 </head>
 <body class="login-mode min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
