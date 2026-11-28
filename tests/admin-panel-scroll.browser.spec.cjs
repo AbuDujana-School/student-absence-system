@@ -176,6 +176,31 @@ for (const panel of longPanelCases) {
           });
           node = node.parentElement;
         }
+        const sectionAncestors = [];
+        node = section;
+        while (node && node !== content && sectionAncestors.length < 8) {
+          const css = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          sectionAncestors.push({
+            tag: node.tagName, id: node.id, className: String(node.className || "").slice(0, 120),
+            height: rect.height, clientHeight: node.clientHeight, scrollHeight: node.scrollHeight,
+            display: css.display, position: css.position, flex: css.flex, flexDirection: css.flexDirection,
+            heightCss: css.height, minHeight: css.minHeight, maxHeight: css.maxHeight,
+            overflowY: css.overflowY, alignItems: css.alignItems
+          });
+          node = node.parentElement;
+        }
+        const card = content.closest(".glass-card");
+        const cardChildren = Array.from(card.children).map(child => {
+          const css = getComputedStyle(child);
+          const rect = child.getBoundingClientRect();
+          return {
+            tag: child.tagName, id: child.id, className: String(child.className || "").slice(0, 120),
+            height: rect.height, clientHeight: child.clientHeight, scrollHeight: child.scrollHeight,
+            display: css.display, flex: css.flex, flexDirection: css.flexDirection,
+            position: css.position, overflowY: css.overflowY
+          };
+        });
         return {
           contentHeight: content.clientHeight,
           contentScrollHeight: content.scrollHeight,
@@ -184,7 +209,7 @@ for (const panel of longPanelCases) {
           sectionHeight: section.getBoundingClientRect().height,
           sectionOverflowY: getComputedStyle(section).overflowY,
           sectionDisplay: getComputedStyle(section).display,
-          ancestors
+          ancestors, sectionAncestors, cardChildren
         };
       }, panel.id);
       console.log("ADMIN_SCROLL_DIAGNOSTICS", panel.id, viewport.label, JSON.stringify(metrics));
