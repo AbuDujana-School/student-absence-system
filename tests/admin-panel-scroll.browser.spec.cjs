@@ -139,6 +139,19 @@ for (const viewport of viewports) {
     await page.mouse.move(10, viewport.height - 10);
     await page.mouse.wheel(0, 500);
     await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+
+    // On phones, also swipe the overlay padding to validate its fallback touch surface.
+    if (viewport.width < 640) {
+      await page.locator("#adminModal").evaluate(el => { el.scrollTop = 0; });
+      const cdp = await context.newCDPSession(page);
+      const overlayX = 8;
+      const overlayY = Math.max(24, viewport.height - 30);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: overlayX, y: overlayY, id: 2 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: overlayX, y: overlayY - 220, id: 2 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect.poll(() => page.locator("#adminModal").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+      await cdp.detach();
+    }
     await page.screenshot({
       path: path.join(__dirname, "..", "test-results", `admin-scroll-${viewport.width}x${viewport.height}.png`),
       fullPage: true
