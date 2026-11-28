@@ -23,6 +23,7 @@ on:
       - "tests/pwa_update_strategy_test.mjs"
       - "tests/pwa_responsive_login.spec.cjs"
       - ".github/workflows/pwa-responsive-login-tests.yml"
+      - "tests/admin-panel-scroll.browser.spec.cjs"
   workflow_dispatch:
 
 permissions:
