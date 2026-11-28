@@ -125,7 +125,7 @@ test("new login credentials remain printable when popups are blocked", async ({ 
     '<button id="printPinButton" type="button" onclick="printPinCredentials()">طباعة بيانات الدخول</button>'
   );
   await page.addScriptTag({ content:
-    "window.showToast = function () {}; window.open = function () { return null; };\\n" + printPinFunction
+    "window.showToast = function () {}; window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunction
   });
   await page.locator("#printPinButton").click();
   const frame = page.locator('iframe[title="طباعة بيانات الدخول"]');
