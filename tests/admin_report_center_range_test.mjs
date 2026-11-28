@@ -108,14 +108,15 @@ test("teacher activity report counts normalized multi-type behavior records", ()
 });
 
 
-test("administrative records center mounts the timetable-backed compliance report instead of printing stale local totals", () => {
+test("administrative records center mounts its own compliance report without moving the dashboard panel", () => {
   assert.ok(html.includes("async function teacherComplianceReportsView(from,to)"));
-  assert.ok(html.includes("await window.loadTeachersActivityCompliance(from,to)"));
+  assert.ok(html.includes("window.mountAdminTeacherComplianceReport(host,from,to)"));
   assert.ok(html.includes("await teacherComplianceReportsView(from,to)"));
-  assert.ok(html.includes("dashboardTeachersActivity"));
-  assert.ok(complianceModule.includes("timetable_activity_report_data"));
-  assert.ok(complianceModule.includes("reportRequest.admin_records_center = true"));
+  assert.ok(!html.includes("appendChild(panel);"));
+  assert.ok(!html.includes("document.getElementById('dashboardTeachersActivity')"));
+  assert.ok(complianceModule.includes("window.mountAdminTeacherComplianceReport = mountReport"));
   assert.ok(complianceModule.includes("async function loadReport(fromOverride, toOverride)"));
+  assert.ok(complianceModule.includes("data.attendance"));
 });
 
 
@@ -161,4 +162,16 @@ test("compliance report marks only missing lesson slots as pending", () => {
   assert.equal(report.totalLessons, 2);
   assert.equal(report.completeLessons, 1);
   assert.equal(report.pendingLessons, 1);
+});
+
+
+test("compliance reader obtains authoritative attendance sessions from the backend for the selected date window", () => {
+  const edge = fs.readFileSync(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url), "utf8");
+  const start = edge.indexOf('if (body.action === "timetable_activity_report_data")');
+  const end = edge.indexOf('if (body.action === "timetable_teacher_weekly_get")', start);
+  assert.ok(start >= 0 && end > start);
+  const source = edge.slice(start, end);
+  assert.match(source, /db\.from\("attendance"\)/);
+  assert.match(source, /\.gte\("date_str", dateFrom\)\.lte\("date_str", dateTo\)/);
+  assert.match(source, /attendance:\s*\(rawAttendance\s*\|\|\s*\[\]\)\.map/);
 });
