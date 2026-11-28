@@ -2591,9 +2591,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       // The unified reserve workspace owns its editor and archive mounts.
       // The legacy timetable panel is optional and is not part of the current DOM.
       const panel=$("timetableSubstitutionPanel");
-      const editHost=$("subxEditMountArea");
       const archiveHost=$("subxArchiveMountArea");
-      if(!editHost||!archiveHost)return false;
+      if(!$("subxEditMountArea")||!archiveHost)return false;
       panel?.classList.add("hidden");
       $("timetableDailyActivePanel")?.classList.add("hidden");
       $("timetableDailyArchivePanel")?.classList.add("hidden");
