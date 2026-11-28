@@ -17235,8 +17235,7 @@ async function teacherComplianceReportsView(from,to){
  view='teacherComplianceReports';head('تقرير الالتزام برصد الغياب','مطابقة الجدول الأسبوعي وتكليفات الاحتياط مع سجلات الرصد الفعلية',true);
  modal.querySelector('#arcBody').innerHTML='<div id="arcTeacherComplianceHost" class="min-w-0"></div>';
  var host=modal.querySelector('#arcTeacherComplianceHost');
- await window.mountAdminTeacherComplianceReport(host);
- await window.loadTeachersActivityCompliance(from,to);
+ await window.mountAdminTeacherComplianceReport(host,from,to);
 }
 async function studentAffairsReportsView(from,to){
  var panel=document.getElementById('repStudentAffairsPanel');
