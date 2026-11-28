@@ -1748,6 +1748,8 @@ async function handle(req: Request) {
       for(const row of assignmentRows||[]){
         if(String(row.assignment_type||"")!=="substitution"||String(row.status||"")==="cancelled")continue;
         const reason=String(row.absence_reason||"").trim();
+        const rowDate=String(row.assignment_date||"");
+        if(date&&rowDate&&rowDate>date)continue;
         if(!/طارئ/.test(reason))continue;
         const absentName=String(row.absent_teacher_name||"").trim();
         const absenceDate=String(row.assignment_date||"");
@@ -1761,7 +1763,8 @@ async function handle(req: Request) {
           ...[...dates].map(date=>({date,kind:"bonus" as const})),
           ...(assignmentRows||[]).filter((row:any)=>String(row.assignment_type||"")==="substitution"&&
             String(row.status||"")!=="cancelled"&&String(row.teacher_name||"")===teacherName&&
-            String(row.assignment_date||"")).map((row:any)=>({date:String(row.assignment_date),kind:"cover" as const})),
+            String(row.assignment_date||"")&&(!date||String(row.assignment_date)<=date))
+            .map((row:any)=>({date:String(row.assignment_date),kind:"cover" as const})),
         ].sort((x,y)=>x.date.localeCompare(y.date)||(x.kind===y.kind?0:x.kind==="bonus"?-1:1));
         let balance=0;
         for(const event of timeline)balance=event.kind==="bonus"?balance+2:Math.max(0,balance-1);
