@@ -18,21 +18,44 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Run Gemini PR Review
+      - name: Review PR with Gemini API
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "Missing GEMINI_API_KEY secret"
+            exit 1
+          fi
+
           DIFF=$(git diff origin/main...HEAD)
           if [ -z "$DIFF" ]; then
-            echo "No diff found."
+            echo "No diff found"
             exit 0
           fi
-          REVIEW=$(printf "Review this pull request diff carefully and give clear, concise feedback on bugs, edge cases, security, and maintainability:\n\n%s" "$DIFF" | npx -y @google/gemini-cli)
+
+          SHORT_DIFF=$(printf "%s" "$DIFF" | head -c 12000)
+
+          PAYLOAD=$(jq -n --arg diff "$SHORT_DIFF" '{
+            contents: [{
+              parts: [{
+                text: ("Review this pull request diff concisely in Arabic or English, focusing on bugs, edge cases, security, and improvements:\n\n" + $diff)
+              }]
+            }]
+          }')
+
+          RESPONSE=$(curl -sS -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          REVIEW=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+
+          if [ -z "$REVIEW" ]; then
+            echo "Gemini API response error:"
+            printf "%s\n" "$RESPONSE"
+            exit 1
+          fi
+
           gh pr comment "$PR_NUMBER" --body "$REVIEW"
