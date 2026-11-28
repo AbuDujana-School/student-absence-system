@@ -113,24 +113,27 @@
       }
     }
 
-    const saved = new Map();
-    Object.entries(db?.attendance || {}).forEach(([key, session]) => {
+    // Read the authoritative attendance sessions returned by the report API.
+    // A saved register is complete when its date/class/period slot exists; the
+    // person who submitted it may be a delegated recorder and must not turn a
+    // genuinely recorded lesson into a false "not recorded" result.
+    const saved = new Set();
+    (Array.isArray(data.attendance) ? data.attendance : []).forEach(session => {
       if (!session || typeof session !== "object") return;
-      const parsed = typeof parseAttendanceKey === "function" ? parseAttendanceKey(key) : null;
-      const date = String(parsed?.date || "");
-      const className = String(session.className || parsed?.className || "");
-      const period = Number(session.period || parsed?.period);
+      const date = String(session.date || "");
+      const className = String(session.className || "");
+      const period = Number(session.period);
       if (!date || date < from || date > to || date > today || !className || !Number.isInteger(period)) return;
-      saved.set(slotKey(date, period, className), normalize(session.teacher));
+      saved.add(slotKey(date, period, className));
     });
 
     const rows = [];
     for (const item of expected.values()) {
       const complete = [], pending = [];
       for (const [key, slot] of item.slots) {
-        const savedTeacher = saved.get(key);
+        const isRecorded = saved.has(key);
         const label = slot.className + " — الحصة " + slot.period;
-        if (savedTeacher && savedTeacher === normalize(item.name)) complete.push(label);
+        if (isRecorded) complete.push(label);
         else pending.push(label);
       }
       const total = complete.length + pending.length;
@@ -213,7 +216,7 @@
       const report = makeReport(data, dates.from, dates.to, dates.today);
       state.lastReport = report;
       render(report);
-      setStatus("تم تحديث التقرير. الحصة مكتملة فقط إذا وُجد سجل حفظ للحصة وكان اسم المعلم المسجل مطابقاً للمعلم المكلف.", "success");
+      setStatus("تم تحديث التقرير بالرجوع إلى سجلات الحضور المحفوظة. تُعد الحصة مرصودة عند وجود سجل مطابق للتاريخ والصف والحصة، بصرف النظر عن حساب من حفظ السجل.", "success");
     } catch (error) {
       if (requestId !== state.requestId) return;
       if (body) body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-rose-700">'+esc(error?.message || "تعذر تحميل التقرير.")+'</td></tr>';
