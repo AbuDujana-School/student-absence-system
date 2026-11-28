@@ -105,7 +105,7 @@ async function handle(req:Request) {
   const action=String(body?.action || "");
   if (action === "report") {
     const adminRecordsCenterAccess = body?.admin_records_center === true && hasAdminRecordsCenterAccess(principal.type, principal.permissions, principal.type === "admin");
-    if (!canViewMorningLatenessReport({principalType:principal.type,nonDutyPermission:principal.permissions.morningAssemblyLatenessNonDuty === true,customPermission:principal.permissions.morningAssemblyLateness === true,adminRecordsCenterAccess})) {
+    if (!adminRecordsCenterAccess && !canViewMorningLatenessReport({principalType:principal.type,nonDutyPermission:principal.permissions.morningAssemblyLatenessNonDuty === true,customPermission:principal.permissions.morningAssemblyLateness === true})) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
