@@ -147,7 +147,7 @@
     }
     rows.sort((a,b) => a.percentage - b.percentage || b.pending.length - a.pending.length || a.name.localeCompare(b.name,"ar"));
     return {
-      rows, totalLessons: rows.reduce((sum,row)=>sum+row.total,0),
+      rows, teacherCount: teachers.length, totalLessons: rows.reduce((sum,row)=>sum+row.total,0),
       completeLessons: rows.reduce((sum,row)=>sum+row.complete.length,0),
       pendingLessons: rows.reduce((sum,row)=>sum+row.pending.length,0),
       from, to, version: data.version,
