@@ -124,3 +124,28 @@ Deno.test("WhatsApp uses the requested department/date/absent-teacher/lesson mes
   assert(!share.includes("dailyTeachingCount"), "The WhatsApp message must not append teaching-load details");
   assert(!share.includes("إدارة المدرسة"), "The WhatsApp message must not append the old closing line");
 });
+
+
+Deno.test("substitution candidates expose transparent cumulative score and workload reasons",()=>{
+  const renderStart=reserveWorkflow.indexOf("window.timetableDailyRenderLessons = function () {");
+  const renderEnd=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-approve]")',renderStart);
+  assert(renderStart>=0&&renderEnd>renderStart,"Reserve lesson renderer must exist");
+  const render=reserveWorkflow.slice(renderStart,renderEnd);
+  assert(render.includes("شفافية ترتيب المرشحين"),"Every ranked candidate must have an expandable transparency card");
+  assert(render.includes("candidate.candidateScore"),"Candidate priority score must be displayed");
+  assert(render.includes("candidate.pointsBalance"),"Cumulative effort balance must be displayed");
+  assert(render.includes("candidate.dailyTeachingCount"),"Daily teaching load must be displayed");
+  assert(render.includes("candidate.streakStatus"),"Consecutive-period status must be displayed");
+  assert(render.includes("candidate.reasons"),"The reason for the candidate ranking must be displayed");
+});
+
+Deno.test("manual candidate changes re-run the batch planner and preserve manual choices",()=>{
+  const previewStart=reserveWorkflow.indexOf("async function fetchBatchPreview()");
+  const previewEnd=reserveWorkflow.indexOf("window.timetableDailySetBusy = function",previewStart);
+  const preview=reserveWorkflow.slice(previewStart,previewEnd);
+  assert(preview.includes("manualAssignments: reserveManualChoices"),"Manual choices must be sent to the server-side batch planner");
+  const selectStart=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-substitute]")');
+  const selectEnd=reserveWorkflow.indexOf('host.querySelectorAll("[data-tt-approve]")',selectStart);
+  const select=reserveWorkflow.slice(selectStart,selectEnd);
+  assert(select.includes("window.timetableDailyRefreshAll()"),"A manual choice must refresh the remaining virtual allocations");
+});
