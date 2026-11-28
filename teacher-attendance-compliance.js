@@ -26,14 +26,14 @@
     return { from, to, today };
   }
   function setStatus(message, kind) {
-    const el = el("teachersActivityStatus");
-    if (!el) return;
-    el.textContent = message;
-    el.className = "rounded-xl border px-4 py-3 text-xs font-bold " +
+    const node = el("teachersActivityStatus");
+    if (!node) return;
+    node.textContent = message;
+    node.className = "rounded-xl border px-4 py-3 text-xs font-bold " +
       (kind === "error" ? "border-rose-200 bg-rose-50 text-rose-800" :
        kind === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" :
        "border-sky-200 bg-sky-50 text-sky-800");
-    el.classList.remove("hidden");
+    node.classList.remove("hidden");
   }
   function setMode(mode) {
     state.mode = mode === "range" ? "range" : "today";
@@ -357,7 +357,7 @@
     if (!el("teachersActivityReportHeader")) {
       const header = document.createElement("section");
       header.id = domId("teachersActivityReportHeader");
-      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="${domId('teachersActivityHeaderPeriod')}"></div>';
+      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
       summary.parentElement.insertBefore(header, summary);
     }
     if (!el("teachersActivityKpis")) {
