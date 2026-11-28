@@ -124,7 +124,7 @@ test("new login credentials remain printable when popups are blocked", async ({ 
   await page.setContent('<div id="pinDisplayModal" data-pin="731946" data-name="Test Teacher"></div>');
   await page.addScriptTag({ content:
     "window.__pinToasts = []; window.showToast = function (message) { window.__pinToasts.push(message); }; " +
-    "window.open = function () { return null; }; window.setTimeout = function () { return 1; };\\n" + printPinFunctionGlobal
+    "window.open = function () { return null; }; window.setTimeout = function () { return 1; }; " + printPinFunctionGlobal
   });
   const before = await page.evaluate(() => ({
     functionType: typeof window.printPinCredentials,
