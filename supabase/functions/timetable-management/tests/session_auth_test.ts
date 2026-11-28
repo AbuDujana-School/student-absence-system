@@ -640,3 +640,42 @@ Deno.test("Additional Admin alone does not grant the admin-records reserve repor
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, "admin_records_center:timetable_substitution_report");
   if (principal !== null) throw new Error("Additional Admin alone must not gain report-only access");
 });
+
+
+Deno.test("administrative records center gets read-only teacher compliance data without timetable or reserve management", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher", permissions: { adminRecords: true } },
+    access: false,
+    reserve: false,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "admin_records_center:timetable_activity_report_data",
+  );
+  if (principal?.type !== "teacher" || principal.adminRecordsCenterReportOnly !== true || principal.reportReadOnly !== true) {
+    throw new Error("Records-center report grant did not produce the narrow read-only principal");
+  }
+  if (principal.portalOnly === true || principal.reserveAccess === true) {
+    throw new Error("Records-center report grant was mixed with a portal or reserve grant");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_save", principal.portalOnly, principal.reserveAccess)) {
+    throw new Error("Records-center report-only principal gained reserve mutation access");
+  }
+  if (calls.some(call => call.startsWith("access:") || call.startsWith("schoolwide-stats:"))) {
+    throw new Error("Read-only report authorization performed unrelated timetable permission reads");
+  }
+});
+
+Deno.test("teacher without administrative records grant cannot receive center-only compliance principal", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher", permissions: {} },
+    access: false,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "admin_records_center:timetable_activity_report_data",
+  );
+  if (principal !== null) throw new Error("Teacher without records-center permission was accepted");
+});

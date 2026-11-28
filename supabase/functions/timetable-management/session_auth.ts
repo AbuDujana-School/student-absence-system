@@ -119,6 +119,9 @@ export async function resolveTimetablePrincipal(
   if (requestedAction === "admin_records_center:timetable_substitution_report" && hasAdminRecordsCenterGrant) {
     return { type, name, permissions, reportReadOnly: true, adminRecordsCenterReportOnly: true };
   }
+  if (requestedAction === "admin_records_center:timetable_activity_report_data" && hasAdminRecordsCenterGrant) {
+    return { type, name, permissions, reportReadOnly: true, adminRecordsCenterReportOnly: true };
+  }
   if (requestedAction === "timetable_substitution_report" && permissions.reportSubstitutionDistribution === true) {
     return { type, name, permissions, reportReadOnly: true };
   }

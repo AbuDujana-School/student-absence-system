@@ -358,8 +358,10 @@ async function handle(req: Request) {
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
   const action = String(body.action || "");
-  const authAction = action === "timetable_substitution_report" && body.admin_records_center === true
-    ? "admin_records_center:timetable_substitution_report" : action;
+  const authAction = body.admin_records_center === true && action === "timetable_substitution_report"
+    ? "admin_records_center:timetable_substitution_report"
+    : body.admin_records_center === true && action === "timetable_activity_report_data"
+      ? "admin_records_center:timetable_activity_report_data" : action;
   const principal = await requirePrincipal(req, authAction);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
   if (principal.type === "admin" && action.startsWith("timetable_substitution_") && action !== "timetable_substitution_report") {
